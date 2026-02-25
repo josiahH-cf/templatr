@@ -120,10 +120,6 @@ class TemplateEditor(QDialog):
         self.description_edit.setPlaceholderText("Short description (optional)")
         form.addRow("Description:", self.description_edit)
         
-        self.trigger_edit = QLineEdit()
-        self.trigger_edit.setPlaceholderText(":trigger (for Espanso, optional)")
-        form.addRow("Trigger:", self.trigger_edit)
-        
         # Folder selection
         self.folder_combo = QComboBox()
         self._populate_folders()
@@ -222,7 +218,6 @@ class TemplateEditor(QDialog):
     def _load_template(self, template: Template):
         self.name_edit.setText(template.name)
         self.description_edit.setText(template.description)
-        self.trigger_edit.setText(template.trigger)
         self.content_edit.setPlainText(template.content)
         self._refresh_var_list()
         self._refresh_refinements_list()
@@ -344,7 +339,6 @@ class TemplateEditor(QDialog):
         if self.template:
             self.template.name = name
             self.template.description = self.description_edit.text().strip()
-            self.template.trigger = self.trigger_edit.text().strip()
             self.template.content = content
             self.template.variables = self.variables
             self.template.refinements = self.refinements
@@ -353,7 +347,6 @@ class TemplateEditor(QDialog):
             template = Template(
                 name=name,
                 description=self.description_edit.text().strip(),
-                trigger=self.trigger_edit.text().strip(),
                 content=content,
                 variables=self.variables,
                 refinements=self.refinements,
