@@ -1,27 +1,35 @@
 # Project
 
-<!-- Replace: project name, one-line description, primary language/framework -->
+- Project name: Automatr
+- Description: A local-model prompt workflow and prompt optimizer desktop app with reusable templates.
+- Primary language/framework: Python with PyQt6
 
 # Build
 
-<!-- Replace with actual build steps for your project -->
-
-- Install: `[install step]`
-- Build: `[build step]`
-- Test (all): `[test step]`
-- Test (single): `[single test step with placeholder]`
-- Lint: `[lint step]`
-- Format: `[format step]`
-- Type-check: `[type-check step, if applicable]`
+- Install: `./install.sh` (recommended) or `pip install -e .` / `pip install -e .[dev]` for development
+- Build: `not applicable` (setuptools package, no separate build step required for local development)
+- Test (all): `pytest`
+- Test (single): `pytest path/to/test_file.py::test_name`
+- Lint: `ruff check .`
+- Format: `black .`
+- Type-check: `not applicable`
 
 # Architecture
 
-<!-- Replace with 5–15 lines mapping key directories to responsibilities -->
+- `automatr/`: Main Python package and app entrypoint.
+- `automatr/core/`: Core configuration, template handling, and user feedback utilities.
+- `automatr/integrations/`: External system integrations (LLM runtime, Espanso sync).
+- `automatr/ui/`: PyQt6 user interface screens and interaction flows.
+- `templates/`: Built-in prompt template JSON files shipped with the app.
+- `scripts/`: Repository utility scripts (maintenance and template tooling).
+- `.github/`: CI automation, issue/PR templates, and agent guidance files.
+- `.claude/` and `.codex/`: Agent tooling configuration, plans, and command definitions.
+- `workflow/`, `tasks/`, `specs/`, `decisions/`: Development lifecycle docs, execution plans, specs, and decision records.
 
 # Conventions
 
-- Functions and variables: [naming convention]
-- Files and directories: [naming convention]
+- Functions and variables: standard Python `snake_case` (classes use `PascalCase`)
+- Files and directories: standard Python module naming with lowercase and `snake_case` where needed
 - Prefer explicit error handling over silent failures
 - No dead code — remove unused imports, variables, and functions
 - Every public function has a doc comment
