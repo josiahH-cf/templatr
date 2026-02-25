@@ -41,7 +41,6 @@ from automatr.core.config import get_config, save_config
 from automatr.core.feedback import get_feedback_manager
 from automatr.core.templates import Template, get_template_manager
 from automatr.integrations.llm import get_llm_client, get_llm_server
-from automatr.integrations.espanso import get_espanso_manager
 from automatr.ui.theme import get_theme_stylesheet
 from automatr.ui.template_editor import TemplateEditor
 from automatr.ui.llm_settings import LLMSettingsDialog
@@ -296,13 +295,6 @@ class MainWindow(QMainWindow):
         
         file_menu.addSeparator()
         
-        sync_action = QAction("&Sync to Espanso", self)
-        sync_action.setShortcut(QKeySequence("Ctrl+E"))
-        sync_action.triggered.connect(self._sync_espanso)
-        file_menu.addAction(sync_action)
-        
-        file_menu.addSeparator()
-        
         quit_action = QAction("&Quit", self)
         quit_action.setShortcut(QKeySequence.StandardKey.Quit)
         quit_action.triggered.connect(self.close)
@@ -421,22 +413,6 @@ class MainWindow(QMainWindow):
     def _reset_font(self):
         """Reset font size to default (13pt)."""
         self._apply_font_size(13)
-    
-    def _sync_espanso(self):
-        """Sync templates to Espanso."""
-        manager = get_espanso_manager()
-        count = manager.sync()
-        
-        if count > 0:
-            self.status_bar.showMessage(f"Synced {count} templates to Espanso", 3000)
-            QMessageBox.information(
-                self,
-                "Espanso Sync",
-                f"Successfully synced {count} templates to Espanso.\n\n"
-                "Restart Espanso to apply changes.",
-            )
-        else:
-            self.status_bar.showMessage("No templates to sync", 3000)
     
     def _start_server(self):
         """Start the LLM server."""
@@ -1327,48 +1303,23 @@ class MainWindow(QMainWindow):
         if not self.current_template:
             return
         
-        # Build confirmation message
-        message = f"Are you sure you want to delete '{self.current_template.name}'?"
-        if self.current_template.trigger:
-            message += f"\n\nThis template has an Espanso trigger ({self.current_template.trigger}) which will be removed."
-        
         reply = QMessageBox.question(
             self,
             "Delete Template",
-            message,
+            f"Are you sure you want to delete '{self.current_template.name}'?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         
         if reply == QMessageBox.StandardButton.Yes:
             manager = get_template_manager()
-            had_trigger = bool(self.current_template.trigger)
-            
+
             if manager.delete(self.current_template):
                 self.current_template = None
                 self.variable_form.clear()
                 self.generate_btn.setEnabled(False)
                 self.render_template_btn.setEnabled(False)
                 self._load_templates()
-                
-                # Auto-sync Espanso if enabled and template had a trigger
-                config = get_config()
-                if had_trigger and config.espanso.enabled and config.espanso.auto_sync:
-                    espanso = get_espanso_manager()
-                    if espanso.is_available():
-                        try:
-                            espanso.sync()
-                            self.status_bar.showMessage("Template deleted and Espanso synced", 3000)
-                        except Exception as e:
-                            QMessageBox.warning(
-                                self,
-                                "Espanso Sync Failed",
-                                f"Template deleted, but Espanso sync failed:\n{e}",
-                            )
-                            self.status_bar.showMessage("Template deleted (Espanso sync failed)", 3000)
-                    else:
-                        self.status_bar.showMessage("Template deleted", 3000)
-                else:
-                    self.status_bar.showMessage("Template deleted", 3000)
+                self.status_bar.showMessage("Template deleted", 3000)
             else:
                 QMessageBox.warning(
                     self,
@@ -1382,22 +1333,6 @@ class MainWindow(QMainWindow):
         # Re-select the saved template in tree
         self._select_template_in_tree(template.name)
         
-        # Auto-sync Espanso if enabled and template has a trigger
-        config = get_config()
-        if template.trigger and config.espanso.enabled and config.espanso.auto_sync:
-            espanso = get_espanso_manager()
-            if espanso.is_available():
-                try:
-                    espanso.sync()
-                    self.status_bar.showMessage(f"Template saved and Espanso synced", 3000)
-                except Exception as e:
-                    QMessageBox.warning(
-                        self,
-                        "Espanso Sync Failed",
-                        f"Template saved, but Espanso sync failed:\n{e}",
-                    )
-                    self.status_bar.showMessage("Template saved (Espanso sync failed)", 3000)
-    
     def _select_template_in_tree(self, template_name: str):
         """Select a template in the tree by name."""
         def find_in_item(item: QTreeWidgetItem) -> bool:
