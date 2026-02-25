@@ -1,29 +1,31 @@
 # Copilot Instructions
 
-## Core Principle
-Do the simplest thing that could work. Never over-engineer.
+## Project Standards
 
-## When Adding Features
-1. Understand the existing code first
-2. Make the smallest change that achieves the goal
-3. Reuse existing patterns and utilities
-4. Add new code near related code
-5. Prefer editing existing files over creating new ones
+- Read `/AGENTS.md` before starting any task — it defines the project's conventions, testing rules, commit practices, and review expectations
 
-## When Planning
-- Break work into small, concrete steps
-- Each step should be independently testable
-- If a plan feels complex, simplify it
-- Ask: "What's the minimal change needed?"
+## Completions
 
-## Code Style
-- Match the existing project style
-- Keep functions short and focused
-- Use clear, descriptive names
-- No unnecessary abstractions
+- Match naming conventions and patterns in the file being edited
+- Prefer explicit types over inferred when the language supports both
+- Do not generate placeholder or TODO comments
 
-## What to Avoid
-- Creating new files when editing existing ones works
-- Adding layers of abstraction "for flexibility"
-- Solving problems that don't exist yet
-- Complex patterns when simple ones work
+## Code Review
+
+- Flag functions over 50 lines
+- Flag nesting deeper than 3 levels
+- Flag missing error handling on I/O operations
+- Flag tests that assert only the happy path
+- Flag hardcoded values that should be configuration
+- Verify every acceptance criterion from the linked spec has a test
+
+## PR Descriptions
+
+- State what changed, why, and how to verify
+- Link to the spec in /specs/ if one exists
+- List files changed, grouped by concern
+
+## Coding Agent
+
+- Read the linked spec before starting
+- Do not modify files outside the scope described in the issue

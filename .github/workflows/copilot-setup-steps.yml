@@ -1,0 +1,37 @@
+name: "Copilot Setup Steps"
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup language runtime
+        run: |
+          # Replace with runtime setup (e.g., setup-node, setup-python)
+          # Or remove this step if no runtime setup is needed
+          echo "Replace with language runtime setup or remove step"
+
+      - name: Install dependencies
+        run: |
+          # Replace with install step from AGENTS.md
+          echo "Replace with your install step"
+
+      - name: Validate environment
+        run: |
+          # Replace with build + lint + test steps from AGENTS.md
+          echo "Replace with your build step"
+          echo "Replace with your lint step"
+          echo "Replace with your test step"

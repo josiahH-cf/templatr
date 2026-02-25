@@ -1,49 +1,10 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-*.egg
+# NOTE: These contents should be appended to the existing file.
 
-# Virtual environments
-.venv/
-venv/
-ENV/
+# Agent personal overrides
+CLAUDE.local.md
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
+# Claude session artifacts
+.claude/plans/
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Project specific
-*.log
-
-# Model files (large, shouldn't be committed)
-*.gguf
-*.ggml
-*.bin
-models/
-
-# Local configuration overrides
-config.local.json
-*.local.json
+# Worktree scratch directories
+.trees/
