@@ -122,21 +122,11 @@ class UIConfig:
 
 
 @dataclass
-class EspansoConfig:
-    """Configuration for Espanso integration."""
-    
-    enabled: bool = True
-    config_path: str = ""  # Auto-detect if empty
-    auto_sync: bool = True  # Auto-sync on template save/delete
-
-
-@dataclass
 class Config:
     """Main application configuration."""
     
     llm: LLMConfig = field(default_factory=LLMConfig)
     ui: UIConfig = field(default_factory=UIConfig)
-    espanso: EspansoConfig = field(default_factory=EspansoConfig)
     
     def to_dict(self) -> dict:
         """Convert config to dictionary."""
@@ -147,12 +137,10 @@ class Config:
         """Create config from dictionary."""
         llm_data = data.get("llm", {})
         ui_data = data.get("ui", {})
-        espanso_data = data.get("espanso", {})
-        
+
         return cls(
             llm=LLMConfig(**llm_data) if llm_data else LLMConfig(),
             ui=UIConfig(**ui_data) if ui_data else UIConfig(),
-            espanso=EspansoConfig(**espanso_data) if espanso_data else EspansoConfig(),
         )
 
 
