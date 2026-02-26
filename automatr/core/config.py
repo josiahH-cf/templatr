@@ -5,19 +5,19 @@ Handles loading/saving app configuration from a single JSON file.
 
 import json
 import platform
-from dataclasses import dataclass, field, fields, asdict
+from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Optional
 
 
 def get_platform() -> str:
     """Get the current platform.
-    
+
     Returns:
         'windows', 'linux', 'wsl2', or 'macos'
     """
     system = platform.system()
-    
+
     if system == "Windows":
         return "windows"
     elif system == "Darwin":
@@ -42,7 +42,7 @@ def is_windows() -> bool:
 
 def get_config_dir() -> Path:
     """Get the configuration directory path.
-    
+
     On macOS: ~/Library/Application Support/automatr
     On Linux/WSL: XDG_CONFIG_HOME or ~/.config/automatr
     """
@@ -57,7 +57,7 @@ def get_config_dir() -> Path:
             base = Path(xdg_config)
         else:
             base = Path.home() / ".config"
-    
+
     config_dir = base / "automatr"
     config_dir.mkdir(parents=True, exist_ok=True)
     return config_dir
@@ -78,14 +78,14 @@ def get_templates_dir() -> Path:
 @dataclass
 class LLMConfig:
     """Configuration for the local LLM server."""
-    
+
     model_path: str = ""
     model_dir: str = ""
     server_port: int = 8080
     context_size: int = 4096
     gpu_layers: int = 0
     server_binary: str = ""  # Auto-detect if empty
-    
+
     # Generation parameters (live-tunable)
     temperature: float = 0.7
     max_tokens: int = 4096
@@ -97,26 +97,26 @@ class LLMConfig:
 @dataclass
 class UIConfig:
     """Configuration for the UI."""
-    
+
     theme: str = "dark"
     window_width: int = 900
     window_height: int = 700
     font_size: int = 13  # Base font size for text content
-    
+
     # Window state persistence
     window_x: int = -1  # -1 = center on screen
     window_y: int = -1  # -1 = center on screen
     window_maximized: bool = False
     window_geometry: str = ""  # Base64 encoded QByteArray
-    
+
     # Layout persistence
     splitter_sizes: list = field(default_factory=lambda: [200, 300, 400])
-    
+
     # Selection persistence
     last_template: str = ""
     expanded_folders: list = field(default_factory=list)
     last_editor_folder: str = ""
-    
+
     # Template versioning
     max_template_versions: int = 10  # Max versions to keep per template (original always preserved)
 
@@ -124,14 +124,14 @@ class UIConfig:
 @dataclass
 class Config:
     """Main application configuration."""
-    
+
     llm: LLMConfig = field(default_factory=LLMConfig)
     ui: UIConfig = field(default_factory=UIConfig)
-    
+
     def to_dict(self) -> dict:
         """Convert config to dictionary."""
         return asdict(self)
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "Config":
         """Create config from dictionary.
@@ -154,32 +154,32 @@ class Config:
 
 class ConfigManager:
     """Manages loading and saving application configuration."""
-    
+
     def __init__(self, config_path: Optional[Path] = None):
         """Initialize ConfigManager.
-        
+
         Args:
             config_path: Path to config file. Uses default if None.
         """
         self.config_path = config_path or get_config_path()
         self._config: Optional[Config] = None
-    
+
     @property
     def config(self) -> Config:
         """Get the current configuration, loading if necessary."""
         if self._config is None:
             self._config = self.load()
         return self._config
-    
+
     def load(self) -> Config:
         """Load configuration from file.
-        
+
         Returns:
             Config object (defaults if file doesn't exist).
         """
         if not self.config_path.exists():
             return Config()
-        
+
         try:
             with open(self.config_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -188,19 +188,19 @@ class ConfigManager:
             # Log error and return defaults
             print(f"Warning: Failed to load config: {e}")
             return Config()
-    
+
     def save(self, config: Optional[Config] = None) -> bool:
         """Save configuration to file.
-        
+
         Args:
             config: Config to save. Uses current config if None.
-            
+
         Returns:
             True if saved successfully, False otherwise.
         """
         if config is None:
             config = self.config
-        
+
         try:
             self.config_path.parent.mkdir(parents=True, exist_ok=True)
             with open(self.config_path, "w", encoding="utf-8") as f:
@@ -210,20 +210,20 @@ class ConfigManager:
         except OSError as e:
             print(f"Error: Failed to save config: {e}")
             return False
-    
+
     def update(self, **kwargs) -> bool:
         """Update specific config values and save.
-        
+
         Supports nested keys like 'llm.model_path'.
-        
+
         Args:
             **kwargs: Key-value pairs to update.
-            
+
         Returns:
             True if saved successfully, False otherwise.
         """
         config = self.config
-        
+
         for key, value in kwargs.items():
             parts = key.split(".")
             if len(parts) == 2:
@@ -235,7 +235,7 @@ class ConfigManager:
             elif len(parts) == 1:
                 if hasattr(config, key):
                     setattr(config, key, value)
-        
+
         return self.save(config)
 
 
@@ -258,10 +258,10 @@ def get_config() -> Config:
 
 def save_config(config: Optional[Config] = None) -> bool:
     """Save the configuration to file.
-    
+
     Args:
         config: Config to save. Uses current config if None.
-        
+
     Returns:
         True if saved successfully, False otherwise.
     """

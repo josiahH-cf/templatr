@@ -1,7 +1,11 @@
 # NOTE: These contents should be appended to the existing file.
 
+# Editor settings (personal preferences)
+.vscode/
+
 # Agent personal overrides
 CLAUDE.local.md
+.claude/settings.local.json
 
 # Claude session artifacts
 .claude/plans/

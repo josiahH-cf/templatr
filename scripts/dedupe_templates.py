@@ -32,7 +32,7 @@ def find_duplicates(templates_dir: Path) -> dict[str, list[Path]]:
     by_name: dict[str, list[Path]] = {}
     for p in templates_dir.rglob("*.json"):
         by_name.setdefault(p.name, []).append(p)
-    
+
     # Filter to only duplicates
     return {name: paths for name, paths in by_name.items() if len(paths) > 1}
 
@@ -40,22 +40,22 @@ def find_duplicates(templates_dir: Path) -> dict[str, list[Path]]:
 def deduplicate(templates_dir: Path, dry_run: bool = True) -> list[tuple[str, Path, Path]]:
     """
     Remove root-level duplicates when folder version exists.
-    
+
     Returns list of (filename, removed_path, kept_path) tuples.
     """
     duplicates = find_duplicates(templates_dir)
     removed = []
-    
+
     for filename, paths in duplicates.items():
         # Separate root vs folder versions
         root_versions = [p for p in paths if p.parent == templates_dir]
         folder_versions = [p for p in paths if p.parent != templates_dir]
-        
+
         if root_versions and folder_versions:
             # Folder version takes precedence - remove root version
             root_path = root_versions[0]
             kept_path = folder_versions[0]
-            
+
             if dry_run:
                 print(f"  Would remove: {root_path.relative_to(templates_dir)}")
                 print(f"       Keeping: {kept_path.relative_to(templates_dir)}")
@@ -63,9 +63,9 @@ def deduplicate(templates_dir: Path, dry_run: bool = True) -> list[tuple[str, Pa
                 root_path.unlink()
                 print(f"  Removed: {root_path.relative_to(templates_dir)}")
                 print(f"  Keeping: {kept_path.relative_to(templates_dir)}")
-            
+
             removed.append((filename, root_path, kept_path))
-    
+
     return removed
 
 
@@ -74,37 +74,37 @@ def main():
         description="Remove duplicate templates (folder versions take precedence)"
     )
     parser.add_argument(
-        '--apply', 
+        '--apply',
         action='store_true',
         help='Actually remove duplicates (default is dry-run)'
     )
     args = parser.parse_args()
-    
+
     templates_dir = get_templates_dir()
     print(f"Templates directory: {templates_dir}")
     print()
-    
+
     if not templates_dir.exists():
         print("ERROR: Templates directory does not exist")
         return 1
-    
+
     duplicates = find_duplicates(templates_dir)
-    
+
     if not duplicates:
         print("✓ No duplicate templates found")
         return 0
-    
+
     print(f"Found {len(duplicates)} template(s) with duplicates:")
     print()
-    
+
     if args.apply:
         print("=== Applying deduplication ===")
     else:
         print("=== Dry run (use --apply to actually remove) ===")
-    
+
     print()
     removed = deduplicate(templates_dir, dry_run=not args.apply)
-    
+
     print()
     if removed:
         if args.apply:
@@ -116,7 +116,7 @@ def main():
             print(f"  python {__file__} --apply")
     else:
         print("✓ No root-level duplicates to remove (duplicates are all in folders)")
-    
+
     return 0
 
 

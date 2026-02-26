@@ -2,7 +2,7 @@
 //
 // This file is part of the QtMultimedia Python extension module.
 //
-// Copyright (c) 2025 Riverbank Computing Limited <info@riverbankcomputing.com>
+// Copyright (c) 2026 Riverbank Computing Limited <info@riverbankcomputing.com>
 // 
 // This file is part of PyQt6.
 // 
@@ -27,7 +27,7 @@
 %Import QtNetwork/QtNetworkmod.sip
 
 %Copying
-Copyright (c) 2025 Riverbank Computing Limited <info@riverbankcomputing.com>
+Copyright (c) 2026 Riverbank Computing Limited <info@riverbankcomputing.com>
 
 This file is part of PyQt6.
 

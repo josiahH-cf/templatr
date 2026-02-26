@@ -248,16 +248,16 @@ QMainWindow, QWidget {
 
 def get_theme_stylesheet(theme: str = "dark", font_size: int = 13) -> str:
     """Get the stylesheet for the specified theme.
-    
+
     Args:
         theme: Theme name ("dark" or "light").
         font_size: Base font size in points for text content.
-        
+
     Returns:
         CSS stylesheet string.
     """
     base = LIGHT_THEME if theme == "light" else DARK_THEME
-    
+
     # Font scaling CSS for text content areas (not buttons)
     font_css = f"""
     QTreeWidget, QTreeWidget::item {{
@@ -276,5 +276,5 @@ def get_theme_stylesheet(theme: str = "dark", font_size: int = 13) -> str:
         font-size: {font_size}pt;
     }}
     """
-    
+
     return font_css + base

@@ -12,13 +12,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from automatr.core.config import get_templates_dir, get_config
+from automatr.core.config import get_config, get_templates_dir
 
 
 @dataclass
 class Variable:
     """A variable/placeholder in a template.
-    
+
     Attributes:
         name: Variable identifier used in content placeholders.
         label: Display label for UI/forms.
@@ -27,18 +27,18 @@ class Variable:
         type: Variable type - "form" (default), "date", etc.
         params: Type-specific parameters (e.g., {"format": "%Y-%m-%d"} for date).
     """
-    
+
     name: str
     label: str = ""
     default: str = ""
     multiline: bool = False
     type: str = "form"  # "form", "date"
     params: Dict[str, Any] = field(default_factory=dict)
-    
+
     def __post_init__(self):
         if not self.label:
             self.label = self.name.replace("_", " ").title()
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         d = {"name": self.name, "label": self.label}
@@ -51,7 +51,7 @@ class Variable:
         if self.params:
             d["params"] = self.params
         return d
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Variable":
         """Create from dictionary."""
@@ -78,17 +78,17 @@ class Variable:
 @dataclass
 class Template:
     """A prompt template."""
-    
+
     name: str
     content: str
     description: str = ""
     trigger: str = ""  # External trigger alias (e.g., ":review")
     variables: List[Variable] = field(default_factory=list)
     refinements: List[str] = field(default_factory=list)  # User feedback for template improvement
-    
+
     # Internal: path to the JSON file (set when loaded from disk)
     _path: Optional[Path] = field(default=None, repr=False)
-    
+
     @property
     def filename(self) -> str:
         """Generate a safe filename from the template name."""
@@ -97,7 +97,7 @@ class Template:
         # Remove non-alphanumeric characters except underscores
         safe = re.sub(r"[^a-z0-9_]", "", safe)
         return f"{safe}.json"
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         d = {
@@ -113,7 +113,7 @@ class Template:
         if self.refinements:
             d["refinements"] = self.refinements
         return d
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any], path: Optional[Path] = None) -> "Template":
         """Create from dictionary."""
@@ -129,35 +129,35 @@ class Template:
             refinements=data.get("refinements", []),
             _path=path,
         )
-    
+
     def render(self, values: Dict[str, str]) -> str:
         """Render the template with the given variable values.
-        
+
         Replaces {{variable_name}} placeholders with their values.
-        
+
         Args:
             values: Dictionary of variable name -> value.
-            
+
         Returns:
             Rendered template string.
         """
         result = self.content
-        
+
         for var in self.variables:
             placeholder = f"{{{{{var.name}}}}}"
             value = values.get(var.name, var.default)
             result = result.replace(placeholder, value)
-        
+
         # Remove any unreplaced placeholders
         result = re.sub(r"\{\{[^}]+\}\}", "", result)
-        
+
         return result
 
 
 @dataclass
 class TemplateVersion:
     """A versioned snapshot of a template.
-    
+
     Attributes:
         version: Version number (1 = original, higher = more recent)
         timestamp: ISO format timestamp when version was created
@@ -168,7 +168,7 @@ class TemplateVersion:
     timestamp: str
     note: str
     template_data: Dict[str, Any]
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
@@ -177,7 +177,7 @@ class TemplateVersion:
             "note": self.note,
             "template_data": self.template_data,
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "TemplateVersion":
         """Create from dictionary."""
@@ -191,17 +191,17 @@ class TemplateVersion:
 
 class TemplateManager:
     """Manages template CRUD operations.
-    
+
     Templates are stored as individual JSON files in the templates directory.
     Version history is stored in _versions/ subdirectory.
     No SQLite, no indexing — just filesystem operations.
     """
-    
+
     VERSIONS_DIR = "_versions"
-    
+
     def __init__(self, templates_dir: Optional[Path] = None):
         """Initialize TemplateManager.
-        
+
         Args:
             templates_dir: Directory for template files. Uses default if None.
         """
@@ -210,13 +210,13 @@ class TemplateManager:
         # Create versions directory
         self._versions_dir = self.templates_dir / self.VERSIONS_DIR
         self._versions_dir.mkdir(parents=True, exist_ok=True)
-    
+
     def _get_version_dir(self, template: Template) -> Path:
         """Get the version history directory for a template.
-        
+
         Args:
             template: Template to get version dir for.
-            
+
         Returns:
             Path to the template's version directory.
         """
@@ -225,28 +225,28 @@ class TemplateManager:
         version_dir = self._versions_dir / slug
         version_dir.mkdir(parents=True, exist_ok=True)
         return version_dir
-    
+
     def _get_max_versions(self) -> int:
         """Get the maximum number of versions to keep per template."""
         config = get_config()
         return config.ui.max_template_versions
-    
+
     def create_version(self, template: Template, note: str = "") -> Optional[TemplateVersion]:
         """Create a new version snapshot of a template.
-        
+
         Args:
             template: Template to create version for.
             note: Optional note describing what changed.
-            
+
         Returns:
             The created TemplateVersion, or None if failed.
         """
         version_dir = self._get_version_dir(template)
-        
+
         # Find the next version number
         existing_versions = self.list_versions(template)
         next_version = 1 if not existing_versions else existing_versions[-1].version + 1
-        
+
         # Create version snapshot
         version = TemplateVersion(
             version=next_version,
@@ -254,7 +254,7 @@ class TemplateManager:
             note=note,
             template_data=template.to_dict(),
         )
-        
+
         # Save version file
         version_path = version_dir / f"v{next_version}.json"
         try:
@@ -263,24 +263,24 @@ class TemplateManager:
         except OSError as e:
             print(f"Error saving version: {e}")
             return None
-        
+
         # Prune old versions (keep original v1 + most recent N-1)
         self._prune_versions(template)
-        
+
         return version
-    
+
     def list_versions(self, template: Template) -> List[TemplateVersion]:
         """List all versions for a template.
-        
+
         Args:
             template: Template to list versions for.
-            
+
         Returns:
             List of TemplateVersion objects, sorted by version number (ascending).
         """
         version_dir = self._get_version_dir(template)
         versions = []
-        
+
         for path in version_dir.glob("v*.json"):
             try:
                 with open(path, "r", encoding="utf-8") as f:
@@ -288,25 +288,25 @@ class TemplateManager:
                 versions.append(TemplateVersion.from_dict(data))
             except (json.JSONDecodeError, OSError) as e:
                 print(f"Warning: Failed to load version {path}: {e}")
-        
+
         return sorted(versions, key=lambda v: v.version)
-    
+
     def get_version(self, template: Template, version_num: int) -> Optional[TemplateVersion]:
         """Get a specific version of a template.
-        
+
         Args:
             template: Template to get version for.
             version_num: Version number to retrieve.
-            
+
         Returns:
             TemplateVersion, or None if not found.
         """
         version_dir = self._get_version_dir(template)
         version_path = version_dir / f"v{version_num}.json"
-        
+
         if not version_path.exists():
             return None
-        
+
         try:
             with open(version_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -314,60 +314,60 @@ class TemplateManager:
         except (json.JSONDecodeError, OSError) as e:
             print(f"Error loading version {version_num}: {e}")
             return None
-    
+
     def restore_version(self, template: Template, version_num: int, create_backup: bool = True) -> Optional[Template]:
         """Restore a template to a previous version.
-        
+
         Args:
             template: Template to restore.
             version_num: Version number to restore to.
             create_backup: If True, create a version snapshot before restoring.
-            
+
         Returns:
             The restored Template, or None if failed.
         """
         version = self.get_version(template, version_num)
         if not version:
             return None
-        
+
         # Create backup of current state before restoring
         if create_backup:
             self.create_version(template, note=f"Backup before revert to v{version_num}")
-        
+
         # Restore template data
         restored = Template.from_dict(version.template_data, path=template._path)
-        
+
         # Save restored template
         if self.save(restored):
             return restored
         return None
-    
+
     def _prune_versions(self, template: Template) -> None:
         """Prune old versions to stay within the limit.
-        
+
         Always keeps v1 (original) and the most recent versions up to the limit.
-        
+
         Args:
             template: Template to prune versions for.
         """
         max_versions = self._get_max_versions()
         versions = self.list_versions(template)
-        
+
         if len(versions) <= max_versions:
             return
-        
+
         # Keep v1 (original) and the most recent (max_versions - 1)
         to_keep = set()
-        
+
         # Always keep original (v1) if it exists
         if versions and versions[0].version == 1:
             to_keep.add(1)
-        
+
         # Keep the most recent versions
         recent_count = max_versions - len(to_keep)
         for v in versions[-recent_count:]:
             to_keep.add(v.version)
-        
+
         # Delete versions not in to_keep
         version_dir = self._get_version_dir(template)
         for v in versions:
@@ -377,13 +377,13 @@ class TemplateManager:
                     version_path.unlink()
                 except OSError:
                     pass
-    
+
     def delete_version_history(self, template: Template) -> bool:
         """Delete all version history for a template.
-        
+
         Args:
             template: Template to delete history for.
-            
+
         Returns:
             True if deleted successfully, False otherwise.
         """
@@ -396,10 +396,10 @@ class TemplateManager:
         except OSError as e:
             print(f"Error deleting version history: {e}")
             return False
-    
+
     def list_all(self) -> List[Template]:
         """List all templates.
-        
+
         Returns:
             List of Template objects, sorted by name.
         """
@@ -417,15 +417,15 @@ class TemplateManager:
                     templates.append(template)
             except Exception as e:
                 print(f"Warning: Failed to load {path}: {e}")
-        
+
         return sorted(templates, key=lambda t: t.name.lower())
-    
+
     def load(self, path: Path) -> Optional[Template]:
         """Load a template from a JSON file.
-        
+
         Args:
             path: Path to the JSON file.
-            
+
         Returns:
             Template object, or None if loading failed.
         """
@@ -436,13 +436,13 @@ class TemplateManager:
         except (json.JSONDecodeError, OSError) as e:
             print(f"Error loading template {path}: {e}")
             return None
-    
+
     def get(self, name: str) -> Optional[Template]:
         """Get a template by name.
-        
+
         Args:
             name: Template name.
-            
+
         Returns:
             Template object, or None if not found.
         """
@@ -450,23 +450,23 @@ class TemplateManager:
         safe_name = name.lower().replace(" ", "_")
         safe_name = re.sub(r"[^a-z0-9_]", "", safe_name)
         path = self.templates_dir / f"{safe_name}.json"
-        
+
         if path.exists():
             return self.load(path)
-        
+
         # Fallback: search all templates
         for template in self.list_all():
             if template.name.lower() == name.lower():
                 return template
-        
+
         return None
-    
+
     def save(self, template: Template) -> bool:
         """Save a template to disk.
-        
+
         Args:
             template: Template to save.
-            
+
         Returns:
             True if saved successfully, False otherwise.
         """
@@ -475,7 +475,7 @@ class TemplateManager:
             path = template._path
         else:
             path = self.templates_dir / template.filename
-        
+
         try:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(template.to_dict(), f, indent=2)
@@ -484,26 +484,26 @@ class TemplateManager:
         except OSError as e:
             print(f"Error saving template: {e}")
             return False
-    
+
     def delete(self, template: Template) -> bool:
         """Delete a template from disk.
-        
+
         Args:
             template: Template to delete.
-            
+
         Returns:
             True if deleted successfully, False otherwise.
         """
         if not template._path or not template._path.exists():
             return False
-        
+
         try:
             template._path.unlink()
             return True
         except OSError as e:
             print(f"Error deleting template: {e}")
             return False
-    
+
     def create(
         self,
         name: str,
@@ -513,21 +513,21 @@ class TemplateManager:
         variables: Optional[List[Dict[str, Any]]] = None,
     ) -> Template:
         """Create and save a new template.
-        
+
         Args:
             name: Template name.
             content: Template content with {{variable}} placeholders.
             description: Optional description.
             trigger: Optional external trigger alias.
             variables: Optional list of variable dicts.
-            
+
         Returns:
             The created Template object.
         """
         var_list = []
         if variables:
             var_list = [Variable.from_dict(v) for v in variables]
-        
+
         template = Template(
             name=name,
             content=content,
@@ -535,13 +535,13 @@ class TemplateManager:
             trigger=trigger,
             variables=var_list,
         )
-        
+
         self.save(template)
         return template
-    
+
     def list_folders(self) -> List[str]:
         """List all category folders.
-        
+
         Returns:
             List of folder names (relative to templates_dir), sorted alphabetically.
             Excludes the _versions directory used for version history.
@@ -551,13 +551,13 @@ class TemplateManager:
             if path.is_dir() and path.name != self.VERSIONS_DIR:
                 folders.append(path.name)
         return sorted(folders, key=str.lower)
-    
+
     def create_folder(self, name: str) -> bool:
         """Create a new category folder.
-        
+
         Args:
             name: Folder name.
-            
+
         Returns:
             True if created successfully, False otherwise.
         """
@@ -565,65 +565,65 @@ class TemplateManager:
         safe_name = re.sub(r"[^a-zA-Z0-9_ -]", "", name).strip()
         if not safe_name:
             return False
-        
+
         folder_path = self.templates_dir / safe_name
         if folder_path.exists():
             return False
-        
+
         try:
             folder_path.mkdir(parents=True, exist_ok=True)
             return True
         except OSError:
             return False
-    
+
     def delete_folder(self, name: str) -> tuple[bool, str]:
         """Delete a category folder (must be empty).
-        
+
         Args:
             name: Folder name.
-            
+
         Returns:
             Tuple of (success, error_message).
         """
         folder_path = self.templates_dir / name
         if not folder_path.exists() or not folder_path.is_dir():
             return False, "Folder does not exist."
-        
+
         # Check if folder has templates
         templates_in_folder = list(folder_path.glob("*.json"))
         if templates_in_folder:
             return False, f"Cannot delete folder '{name}' because it contains {len(templates_in_folder)} template(s). Move or delete them first."
-        
+
         try:
             folder_path.rmdir()
             return True, ""
         except OSError as e:
             return False, str(e)
-    
+
     def get_template_folder(self, template: Template) -> str:
         """Get the folder name for a template.
-        
+
         Args:
             template: Template to check.
-            
+
         Returns:
             Folder name, or empty string if in root.
         """
         if not template._path:
             return ""
-        
+
         parent = template._path.parent
         if parent == self.templates_dir:
             return ""
         return parent.name
-    
+
     def save_to_folder(self, template: Template, folder: str = "") -> bool:
         """Save a template to a specific folder.
-        
+
         Args:
             template: Template to save.
             folder: Folder name (empty string for root).
-            
+
         Returns:
             True if saved successfully, False otherwise.
         """
@@ -633,19 +633,19 @@ class TemplateManager:
             target_dir.mkdir(parents=True, exist_ok=True)
         else:
             target_dir = self.templates_dir
-        
+
         # If template already has a path in a different location, we're moving it
         old_path = template._path
         new_path = target_dir / template.filename
-        
+
         try:
             with open(new_path, "w", encoding="utf-8") as f:
                 json.dump(template.to_dict(), f, indent=2)
-            
+
             # Remove old file if we moved it
             if old_path and old_path != new_path and old_path.exists():
                 old_path.unlink()
-            
+
             template._path = new_path
             return True
         except OSError as e:
@@ -667,10 +667,10 @@ def get_template_manager() -> TemplateManager:
 
 def get_meta_templates_dir() -> Path:
     """Get the path to the _meta templates directory.
-    
+
     First checks the user's templates directory, then falls back to
     the bundled templates in the package.
-    
+
     Returns:
         Path to _meta directory.
     """
@@ -678,7 +678,7 @@ def get_meta_templates_dir() -> Path:
     user_meta = get_templates_dir() / "_meta"
     if user_meta.exists():
         return user_meta
-    
+
     # Fall back to bundled templates (relative to this file)
     bundled_meta = Path(__file__).parent.parent.parent / "templates" / "_meta"
     return bundled_meta
@@ -686,7 +686,7 @@ def get_meta_templates_dir() -> Path:
 
 def get_bundled_meta_templates_dir() -> Path:
     """Get the path to the bundled _meta templates directory.
-    
+
     Returns:
         Path to bundled _meta directory.
     """
@@ -695,9 +695,9 @@ def get_bundled_meta_templates_dir() -> Path:
 
 def get_user_meta_templates_dir() -> Path:
     """Get the path to the user's _meta templates directory.
-    
+
     Creates the directory if it doesn't exist.
-    
+
     Returns:
         Path to user's _meta directory.
     """
@@ -708,15 +708,15 @@ def get_user_meta_templates_dir() -> Path:
 
 def load_meta_template(name: str) -> Optional[Template]:
     """Load a meta-template by name from the _meta directory.
-    
+
     Meta-templates are system templates used by features like
     "Improve Template" and "Generate Template".
-    
+
     Checks user's _meta directory first, then falls back to bundled.
-    
+
     Args:
         name: Template name (without .json extension), e.g., "template_improver"
-        
+
     Returns:
         Template object, or None if not found.
     """
@@ -729,7 +729,7 @@ def load_meta_template(name: str) -> Optional[Template]:
             return Template.from_dict(data, path=user_path)
         except (json.JSONDecodeError, OSError):
             pass
-    
+
     # Fall back to bundled
     bundled_path = get_bundled_meta_templates_dir() / f"{name}.json"
     if bundled_path.exists():
@@ -739,20 +739,20 @@ def load_meta_template(name: str) -> Optional[Template]:
             return Template.from_dict(data, path=bundled_path)
         except (json.JSONDecodeError, OSError) as e:
             print(f"Error loading meta-template {name}: {e}")
-    
+
     return None
 
 
 def save_meta_template(name: str, content: str) -> bool:
     """Save a meta-template's content to the user's _meta directory.
-    
+
     Preserves the template's metadata (name, description, variables) and
     only updates the content field.
-    
+
     Args:
         name: Template name (without .json extension)
         content: New content for the template
-        
+
     Returns:
         True if saved successfully, False otherwise.
     """
@@ -760,10 +760,10 @@ def save_meta_template(name: str, content: str) -> bool:
     template = load_meta_template(name)
     if not template:
         return False
-    
+
     # Update content
     template.content = content
-    
+
     # Save to user's directory
     user_path = get_user_meta_templates_dir() / f"{name}.json"
     try:
@@ -777,12 +777,12 @@ def save_meta_template(name: str, content: str) -> bool:
 
 def reset_meta_template(name: str) -> bool:
     """Reset a meta-template to its bundled default.
-    
+
     Deletes the user's copy so the bundled version is used.
-    
+
     Args:
         name: Template name (without .json extension)
-        
+
     Returns:
         True if reset successfully, False otherwise.
     """
@@ -799,12 +799,12 @@ def reset_meta_template(name: str) -> bool:
 
 def get_bundled_meta_template_content(name: str) -> Optional[str]:
     """Get the content of a bundled meta-template.
-    
+
     Used by the "Reset to Default" functionality.
-    
+
     Args:
         name: Template name (without .json extension)
-        
+
     Returns:
         Template content string, or None if not found.
     """

@@ -1,4 +1,4 @@
-#!/home/josiah/prompt-automation-transfer/automatr/.venv/bin/python3
+#!/home/josiah/automatr/.venv/bin/python3
 import sys
 from PyQt6.uic.pyuic import main
 if __name__ == '__main__':

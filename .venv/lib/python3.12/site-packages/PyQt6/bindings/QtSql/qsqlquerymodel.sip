@@ -2,7 +2,7 @@
 //
 // This file is part of the QtSql Python extension module.
 //
-// Copyright (c) 2025 Riverbank Computing Limited <info@riverbankcomputing.com>
+// Copyright (c) 2026 Riverbank Computing Limited <info@riverbankcomputing.com>
 // 
 // This file is part of PyQt6.
 // 
@@ -43,7 +43,7 @@ public:
 %If (Qt_6_5_0 -)
     const QSqlQuery &query() const;
 %MethodCode
-        sipRes = const_cast<QSqlQuery *>(&sipCpp->query(Qt::Disambiguated));
+        sipRes = new QSqlQuery(sipCpp->query(Qt::Disambiguated));
 %End
 
 %End

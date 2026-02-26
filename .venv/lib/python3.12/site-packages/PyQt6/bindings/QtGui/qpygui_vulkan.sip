@@ -1,6 +1,6 @@
 // This is the SIP specifications of the Vulkan support.
 //
-// Copyright (c) 2025 Riverbank Computing Limited <info@riverbankcomputing.com>
+// Copyright (c) 2026 Riverbank Computing Limited <info@riverbankcomputing.com>
 // 
 // This file is part of PyQt6.
 // 

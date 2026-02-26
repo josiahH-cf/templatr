@@ -17,7 +17,6 @@ from PyQt6.QtWidgets import (
 
 from automatr.core.config import get_config_manager
 
-
 # Default value (must match LLMConfig dataclass default)
 DEFAULT_MAX_TOKENS = 4096
 
