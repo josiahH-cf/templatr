@@ -47,6 +47,7 @@ from automatr.ui.llm_settings import LLMSettingsDialog
 from automatr.ui.template_improve import TemplateImproveDialog
 from automatr.ui.template_generate import GenerationPromptEditor, ImprovementPromptEditor
 from automatr.ui.template_tree import TemplateTreeWidget
+from automatr.ui.variable_form import VariableFormWidget
 
 
 class GenerationWorker(QThread):
@@ -179,83 +180,6 @@ class ModelCopyWorker(QThread):
             self.finished.emit(False, f"Failed to copy file: {e}")
 
 
-class VariableFormWidget(QScrollArea):
-    """Widget for displaying and editing template variables."""
-    
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWidgetResizable(True)
-        self.setFrameShape(QFrame.Shape.NoFrame)
-        
-        self.container = QWidget()
-        self.layout = QFormLayout(self.container)
-        self.layout.setContentsMargins(0, 0, 10, 0)
-        self.layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapAllRows)
-        self.layout.setVerticalSpacing(12)
-        self.setWidget(self.container)
-        
-        self.inputs: dict[str, QWidget] = {}
-        self.template: Optional[Template] = None
-    
-    def set_template(self, template: Template):
-        """Set the template and create input fields for its variables."""
-        self.template = template
-        self.inputs.clear()
-        
-        # Clear existing widgets
-        while self.layout.count():
-            item = self.layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-        
-        if not template.variables:
-            label = QLabel("No variables in this template.")
-            label.setStyleSheet("color: #808080; font-style: italic;")
-            label.setWordWrap(True)
-            self.layout.addRow(label)
-            return
-        
-        for var in template.variables:
-            # Create label with word wrap
-            label = QLabel(f"{var.label}:")
-            label.setWordWrap(True)
-
-            default_value = var.default if isinstance(var.default, str) else str(var.default) if var.default is not None else ""
-            
-            if var.multiline:
-                widget = QPlainTextEdit()
-                widget.setPlaceholderText(default_value or f"Enter {var.label.lower()}...")
-                widget.setMaximumHeight(100)
-                if default_value:
-                    widget.setPlainText(default_value)
-            else:
-                widget = QLineEdit()
-                widget.setPlaceholderText(default_value or f"Enter {var.label.lower()}...")
-                if default_value:
-                    widget.setText(default_value)
-            
-            self.inputs[var.name] = widget
-            self.layout.addRow(label, widget)
-    
-    def get_values(self) -> dict[str, str]:
-        """Get the current values from all input fields."""
-        values = {}
-        for name, widget in self.inputs.items():
-            if isinstance(widget, QPlainTextEdit):
-                values[name] = widget.toPlainText()
-            else:
-                values[name] = widget.text()
-        return values
-    
-    def clear(self):
-        """Clear all input fields."""
-        for widget in self.inputs.values():
-            if isinstance(widget, QPlainTextEdit):
-                widget.clear()
-            else:
-                widget.clear()
-
-
 class MainWindow(QMainWindow):
     """Main application window."""
     
@@ -303,22 +227,19 @@ class MainWindow(QMainWindow):
         """Handle template selection from tree widget."""
         self.current_template = template
         self.variable_form.set_template(template)
-        self.generate_btn.setEnabled(True)
-        self.render_template_btn.setEnabled(True)
+        self.variable_form.set_buttons_enabled(True)
 
     def _on_folder_selected(self):
         """Handle folder selection (deselect template)."""
         self.current_template = None
         self.variable_form.clear()
-        self.generate_btn.setEnabled(False)
-        self.render_template_btn.setEnabled(False)
+        self.variable_form.set_buttons_enabled(False)
 
     def _on_template_deleted(self, name: str):
         """Handle template deletion from tree widget."""
         self.current_template = None
         self.variable_form.clear()
-        self.generate_btn.setEnabled(False)
-        self.render_template_btn.setEnabled(False)
+        self.variable_form.set_buttons_enabled(False)
 
     def _setup_menu_bar(self):
         """Set up the menu bar."""
@@ -700,35 +621,13 @@ class MainWindow(QMainWindow):
         self.template_tree = self.template_tree_widget.tree
         self.splitter.addWidget(self.template_tree_widget)
         
-        # Middle panel: Variables
-        middle_panel = QWidget()
-        middle_layout = QVBoxLayout(middle_panel)
-        middle_layout.setContentsMargins(5, 10, 5, 10)
-
-        config = get_config()
-        label_size = config.ui.font_size + 1
-        middle_label = QLabel("Variables")
-        middle_label.setStyleSheet(f"font-weight: bold; font-size: {label_size}pt;")
-        middle_layout.addWidget(middle_label)
-        
+        # Middle panel: Variable form widget
         self.variable_form = VariableFormWidget()
-        middle_layout.addWidget(self.variable_form)
-        
-        # Generate button
-        self.generate_btn = QPushButton("Render with AI (Ctrl+G)")
-        self.generate_btn.setEnabled(False)
-        self.generate_btn.setShortcut(QKeySequence("Ctrl+G"))
-        self.generate_btn.clicked.connect(self._generate)
-        middle_layout.addWidget(self.generate_btn)
-        
-        # Render template only button (no AI)
-        self.render_template_btn = QPushButton("Copy Template (Ctrl+Shift+G)")
-        self.render_template_btn.setEnabled(False)
-        self.render_template_btn.setShortcut(QKeySequence("Ctrl+Shift+G"))
-        self.render_template_btn.clicked.connect(self._render_template_only)
-        middle_layout.addWidget(self.render_template_btn)
-        
-        self.splitter.addWidget(middle_panel)
+        self.variable_form.generate_requested.connect(self._generate)
+        self.variable_form.render_template_requested.connect(
+            self._render_template_only
+        )
+        self.splitter.addWidget(self.variable_form)
         
         # Right panel: Output
         right_panel = QWidget()
@@ -1171,8 +1070,8 @@ class MainWindow(QMainWindow):
                 return
         
         # Disable generate button during generation
-        self.generate_btn.setEnabled(False)
-        self.generate_btn.setText("Generating...")
+        self.variable_form.generate_btn.setEnabled(False)
+        self.variable_form.generate_btn.setText("Generating...")
         self.output_text.clear()
         
         # Show stop button and generating indicator
@@ -1224,8 +1123,8 @@ class MainWindow(QMainWindow):
     
     def _on_generation_finished(self, result: str):
         """Handle generation complete."""
-        self.generate_btn.setEnabled(True)
-        self.generate_btn.setText("Generate")
+        self.variable_form.generate_btn.setEnabled(True)
+        self.variable_form.generate_btn.setText("Render with AI (Ctrl+G)")
         self.status_bar.showMessage("Generation complete", 3000)
         
         # Hide stop button and generating indicator
@@ -1238,8 +1137,8 @@ class MainWindow(QMainWindow):
     
     def _on_generation_error(self, error: str):
         """Handle generation error."""
-        self.generate_btn.setEnabled(True)
-        self.generate_btn.setText("Generate")
+        self.variable_form.generate_btn.setEnabled(True)
+        self.variable_form.generate_btn.setText("Render with AI (Ctrl+G)")
         
         # Hide stop button and generating indicator
         self._gen_timer.stop()
