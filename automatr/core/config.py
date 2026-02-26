@@ -5,7 +5,7 @@ Handles loading/saving app configuration from a single JSON file.
 
 import json
 import platform
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, fields, asdict
 from pathlib import Path
 from typing import Optional
 
@@ -134,13 +134,21 @@ class Config:
     
     @classmethod
     def from_dict(cls, data: dict) -> "Config":
-        """Create config from dictionary."""
+        """Create config from dictionary.
+
+        Unknown keys inside the 'llm' or 'ui' sections are silently
+        ignored so that config files written by newer versions do not
+        crash older versions of the application.
+        """
         llm_data = data.get("llm", {})
         ui_data = data.get("ui", {})
 
+        llm_fields = {f.name for f in fields(LLMConfig)}
+        ui_fields = {f.name for f in fields(UIConfig)}
+
         return cls(
-            llm=LLMConfig(**llm_data) if llm_data else LLMConfig(),
-            ui=UIConfig(**ui_data) if ui_data else UIConfig(),
+            llm=LLMConfig(**{k: v for k, v in llm_data.items() if k in llm_fields}) if llm_data else LLMConfig(),
+            ui=UIConfig(**{k: v for k, v in ui_data.items() if k in ui_fields}) if ui_data else UIConfig(),
         )
 
 
