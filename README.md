@@ -1,4 +1,4 @@
-# 🤖 Automatr
+# 🤖 Automatr Prompt
 
 **Create reusable AI prompts that run 100% on your computer.**
 
@@ -31,8 +31,8 @@ Everything runs on your computer:
 Open a terminal and run:
 
 ```bash
-git clone https://github.com/josiahH-cf/automatr.git
-cd automatr
+git clone https://github.com/josiahH-cf/automatr-prompt.git
+cd automatr-prompt
 ./install.sh
 ```
 
@@ -63,14 +63,6 @@ You need a `.gguf` model file — this is the "brain" that generates responses.
 4. Click **Save**
 
 Now you can reuse this template anytime — just fill in the blanks!
-
----
-
-## 🪟 Windows Hotkey (WSL2)
-
-Press **Ctrl+Shift+J** anywhere in Windows to launch Automatr instantly.
-
-The installer sets this up automatically. Requires [AutoHotkey v1.1](https://www.autohotkey.com/download/ahk-install.exe) (free, ~3MB).
 
 ---
 
@@ -125,8 +117,8 @@ A: Any `.gguf` format model. Browse [Hugging Face](https://huggingface.co/models
 **Q: It's slow. What can I do?**  
 A: Use a smaller model, or upgrade your hardware. A GPU helps significantly.
 
-**Q: What's Espanso?**  
-A: An optional text expander. Automatr can sync templates to [Espanso](https://espanso.org) for system-wide shortcuts.
+**Q: Is there an Espanso integration?**
+A: Espanso support lives in a separate project: [automatr-espanso](https://github.com/josiahH-cf/automatr-espanso).
 
 ---
 
