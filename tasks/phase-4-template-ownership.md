@@ -5,8 +5,8 @@
 ## Status
 
 - Total: 3
-- Complete: 1
-- Remaining: 2
+- Complete: 2
+- Remaining: 1
 
 ## Prerequisites
 
@@ -64,7 +64,7 @@
 - **Files:** New: `decisions/0001-template-ownership-split.md`
 - **Done when:** Decision record exists with: (1) classification criteria (what makes a template belong to prompt app vs espanso app), (2) the full assignment table from Task 1, (3) handling of templates that belong to both (duplicate vs shared reference), (4) schema compatibility statement (both apps read the same JSON format, ignore unknown fields), (5) guidelines for where future templates should be placed
 - **Criteria covered:** AC-6
-- **Status:** [ ] Not started
+- **Status:** [x] Complete — `decisions/0001-template-ownership-split.md` created with all required sections
 
 ### Task 3: Move templates into app-specific bundles
 
@@ -99,4 +99,5 @@
 ### 2026-02-26
 
 - Completed Task 1: audited all 33 templates; full table added above and in decision record
+- Completed Task 2: decision record written at `decisions/0001-template-ownership-split.md`
 - No blockers
