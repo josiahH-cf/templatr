@@ -2,24 +2,20 @@
 
 import base64
 import sys
-from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtCore import Qt, QUrl, QByteArray
+from PyQt6.QtCore import Qt, QByteArray
 from PyQt6.QtGui import (
-    QAction, QKeySequence, QDesktopServices, QShortcut,
+    QAction, QKeySequence, QShortcut,
     QWheelEvent, QFont, QCloseEvent, QGuiApplication,
 )
 from PyQt6.QtWidgets import (
     QApplication,
-    QFileDialog,
     QHBoxLayout,
     QInputDialog,
     QLabel,
     QMainWindow,
     QMessageBox,
-    QProgressDialog,
-    QPushButton,
     QSplitter,
     QStatusBar,
     QWidget,
@@ -38,7 +34,8 @@ from automatr.ui.template_generate import GenerationPromptEditor, ImprovementPro
 from automatr.ui.template_tree import TemplateTreeWidget
 from automatr.ui.variable_form import VariableFormWidget
 from automatr.ui.output_pane import OutputPaneWidget
-from automatr.ui.workers import GenerationWorker, ModelCopyWorker
+from automatr.ui.llm_toolbar import LLMToolbar
+from automatr.ui.workers import GenerationWorker
 
 
 class MainWindow(QMainWindow):
@@ -66,7 +63,12 @@ class MainWindow(QMainWindow):
         self._wire_tree_signals()
         self.template_tree_widget.load_templates()
         self._restore_state()
-        self._check_llm_status()
+        self.llm_toolbar.check_status()
+
+    def _on_server_running_changed(self, is_running: bool):
+        """Update menu actions when server status changes."""
+        self.start_server_action.setEnabled(not is_running)
+        self.stop_server_action.setEnabled(is_running)
 
     def _wire_tree_signals(self):
         """Connect TemplateTreeWidget signals to MainWindow slots."""
@@ -138,27 +140,22 @@ class MainWindow(QMainWindow):
         llm_menu = menubar.addMenu("&LLM")
         
         self.start_server_action = QAction("&Start Server", self)
-        self.start_server_action.triggered.connect(self._start_server)
         llm_menu.addAction(self.start_server_action)
         
         self.stop_server_action = QAction("S&top Server", self)
-        self.stop_server_action.triggered.connect(self._stop_server)
         llm_menu.addAction(self.stop_server_action)
         
         llm_menu.addSeparator()
         
-        # Model selector submenu
+        # Model selector submenu (populated by LLMToolbar)
         self.model_menu = llm_menu.addMenu("Select &Model")
-        self.model_menu.aboutToShow.connect(self._populate_model_menu)
         
         download_models_action = QAction("&Download Models (Hugging Face)...", self)
-        download_models_action.triggered.connect(self._open_hugging_face)
         llm_menu.addAction(download_models_action)
         
         llm_menu.addSeparator()
         
         refresh_action = QAction("&Check Status", self)
-        refresh_action.triggered.connect(self._check_llm_status)
         llm_menu.addAction(refresh_action)
         
         llm_menu.addSeparator()
@@ -166,6 +163,14 @@ class MainWindow(QMainWindow):
         settings_action = QAction("S&ettings...", self)
         settings_action.triggered.connect(self._show_llm_settings)
         llm_menu.addAction(settings_action)
+        
+        # Store menu actions for deferred wiring (connected in _setup_status_bar)
+        self._llm_menu_actions = {
+            "start": self.start_server_action,
+            "stop": self.stop_server_action,
+            "download": download_models_action,
+            "refresh": refresh_action,
+        }
         
         # Help menu
         help_menu = menubar.addMenu("&Help")
@@ -235,221 +240,6 @@ class MainWindow(QMainWindow):
         """Reset font size to default (13pt)."""
         self._apply_font_size(13)
     
-    def _start_server(self):
-        """Start the LLM server."""
-        server = get_llm_server()
-        if server.is_running():
-            self.status_bar.showMessage("Server already running", 3000)
-            return
-        
-        self.status_bar.showMessage("Starting server...", 0)
-        QApplication.processEvents()
-        
-        success, message = server.start()
-        
-        if success:
-            self.status_bar.showMessage("Server started", 3000)
-        else:
-            QMessageBox.critical(self, "Server Error", message)
-        
-        self._check_llm_status()
-    
-    def _stop_server(self):
-        """Stop the LLM server."""
-        server = get_llm_server()
-        success, message = server.stop()
-        
-        if success:
-            self.status_bar.showMessage(message, 3000)
-        else:
-            QMessageBox.warning(self, "Server", message)
-        
-        self._check_llm_status()
-    
-    def _populate_model_menu(self):
-        """Populate the model selector submenu with discovered models."""
-        self.model_menu.clear()
-        
-        server = get_llm_server()
-        models = server.find_models()
-        
-        if not models:
-            no_models = QAction("No models found", self)
-            no_models.setEnabled(False)
-            self.model_menu.addAction(no_models)
-            
-            hint = QAction("Place .gguf files in ~/models/", self)
-            hint.setEnabled(False)
-            self.model_menu.addAction(hint)
-            
-            self.model_menu.addSeparator()
-            add_action = QAction("Add Model from File...", self)
-            add_action.triggered.connect(self._add_model_from_file)
-            self.model_menu.addAction(add_action)
-            return
-        
-        config = get_config()
-        current_model = config.llm.model_path
-        
-        for model in models:
-            action = QAction(f"{model.name} ({model.size_gb:.1f} GB)", self)
-            action.setCheckable(True)
-            action.setChecked(str(model.path) == current_model)
-            action.setData(str(model.path))
-            action.triggered.connect(lambda checked, m=model: self._select_model(m))
-            self.model_menu.addAction(action)
-        
-        # Always show Add Model option at the bottom
-        self.model_menu.addSeparator()
-        add_action = QAction("Add Model from File...", self)
-        add_action.triggered.connect(self._add_model_from_file)
-        self.model_menu.addAction(add_action)
-    
-    def _select_model(self, model):
-        """Select a model and update configuration."""
-        from automatr.core.config import get_config_manager
-        
-        config_manager = get_config_manager()
-        config_manager.config.llm.model_path = str(model.path)
-        config_manager.save()
-        
-        self.status_bar.showMessage(f"Selected model: {model.name}", 3000)
-        
-        # If server is running, inform user they need to restart
-        server = get_llm_server()
-        if server.is_running():
-            QMessageBox.information(
-                self,
-                "Model Changed",
-                f"Model changed to {model.name}.\n\n"
-                "Restart the server (LLM → Stop, then Start) to use the new model.",
-            )
-    
-    def _open_hugging_face(self):
-        """Open Hugging Face models page in browser."""
-        url = QUrl("https://huggingface.co/models?sort=trending&search=gguf")
-        QDesktopServices.openUrl(url)
-        self.status_bar.showMessage("Opened Hugging Face in browser", 3000)
-
-    def _launch_web_server(self):
-        """Open the LLM web server in the default browser."""
-        config = get_config()
-        port = config.llm.server_port
-        url = QUrl(f"http://127.0.0.1:{port}")
-        QDesktopServices.openUrl(url)
-        self.status_bar.showMessage(f"Opened http://127.0.0.1:{port} in browser", 3000)
-
-    def _smart_server_action(self):
-        """Smart button action: start server if not running, open browser if running."""
-        server = get_llm_server()
-        
-        if server.is_running():
-            self._launch_web_server()
-        else:
-            self.status_bar.showMessage("Starting server...", 0)
-            QApplication.processEvents()
-            
-            success, message = server.start()
-            
-            if success:
-                self.status_bar.showMessage("Server started", 3000)
-            else:
-                self.status_bar.showMessage(f"Failed to start server: {message}", 5000)
-            
-            self._check_llm_status()
-
-    def _add_model_from_file(self):
-        """Add a model from a local GGUF file."""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select GGUF Model",
-            str(Path.home()),
-            "GGUF Models (*.gguf);;All Files (*)",
-        )
-        
-        if not file_path:
-            return  # User cancelled
-        
-        source = Path(file_path)
-        server = get_llm_server()
-        dest_dir = server.get_models_dir()
-        dest = dest_dir / source.name
-        
-        # Check if already exists
-        if dest.exists():
-            QMessageBox.warning(
-                self,
-                "Model Exists",
-                f"A model with this name already exists:\n{dest}\n\n"
-                "Please rename the file or remove the existing model.",
-            )
-            return
-        
-        # Get file size for progress
-        file_size = source.stat().st_size
-        size_gb = file_size / (1024 ** 3)
-        
-        # Set up progress dialog
-        self.progress_dialog = QProgressDialog(
-            f"Copying {source.name} ({size_gb:.1f} GB)...",
-            "Cancel",
-            0,
-            100,
-            self,
-        )
-        self.progress_dialog.setWindowTitle("Adding Model")
-        self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-        self.progress_dialog.setAutoClose(False)
-        self.progress_dialog.setAutoReset(False)
-        self.progress_dialog.setValue(0)
-        
-        # Start copy worker
-        self.copy_worker = ModelCopyWorker(source, dest)
-        self.copy_worker.progress.connect(self.progress_dialog.setValue)
-        self.copy_worker.finished.connect(self._on_model_copy_finished)
-        self.progress_dialog.canceled.connect(self._on_model_copy_canceled)
-        
-        self.copy_worker.start()
-        self.progress_dialog.show()
-    
-    def _on_model_copy_canceled(self):
-        """Handle user canceling the copy operation."""
-        if hasattr(self, "copy_worker") and self.copy_worker.isRunning():
-            self.copy_worker.cancel()
-            self.copy_worker.wait(timeout=5000)  # Wait up to 5 seconds
-        
-        self.status_bar.showMessage("Model import canceled", 3000)
-    
-    def _on_model_copy_finished(self, success: bool, message: str):
-        """Handle model copy completion."""
-        self.progress_dialog.close()
-        
-        if success:
-            # Auto-select the new model
-            from automatr.core.config import get_config_manager
-            from automatr.integrations.llm import ModelInfo
-            
-            model_path = Path(message)
-            model = ModelInfo.from_path(model_path)
-            
-            config_manager = get_config_manager()
-            config_manager.config.llm.model_path = str(model_path)
-            config_manager.save()
-            
-            QMessageBox.information(
-                self,
-                "Model Added",
-                f"Successfully added model:\n{model.name}\n\n"
-                "The model is now selected and ready to use.",
-            )
-            self.status_bar.showMessage(f"Added model: {model.name}", 3000)
-        else:
-            QMessageBox.critical(
-                self,
-                "Import Failed",
-                f"Failed to import model:\n\n{message}",
-            )
-    
     def _show_about(self):
         """Show the about dialog."""
         QMessageBox.about(
@@ -505,23 +295,28 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.splitter)
     
     def _setup_status_bar(self):
-        """Set up the status bar."""
+        """Set up the status bar with the LLM toolbar."""
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
 
-        self.server_btn = QPushButton("Start Server")
-        self.server_btn.setObjectName("secondary")
-        self.server_btn.clicked.connect(self._smart_server_action)
-        self.status_bar.addWidget(self.server_btn)
+        self.llm_toolbar = LLMToolbar()
+        self.llm_toolbar.status_message.connect(
+            lambda msg, ms: self.status_bar.showMessage(msg, ms)
+        )
+        self.llm_toolbar.server_running_changed.connect(
+            self._on_server_running_changed
+        )
+        self.status_bar.addWidget(self.llm_toolbar)
+        self.llm_toolbar.set_model_menu(self.model_menu)
 
-        self.stop_server_btn = QPushButton("Stop Server")
-        self.stop_server_btn.setObjectName("secondary")
-        self.stop_server_btn.clicked.connect(self._stop_server)
-        self.stop_server_btn.setEnabled(False)
-        self.status_bar.addWidget(self.stop_server_btn)
-
-        self.llm_status_label = QLabel("LLM: Checking...")
-        self.status_bar.addPermanentWidget(self.llm_status_label)
+        # Wire deferred menu actions to toolbar
+        actions = self._llm_menu_actions
+        actions["start"].triggered.connect(self.llm_toolbar.start_server)
+        actions["stop"].triggered.connect(self.llm_toolbar.stop_server)
+        actions["download"].triggered.connect(
+            self.llm_toolbar.open_hugging_face
+        )
+        actions["refresh"].triggered.connect(self.llm_toolbar.check_status)
     
     def _is_geometry_visible(self, geometry_data: QByteArray) -> bool:
         """Check if restored geometry would be visible on any connected screen.
@@ -629,30 +424,6 @@ class MainWindow(QMainWindow):
         save_config(config)
         event.accept()
     
-    def _check_llm_status(self):
-        """Check if the LLM server is running and update UI."""
-        server = get_llm_server()
-        is_running = server.is_running()
-        
-        if is_running:
-            self.llm_status_label.setText("LLM: Connected")
-            self.llm_status_label.setStyleSheet("color: #4ec9b0;")
-            self.server_btn.setText("Open Server")
-            self.server_btn.setStyleSheet("background-color: #4ec9b0; color: #1e1e1e;")
-            self.stop_server_btn.setEnabled(True)
-            self.stop_server_btn.setStyleSheet("background-color: #c42b1c; color: #ffffff;")
-        else:
-            self.llm_status_label.setText("LLM: Not Running")
-            self.llm_status_label.setStyleSheet("color: #f48771;")
-            self.server_btn.setText("Start Server")
-            self.server_btn.setStyleSheet("")
-            self.stop_server_btn.setEnabled(False)
-            self.stop_server_btn.setStyleSheet("")
-        
-        # Update menu actions
-        self.start_server_action.setEnabled(not is_running)
-        self.stop_server_action.setEnabled(is_running)
-    
     def _show_llm_settings(self):
         """Show the LLM settings dialog."""
         dialog = LLMSettingsDialog(self)
@@ -737,7 +508,7 @@ class MainWindow(QMainWindow):
                 if not success:
                     QMessageBox.critical(self, "Error", message)
                     return
-                self._check_llm_status()
+                self.llm_toolbar.check_status()
             else:
                 return
         
@@ -881,7 +652,7 @@ class MainWindow(QMainWindow):
                 if not success:
                     QMessageBox.critical(self, "Error", message)
                     return
-                self._check_llm_status()
+                self.llm_toolbar.check_status()
             else:
                 return
         
