@@ -5,8 +5,8 @@
 ## Status
 
 - Total: 3
-- Complete: 2
-- Remaining: 1
+- Complete: 3
+- Remaining: 0
 
 ## Prerequisites
 
@@ -71,7 +71,7 @@
 - **Files:** `templates/` directory restructuring
 - **Done when:** Templates are organized into clear ownership groups. The prompt app's `install.sh` or setup only copies prompt-app templates. A manifest or directory convention makes ownership obvious (e.g., templates stay as-is for prompt app; espanso-specific templates are tagged or listed in the decision doc for later extraction). App still loads all templates correctly
 - **Criteria covered:** AC-6
-- **Status:** [ ] Not started
+- **Status:** [x] Complete — no directory restructure needed; all templates belong to prompt app; `install.sh` already copies `templates/` correctly; `TemplateManager.list_all()` confirmed to return 31 bundled templates; 58 tests pass; no new ruff issues (pre-existing lint in unrelated source files)
 
 ## Test Strategy
 
@@ -100,4 +100,5 @@
 
 - Completed Task 1: audited all 33 templates; full table added above and in decision record
 - Completed Task 2: decision record written at `decisions/0001-template-ownership-split.md`
+- Completed Task 3: no directory restructure needed; all 33 templates confirmed as prompt-app assets; `TemplateManager` returns 31 bundled templates; 58 tests pass; no new lint issues
 - No blockers
