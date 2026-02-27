@@ -5,6 +5,7 @@ for sending prompts.
 """
 
 import os
+import logging
 import shutil
 import subprocess
 import time
@@ -15,6 +16,8 @@ from typing import Iterator, Optional, Tuple
 import requests
 
 from templatr.core.config import get_config
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -134,16 +137,19 @@ class LLMClient:
             return data.get("content", "")
 
         except requests.ConnectionError:
+            logger.error("Cannot connect to LLM server at %s", self.base_url)
             raise ConnectionError(
                 f"Cannot connect to LLM server at {self.base_url}.\n\n"
                 "Use LLM → Start Server to start it."
             )
         except requests.Timeout:
+            logger.error("Request to LLM server timed out")
             raise RuntimeError(
                 "Request timed out.\n\n"
                 "The model may be loading or the prompt is too long. Try again."
             )
         except requests.RequestException as e:
+            logger.error("Generation request failed", exc_info=True)
             raise RuntimeError(f"Generation failed: {e}")
 
     def generate_stream(
@@ -198,6 +204,7 @@ class LLMClient:
                                 continue
 
         except requests.RequestException as e:
+            logger.error("Streaming generation failed", exc_info=True)
             raise RuntimeError(f"Streaming failed: {e}")
 
 
@@ -359,11 +366,13 @@ class LLMServerManager:
             Tuple of (success, message).
         """
         if self.is_running():
+            logger.info("Server already running")
             return True, "Server already running"
 
         # Find binary
         binary = self.find_server_binary()
         if not binary:
+            logger.error("llama-server binary not found")
             return False, (
                 "llama-server binary not found.\n\n"
                 "To fix:\n"
@@ -374,6 +383,7 @@ class LLMServerManager:
         # Determine model
         model = model_path or self.config.model_path
         if not model:
+            logger.error("No model configured for LLM server")
             return False, (
                 "No model configured.\n\n"
                 "To fix:\n"
@@ -384,6 +394,7 @@ class LLMServerManager:
 
         model_file = Path(model).expanduser()
         if not model_file.exists():
+            logger.error("Model file not found: %s", model_file)
             return False, (
                 f"Model file not found:\n{model_file}\n\n"
                 "Use LLM → Select Model to choose an available model."
@@ -402,6 +413,7 @@ class LLMServerManager:
 
         try:
             # Start process
+            logger.info("Starting llama-server: %s", " ".join(cmd))
             self._process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
@@ -417,15 +429,18 @@ class LLMServerManager:
                 if self._process.poll() is not None:
                     _, stderr = self._process.communicate()
                     error = stderr.decode() if stderr else "Unknown error"
+                    logger.error("Server failed to start: %s", error[:200])
                     return False, f"Server failed to start: {error[:200]}"
 
                 # Check if responding
                 if self.is_running():
+                    logger.info("Server started successfully")
                     return True, "Server started successfully"
 
             return True, "Server starting (may take a moment to be ready)"
 
         except Exception as e:
+            logger.error("Failed to start server", exc_info=True)
             return False, f"Failed to start server: {e}"
 
     def stop(self) -> Tuple[bool, str]:
@@ -435,6 +450,7 @@ class LLMServerManager:
             Tuple of (success, message).
         """
         if not self.is_running():
+            logger.info("Server not running — nothing to stop")
             return True, "Server not running"
 
         if self._process:
@@ -444,6 +460,7 @@ class LLMServerManager:
             except subprocess.TimeoutExpired:
                 self._process.kill()
             self._process = None
+            logger.info("Server stopped")
             return True, "Server stopped"
 
         # Try to find and kill by port or process name
