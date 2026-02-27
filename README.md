@@ -1,17 +1,19 @@
-# 🤖 Automatr Prompt
+# 🤖 Templatr
+
+[![CI](https://github.com/josiahH-cf/templatr/actions/workflows/ci.yml/badge.svg)](https://github.com/josiahH-cf/templatr/actions/workflows/ci.yml)
 
 **Create reusable AI prompts that run 100% on your computer.**
 
 No cloud. No API keys. No subscriptions. Just you and your local AI.
 
-![Automatr Screenshot](docs/screenshot.png)
+![Templatr Screenshot](docs/screenshot.png)
 <!-- TODO: Add screenshot showing the main window with a template -->
 
 ---
 
-## ✨ What is Automatr?
+## ✨ What is Templatr?
 
-Automatr helps you build **prompt templates** — reusable prompts with fill-in-the-blank variables. Think of them like form letters for AI.
+Templatr helps you build **prompt templates** — reusable prompts with fill-in-the-blank variables. Think of them like form letters for AI.
 
 **Example:** Instead of retyping "Review this code for bugs..." every time, create a template once and reuse it forever.
 
@@ -31,8 +33,8 @@ Everything runs on your computer:
 Open a terminal and run:
 
 ```bash
-git clone https://github.com/josiahH-cf/automatr-prompt.git
-cd automatr-prompt
+git clone https://github.com/josiahH-cf/templatr.git
+cd templatr
 ./install.sh
 ```
 
@@ -42,7 +44,7 @@ This takes 5-10 minutes. It downloads and sets up everything automatically.
 
 You need a `.gguf` model file — this is the "brain" that generates responses.
 
-1. Launch Automatr: `automatr`
+1. Launch Templatr: `templatr`
 2. Go to **LLM → Download Models (Hugging Face)**
 3. Download any model (start small, around 3-8GB)
 4. Go to **LLM → Select Model → Add Model from File...**
@@ -82,24 +84,58 @@ Now you can reuse this template anytime — just fill in the blanks!
 **Linux / WSL2:**
 | What | Location |
 |------|----------|
-| Settings & Templates | `~/.config/automatr/` |
-| LLM Server | `~/.local/share/automatr/` |
+| Settings & Templates | `~/.config/templatr/` |
+| LLM Server | `~/.local/share/templatr/` |
 | Models | `~/models/` |
 
 **macOS:**
 | What | Location |
 |------|----------|
-| Settings & Templates | `~/Library/Application Support/automatr/` |
+| Settings & Templates | `~/Library/Application Support/templatr/` |
 | Models | `~/models/` |
 
 **To remove everything:**
 ```bash
-# Linux/WSL2
-rm -rf ~/.config/automatr/ ~/.local/share/automatr/ ~/models/*.gguf
+# 1. Uninstall the Python package
+cd ~/templatr
+source .venv/bin/activate
+pip uninstall templatr -y
 
-# macOS  
-rm -rf ~/Library/Application\ Support/automatr/ ~/models/*.gguf
+# 2. Remove the repository and virtual environment
+cd ~
+rm -rf ~/templatr
+
+# 3. Remove user data (Linux/WSL2)
+rm -rf ~/.config/templatr/ ~/.local/share/templatr/
+
+# 3. Remove user data (macOS)
+# rm -rf ~/Library/Application\ Support/templatr/
+
+# 4. Remove models (optional — these are large files you downloaded)
+# rm -rf ~/models/*.gguf
+
+# 5. Remove the shell alias from your shell config
+# Edit ~/.bashrc, ~/.bashrc.d/10-aliases.sh, or ~/.zshrc
+# and remove the line: alias templatr='...'
 ```
+
+### Configuration
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `XDG_CONFIG_HOME` | `~/.config` | Override config/templates directory (Linux/WSL) |
+| `QT_QPA_PLATFORM` | auto | Force Qt platform (e.g., `offscreen` for headless, `xcb` for X11) |
+
+**Config file:** `~/.config/templatr/config.json` — edit directly or use the Settings dialog.
+
+Key settings:
+- `llm.server_port` — llama-server port (default: 8080)
+- `llm.gpu_layers` — GPU layers for acceleration (0 = CPU only)
+- `llm.context_size` — Token context window (default: 4096)
+- `llm.model_dir` — Directory to scan for GGUF models (default: `~/models`)
+- `ui.theme` — `"dark"` or `"light"`
+
+**Update llama.cpp:** `./install.sh --update-llama`
 
 ---
 
@@ -118,7 +154,7 @@ A: Any `.gguf` format model. Browse [Hugging Face](https://huggingface.co/models
 A: Use a smaller model, or upgrade your hardware. A GPU helps significantly.
 
 **Q: Is there an Espanso integration?**
-A: Espanso support lives in a separate project: [automatr-espanso](https://github.com/josiahH-cf/automatr-espanso).
+A: Espanso support lives in a separate project: [templatr-espanso](https://github.com/josiahH-cf/templatr-espanso).
 
 ---
 

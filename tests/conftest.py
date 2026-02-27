@@ -21,6 +21,7 @@ def _reset_singletons():
     """Reset all global singletons after each test for clean isolation."""
     yield
     from templatr.core import config, feedback, templates
+    from templatr.core.logging_setup import reset_logging
     from templatr.integrations import llm
 
     config.reset()
@@ -28,6 +29,7 @@ def _reset_singletons():
     feedback.reset()
     llm.reset_llm_client()
     llm.reset_llm_server()
+    reset_logging()
 
 
 @pytest.fixture

@@ -78,6 +78,17 @@ def get_config_path() -> Path:
     return get_config_dir() / "config.json"
 
 
+def get_log_dir() -> Path:
+    """Get the log directory path.
+
+    Returns:
+        Path to ``<config_dir>/logs/``, created if it does not exist.
+    """
+    log_dir = get_config_dir() / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    return log_dir
+
+
 def get_templates_dir() -> Path:
     """Get the templates directory path."""
     templates_dir = get_config_dir() / "templates"

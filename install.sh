@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 #
-# Automatr Unified Installer
+# Templatr Unified Installer
 #
-# This script installs Automatr and all its dependencies on:
+# This script installs Templatr and all its dependencies on:
 # - Ubuntu/Debian Linux
 # - WSL2 (Windows Subsystem for Linux)
 # - macOS (experimental)
 #
 # Usage:
-#   ./install.sh          # Interactive installation
-#   ./install.sh --quick  # Quick install with defaults
+#   ./install.sh                # Interactive installation
+#   ./install.sh --quick        # Quick install with defaults
+#   ./install.sh --update-llama # Update llama.cpp to latest and rebuild
 #
 
 set -e
@@ -32,11 +33,11 @@ LLAMA_CPP_DIR=""
 
 set_platform_paths() {
     if [[ "$PLATFORM" == "macos" ]]; then
-        DATA_DIR="$HOME/Library/Application Support/automatr"
+        DATA_DIR="$HOME/Library/Application Support/templatr"
         CONFIG_DIR="$DATA_DIR"
     else
-        DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/automatr"
-        CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/automatr"
+        DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/templatr"
+        CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/templatr"
     fi
     LLAMA_CPP_DIR="${DATA_DIR}/llama.cpp"
 }
@@ -165,7 +166,7 @@ setup_python_env() {
     # Upgrade pip
     pip install --upgrade pip wheel setuptools
     
-    # Install automatr
+    # Install templatr
     pip install -e "$SCRIPT_DIR"
     
     log_success "Python environment ready: $VENV_DIR"
@@ -173,30 +174,38 @@ setup_python_env() {
 
 # Build llama.cpp from source
 build_llama_cpp() {
+    local force_update="${1:-false}"
     log_info "Setting up llama.cpp..."
-    
-    if [[ -f "$LLAMA_CPP_DIR/build/bin/llama-server" ]]; then
+
+    if [[ "$force_update" != "true" ]] && [[ -f "$LLAMA_CPP_DIR/build/bin/llama-server" ]]; then
         log_success "llama-server already built"
         return
     fi
-    
+
     # Ensure data directory exists
     mkdir -p "$DATA_DIR"
-    
-    # Clone if not present
+
+    # Clone if not present, otherwise pull latest
     if [[ ! -d "$LLAMA_CPP_DIR" ]]; then
         log_info "Cloning llama.cpp to $LLAMA_CPP_DIR..."
         git clone --depth 1 https://github.com/ggerganov/llama.cpp.git "$LLAMA_CPP_DIR"
+    elif [[ "$force_update" == "true" ]]; then
+        log_info "Updating llama.cpp to latest..."
+        cd "$LLAMA_CPP_DIR"
+        git fetch --depth 1 origin main
+        git reset --hard origin/main
+        rm -rf build
+        cd "$SCRIPT_DIR"
     fi
-    
+
     cd "$LLAMA_CPP_DIR"
-    
+
     # Build
     log_info "Building llama.cpp (this may take a few minutes)..."
-    
+
     mkdir -p build
     cd build
-    
+
     # Detect GPU support
     CMAKE_ARGS=""
     if command -v nvcc &> /dev/null; then
@@ -206,10 +215,10 @@ build_llama_cpp() {
         log_info "Building with Metal support..."
         CMAKE_ARGS="-DGGML_METAL=ON"
     fi
-    
+
     cmake .. $CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release
     cmake --build . --config Release -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
-    
+
     log_success "llama.cpp built successfully"
     cd "$SCRIPT_DIR"
 }
@@ -315,11 +324,15 @@ setup_alias() {
     fi
     
     if [[ -n "$SHELL_RC" ]]; then
-        ALIAS_LINE="alias automatr='source $VENV_DIR/bin/activate && automatr'"
-        
-        if ! grep -q "alias automatr=" "$SHELL_RC" 2>/dev/null; then
+        ALIAS_LINE="alias templatr='source \"${VENV_DIR}/bin/activate\" && templatr'"
+
+        if grep -q "alias templatr=" "$SHELL_RC" 2>/dev/null; then
+            # Update existing alias to point to current install
+            sed -i "s|^alias templatr=.*|${ALIAS_LINE}|" "$SHELL_RC"
+            log_success "Updated alias in $SHELL_RC"
+        else
             echo "" >> "$SHELL_RC"
-            echo "# Automatr" >> "$SHELL_RC"
+            echo "# Templatr" >> "$SHELL_RC"
             echo "$ALIAS_LINE" >> "$SHELL_RC"
             log_success "Added alias to $SHELL_RC"
         fi
@@ -333,7 +346,7 @@ smoke_test() {
     source "$VENV_DIR/bin/activate"
     
     # Test import
-    if python3 -c "import automatr; print(f'Version: {automatr.__version__}')" 2>/dev/null; then
+    if python3 -c "import templatr; print(f'Version: {templatr.__version__}')" 2>/dev/null; then
         log_success "Import test passed"
     else
         log_error "Import test failed"
@@ -341,7 +354,7 @@ smoke_test() {
     fi
     
     # Test config
-    if python3 -c "from automatr.core.config import get_config; get_config()" 2>/dev/null; then
+    if python3 -c "from templatr.core.config import get_config; get_config()" 2>/dev/null; then
         log_success "Config test passed"
     else
         log_error "Config test failed"
@@ -349,7 +362,7 @@ smoke_test() {
     fi
     
     # Test templates
-    if python3 -c "from automatr.core.templates import get_template_manager; print(f'Templates: {len(get_template_manager().list_all())}')" 2>/dev/null; then
+    if python3 -c "from templatr.core.templates import get_template_manager; print(f'Templates: {len(get_template_manager().list_all())}')" 2>/dev/null; then
         log_success "Template test passed"
     else
         log_error "Template test failed"
@@ -370,7 +383,7 @@ smoke_test() {
 print_summary() {
     echo ""
     echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║                  Automatr Installation Complete             ║${NC}"
+    echo -e "${GREEN}║                  Templatr Installation Complete             ║${NC}"
     echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "  ${BLUE}Virtual environment:${NC} $VENV_DIR"
@@ -378,31 +391,45 @@ print_summary() {
     echo -e "  ${BLUE}Data directory:${NC}      $DATA_DIR"
     echo -e "  ${BLUE}llama.cpp:${NC}           $LLAMA_CPP_DIR"
     echo ""
-    echo -e "  ${YELLOW}To start Automatr:${NC}"
+    echo -e "  ${YELLOW}To start Templatr:${NC}"
     echo -e "    source $VENV_DIR/bin/activate"
-    echo -e "    automatr"
+    echo -e "    templatr"
     echo ""
     echo -e "  ${YELLOW}Or restart your shell and run:${NC}"
-    echo -e "    automatr"
+    echo -e "    templatr"
     echo ""
     echo -e "  ${YELLOW}Next steps:${NC}"
     echo -e "    1. Download a GGUF model to ~/models/"
     echo -e "    2. Select model in LLM menu or edit $CONFIG_DIR/config.json"
-    echo -e "    3. Run 'automatr' to start the GUI"
+    echo -e "    3. Run 'templatr' to start the GUI"
     echo ""
+}
+
+# Update llama.cpp only
+update_llama() {
+    detect_platform
+    set_platform_paths
+    build_llama_cpp true
+    log_success "llama.cpp updated"
 }
 
 # Main installation
 main() {
     echo ""
     echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║                    Automatr Installer                       ║${NC}"
+    echo -e "${BLUE}║                    Templatr Installer                       ║${NC}"
     echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    
+
+    # Handle --update-llama as a standalone command
+    if [[ "$1" == "--update-llama" ]]; then
+        update_llama
+        return
+    fi
+
     detect_platform
     set_platform_paths
-    
+
     if [[ "$1" != "--quick" ]]; then
         echo ""
         log_info "This will install:"
@@ -418,7 +445,7 @@ main() {
             exit 0
         fi
     fi
-    
+
     install_system_deps
     setup_python_env
     build_llama_cpp

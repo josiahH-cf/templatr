@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "automatr-prompt"
+name = "templatr"
 version = "1.0.0"
 description = "Local prompt optimizer with reusable templates and llama.cpp integration. No cloud, no API keys."
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
 authors = [
-    {name = "Automatr Contributors"}
+    {name = "Templatr Contributors"}
 ]
 keywords = ["llm", "prompt", "templates", "local", "llama.cpp"]
 classifiers = [
@@ -40,15 +40,15 @@ dev = [
 ]
 
 [project.scripts]
-automatr = "automatr.__main__:main"
+templatr = "templatr.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/josiahH-cf/automatr-prompt"
-Repository = "https://github.com/josiahH-cf/automatr-prompt"
+Homepage = "https://github.com/josiahH-cf/templatr"
+Repository = "https://github.com/josiahH-cf/templatr"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["automatr*"]
+include = ["templatr*"]
 
 [tool.black]
 line-length = 88
