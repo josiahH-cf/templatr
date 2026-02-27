@@ -10,11 +10,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 from PyQt6.QtCore import Qt
 
-from automatr.core.templates import Template, Variable
-from automatr.ui.llm_toolbar import LLMToolbar
-from automatr.ui.output_pane import OutputPaneWidget
-from automatr.ui.template_tree import TemplateTreeWidget
-from automatr.ui.variable_form import VariableFormWidget
+from templatr.core.templates import Template, Variable
+from templatr.ui.llm_toolbar import LLMToolbar
+from templatr.ui.output_pane import OutputPaneWidget
+from templatr.ui.template_tree import TemplateTreeWidget
+from templatr.ui.variable_form import VariableFormWidget
 
 
 @pytest.fixture
@@ -48,7 +48,7 @@ def test_tree_populates_and_emits_template_selected(qtbot):
     """Tree widget loads templates and emits template_selected on click."""
     templates = _make_templates()
 
-    with patch("automatr.ui.template_tree.get_template_manager") as mock_mgr:
+    with patch("templatr.ui.template_tree.get_template_manager") as mock_mgr:
         manager = MagicMock()
         manager.list_all.return_value = templates
         manager.list_folders.return_value = []
@@ -72,7 +72,7 @@ def test_tree_emits_folder_selected(qtbot):
     t = Template(name="InFolder", content="test", description="",
                  variables=[])
 
-    with patch("automatr.ui.template_tree.get_template_manager") as mock_mgr:
+    with patch("templatr.ui.template_tree.get_template_manager") as mock_mgr:
         manager = MagicMock()
         manager.list_all.return_value = [t]
         manager.list_folders.return_value = ["MyFolder"]
@@ -169,7 +169,7 @@ def test_toolbar_emits_server_running_changed(qtbot):
     widget = LLMToolbar()
     qtbot.addWidget(widget)
 
-    with patch("automatr.ui.llm_toolbar.get_llm_server") as mock_srv:
+    with patch("templatr.ui.llm_toolbar.get_llm_server") as mock_srv:
         server = MagicMock()
         server.is_running.return_value = True
         mock_srv.return_value = server
@@ -185,7 +185,7 @@ def test_toolbar_check_status_updates_ui(qtbot):
     widget = LLMToolbar()
     qtbot.addWidget(widget)
 
-    with patch("automatr.ui.llm_toolbar.get_llm_server") as mock_srv:
+    with patch("templatr.ui.llm_toolbar.get_llm_server") as mock_srv:
         server = MagicMock()
         server.is_running.return_value = False
         mock_srv.return_value = server

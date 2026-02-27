@@ -1,4 +1,4 @@
-"""Tests for automatr.core.templates — TemplateManager CRUD, versioning, folders, and rendering.
+"""Tests for templatr.core.templates — TemplateManager CRUD, versioning, folders, and rendering.
 
 Covers: load from directory, save new, update existing, delete, version creation,
 version listing and restore, folder creation and movement, Template.render(),
@@ -8,7 +8,7 @@ and loading templates that contain unknown fields (e.g., 'trigger').
 import json
 from pathlib import Path
 
-from automatr.core.templates import Template, TemplateManager, Variable
+from templatr.core.templates import Template, TemplateManager, Variable
 
 # ---------------------------------------------------------------------------
 # 1. Load templates from directory

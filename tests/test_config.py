@@ -1,18 +1,21 @@
-"""Tests for automatr.core.config — ConfigManager loading, saving, updating, and platform detection.
+"""Tests for templatr.core.config — ConfigManager loading, saving, updating, and platform detection.
 
 Covers: default config creation when no file exists, loading existing config.json,
 saving config and verifying JSON output, update() with dotted keys (e.g. llm.model_path),
-backward-compat behaviour with unknown top-level and nested JSON keys, and platform detection.
+backward-compat behaviour with unknown top-level and nested JSON keys, platform detection,
+and config directory migration from automatr to templatr.
 """
 
 import json
 from pathlib import Path
+from unittest.mock import patch
 
-from automatr.core.config import (
+from templatr.core.config import (
     Config,
     ConfigManager,
     LLMConfig,
     UIConfig,
+    get_config_dir,
     get_platform,
 )
 
@@ -205,3 +208,45 @@ def test_get_platform_returns_string() -> None:
     platform = get_platform()
     assert isinstance(platform, str)
     assert len(platform) > 0
+
+
+# ---------------------------------------------------------------------------
+# Config directory migration from automatr to templatr
+# ---------------------------------------------------------------------------
+
+
+def test_config_dir_migrates_from_old_automatr_path(tmp_path: Path) -> None:
+    """get_config_dir() copies ~/.config/automatr/ to ~/.config/templatr/ when the new dir doesn't exist."""
+    base = tmp_path / ".config"
+    old_dir = base / "automatr"
+    new_dir = base / "templatr"
+
+    # Create the old config with a marker file
+    old_dir.mkdir(parents=True)
+    (old_dir / "config.json").write_text('{"migrated": true}')
+
+    with patch.dict("os.environ", {"XDG_CONFIG_HOME": str(base)}):
+        result = get_config_dir()
+
+    assert result == new_dir
+    assert (new_dir / "config.json").exists()
+    assert json.loads((new_dir / "config.json").read_text()) == {"migrated": True}
+
+
+def test_config_dir_does_not_overwrite_existing(tmp_path: Path) -> None:
+    """get_config_dir() does not migrate if the new templatr dir already exists."""
+    base = tmp_path / ".config"
+    old_dir = base / "automatr"
+    new_dir = base / "templatr"
+
+    old_dir.mkdir(parents=True)
+    (old_dir / "config.json").write_text('{"old": true}')
+    new_dir.mkdir(parents=True)
+    (new_dir / "config.json").write_text('{"new": true}')
+
+    with patch.dict("os.environ", {"XDG_CONFIG_HOME": str(base)}):
+        result = get_config_dir()
+
+    assert result == new_dir
+    # Should keep the new content, not overwrite with old
+    assert json.loads((new_dir / "config.json").read_text()) == {"new": True}

@@ -1,15 +1,19 @@
-"""Shared pytest fixtures for the automatr-prompt test suite.
+"""Shared pytest fixtures for the templatr test suite.
 
 Provides reusable test infrastructure: isolated config dirs, template dirs,
 and pre-built Template objects. All fixtures use tmp_path for isolation.
 """
 
 import json
+import os
 from pathlib import Path
+
+# Default to offscreen Qt rendering so tests run headless without a display.
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
 
-from automatr.core.templates import Template, Variable
+from templatr.core.templates import Template, Variable
 
 
 @pytest.fixture
