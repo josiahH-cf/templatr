@@ -31,7 +31,7 @@ Specs are ordered by dependency chain. Items marked ✅ are complete.
 2. ✅ **project-rename** — Rename to templatr (no deps)
 3. ✅ **responsive-layout** — Dynamic sizing & proportional layout (deps: project-rename ✅)
 4. **incremental-decoupling** — Protocol interfaces, DI, circular import fix (no deps)
-5. **crash-logging** — Structured logging + exception hook (deps: project-rename ✅)
+5. ✅ **crash-logging** — Structured logging + exception hook (deps: project-rename ✅)
 6. ✅ **cross-platform-packaging** — PyInstaller standalone builds (deps: project-rename ✅)
 7. **graceful-error-recovery** — GGUF validation, health polling (deps: crash-logging)
 8. **chat-ui-core** — Conversational chat UI (soft dep: graceful-error-recovery)

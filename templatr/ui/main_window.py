@@ -3,9 +3,10 @@
 import sys
 from typing import Optional
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import (
     QAction,
+    QDesktopServices,
     QFont,
     QKeySequence,
     QResizeEvent,
@@ -238,6 +239,10 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
 
         # Help menu
         help_menu = menubar.addMenu("&Help")
+        view_log_action = QAction("View &Log File", self)
+        view_log_action.triggered.connect(self._view_log_file)
+        help_menu.addAction(view_log_action)
+        help_menu.addSeparator()
         about_action = QAction("&About Automatr", self)
         about_action.triggered.connect(self._show_about)
         help_menu.addAction(about_action)
@@ -354,6 +359,13 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
             self.llm_toolbar.open_hugging_face
         )
         actions["refresh"].triggered.connect(self.llm_toolbar.check_status)
+
+    def _view_log_file(self):
+        """Open the log directory in the system file manager."""
+        from templatr.core.config import get_log_dir
+
+        log_dir = get_log_dir()
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(log_dir)))
 
     def _show_llm_settings(self):
         """Show the LLM settings dialog."""

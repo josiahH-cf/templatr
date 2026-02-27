@@ -1,4 +1,4 @@
-"""Automatr CLI entry point."""
+"""Templatr CLI entry point."""
 
 import argparse
 import sys
@@ -19,6 +19,12 @@ def main() -> int:
     )
 
     parser.parse_args()
+
+    # Initialize logging before anything else
+    from templatr.core.logging_setup import setup_logging, unhandled_exception_hook
+
+    setup_logging()
+    sys.excepthook = unhandled_exception_hook
 
     from templatr.ui.main_window import run_gui
 

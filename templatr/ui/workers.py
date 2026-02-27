@@ -1,5 +1,6 @@
 """Background worker threads for long-running operations."""
 
+import logging
 import shutil
 import time
 from pathlib import Path
@@ -7,6 +8,8 @@ from pathlib import Path
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from templatr.integrations.llm import get_llm_client
+
+logger = logging.getLogger(__name__)
 
 
 class GenerationWorker(QThread):
@@ -72,6 +75,11 @@ class GenerationWorker(QThread):
                     break
 
         if last_error and not self._stopped:
+            logger.error(
+                "LLM generation failed after %d attempt(s)",
+                self.MAX_RETRY_ATTEMPTS,
+                exc_info=last_error,
+            )
             self.error.emit(str(last_error))
 
 
