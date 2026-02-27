@@ -30,10 +30,10 @@ Specs are ordered by dependency chain. Items marked ✅ are complete.
 1. ✅ **ci-pipeline** — GitHub Actions CI (no deps)
 2. ✅ **project-rename** — Rename to templatr (no deps)
 3. ✅ **responsive-layout** — Dynamic sizing & proportional layout (deps: project-rename ✅)
-4. **incremental-decoupling** — Protocol interfaces, DI, circular import fix (no deps)
-5. **crash-logging** — Structured logging + exception hook (deps: project-rename ✅)
+4. ✅ **incremental-decoupling** — Protocol interfaces, DI, circular import fix (no deps)
+5. ✅ **crash-logging** — Structured logging + exception hook (deps: project-rename ✅)
 6. **cross-platform-packaging** — PyInstaller standalone builds (deps: project-rename ✅)
-7. **graceful-error-recovery** — GGUF validation, health polling (deps: crash-logging)
+7. **graceful-error-recovery** — GGUF validation, health polling (deps: crash-logging ✅)
 8. **chat-ui-core** — Conversational chat UI (soft dep: graceful-error-recovery)
 9. **release-automation** — Tag-triggered CI builds (deps: ci-pipeline ✅, cross-platform-packaging)
 10. **slash-commands** — `/` command palette (deps: chat-ui-core)
@@ -59,3 +59,5 @@ _Ready for next feature._
 - ✅ CI pipeline (pytest + ruff on push/PR, Python 3.10–3.12)
 - ✅ Project rename: automatr → templatr (all imports, config, docs, migration)
 - ✅ Responsive layout: proportional splitter, dynamic font/padding/header scaling, stretch fill
+- ✅ Incremental decoupling: Protocol interfaces, dependency injection, singleton resets
+- ✅ Crash logging: rotating file handler, global exception hook, worker/server logging, Help → View Log File (128 tests passing)

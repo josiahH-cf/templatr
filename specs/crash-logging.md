@@ -6,12 +6,12 @@ Add structured local crash logging so that when the app fails, there's a log fil
 
 ## Acceptance Criteria
 
-- [ ] A rotating log file is written to `<config_dir>/logs/<appname>.log` with ISO-8601 timestamps, log level, and module source
-- [ ] Unhandled exceptions are captured by a global `sys.excepthook` handler and written to the log at CRITICAL level before the app exits
-- [ ] LLM generation errors (from workers) are logged at ERROR level with the full exception chain, not just the message string
-- [ ] The Help menu includes a "View Log File" action that opens the log directory in the system file manager
-- [ ] Log files rotate at 5 MB with 3 backup files retained (max ~20 MB disk usage)
-- [ ] Log entries never include prompt content or model output (user privacy)
+- [x] A rotating log file is written to `<config_dir>/logs/<appname>.log` with ISO-8601 timestamps, log level, and module source
+- [x] Unhandled exceptions are captured by a global `sys.excepthook` handler and written to the log at CRITICAL level before the app exits
+- [x] LLM generation errors (from workers) are logged at ERROR level with the full exception chain, not just the message string
+- [x] The Help menu includes a "View Log File" action that opens the log directory in the system file manager
+- [x] Log files rotate at 5 MB with 3 backup files retained (max ~20 MB disk usage)
+- [x] Log entries never include prompt content or model output (user privacy)
 
 ## Affected Areas
 

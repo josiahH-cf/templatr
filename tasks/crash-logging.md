@@ -5,8 +5,8 @@
 ## Status
 
 - Total: 3
-- Complete: 0
-- Remaining: 3
+- Complete: 3
+- Remaining: 0
 
 ## Task List
 
@@ -15,21 +15,19 @@
 - **Files:** `templatr/core/logging_setup.py` (new), `templatr/core/config.py` (log dir path), `templatr/__main__.py` (call setup on startup)
 - **Done when:** `setup_logging()` creates a rotating file handler at `<config_dir>/logs/<appname>.log`, 5 MB rotation, 3 backups. Log format includes ISO-8601 timestamp, level, module. Called before any other initialization in `__main__.py`.
 - **Criteria covered:** Criterion 1 (rotating log file), Criterion 5 (rotation config), Criterion 6 (no prompt content — enforced by not passing content to logger)
-- **Status:** [ ] Not started
-
-### Task 2: Global exception hook and worker error logging
+- **Status:** [x] Complete
 
 - **Files:** `templatr/__main__.py` (sys.excepthook), `templatr/ui/workers.py` (error logging), `templatr/integrations/llm.py` (server error logging)
 - **Done when:** Unhandled exceptions are caught by `sys.excepthook`, logged at CRITICAL, and the app exits cleanly. `GenerationWorker` errors are logged at ERROR with full traceback. LLM server start/stop failures are logged at ERROR.
 - **Criteria covered:** Criterion 2 (global exception hook), Criterion 3 (worker error logging)
-- **Status:** [ ] Not started
+- **Status:** [x] Complete
 
 ### Task 3: Help menu "View Log File" action
 
 - **Files:** `templatr/ui/main_window.py` (Help menu addition)
 - **Done when:** Help menu has a "View Log File" action that opens the log directory in the system file manager via `QDesktopServices.openUrl()`. Works on Linux, macOS, and Windows.
 - **Criteria covered:** Criterion 4 (View Log File action)
-- **Status:** [ ] Not started
+- **Status:** [x] Complete
 
 ## Test Strategy
 
