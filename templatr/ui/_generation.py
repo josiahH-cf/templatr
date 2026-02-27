@@ -10,9 +10,19 @@ from templatr.ui.workers import GenerationWorker
 class GenerationMixin:
     """Generation orchestration: run LLM, render-only, handle results.
 
-    Mixed into MainWindow. Expects the host class to provide:
-    current_template, variable_form, output_pane, status_bar,
-    llm_toolbar, worker, _last_prompt, _last_output.
+    Mixed into MainWindow (must inherit QMainWindow).
+
+    Expects self to provide:
+        current_template (Optional[Template]): Currently selected template (read).
+        variable_form (VariableFormWidget): Variable input form with
+            .get_values() and .generate_btn (QAbstractButton) for enable/text.
+        output_pane (OutputPaneWidget): Output display (.clear(), .set_text(),
+            .set_streaming(), .append_text(), .set_waiting_message()).
+        status_bar (QStatusBar): Status bar for messages (.showMessage()).
+        llm_toolbar (LLMToolbar): Server controls (.check_status()).
+        worker (Optional[GenerationWorker]): Background worker (read/write).
+        _last_prompt (Optional[str]): Last rendered prompt (write).
+        _last_output (Optional[str]): Last generated output (write).
     """
 
     def _generate(self):

@@ -113,3 +113,93 @@ class TestSingletonReset:
         llm.reset_llm_server()
         second = llm.get_llm_server()
         assert first is not second
+
+
+class TestConstructorInjection:
+    """Verify MainWindow accepts optional dependency parameters."""
+
+    def test_mainwindow_init_accepts_optional_deps(self):
+        """MainWindow.__init__ signature accepts config, templates, llm_client, llm_server."""
+        import inspect
+
+        from templatr.ui.main_window import MainWindow
+
+        sig = inspect.signature(MainWindow.__init__)
+        params = list(sig.parameters.keys())
+        assert "config" in params
+        assert "templates" in params
+        assert "llm_client" in params
+        assert "llm_server" in params
+
+    def test_mainwindow_stores_injected_deps(self, qtbot):
+        """MainWindow stores injected dependencies as instance attributes."""
+        from unittest.mock import MagicMock
+
+        from templatr.ui.main_window import MainWindow
+
+        mock_config = MagicMock()
+        mock_config.config.ui.window_width = 900
+        mock_config.config.ui.window_height = 700
+        mock_config.config.ui.theme = "dark"
+        mock_config.config.ui.font_size = 13
+        mock_config.config.ui.splitter_sizes = [200, 300, 400]
+        mock_config.config.ui.window_geometry = ""
+        mock_config.config.ui.window_maximized = False
+        mock_config.config.ui.last_template = ""
+        mock_config.config.ui.expanded_folders = []
+
+        mock_templates = MagicMock()
+        mock_templates.list_all.return_value = []
+        mock_templates.list_folders.return_value = []
+
+        mock_client = MagicMock()
+        mock_server = MagicMock()
+        mock_server.is_running.return_value = False
+
+        window = MainWindow(
+            config=mock_config,
+            templates=mock_templates,
+            llm_client=mock_client,
+            llm_server=mock_server,
+        )
+        qtbot.addWidget(window)
+
+        assert window.config_manager is mock_config
+        assert window.template_manager is mock_templates
+        assert window.llm_client is mock_client
+        assert window.llm_server is mock_server
+
+
+class TestMixinDocstrings:
+    """Verify each mixin class has a docstring listing expected self attributes."""
+
+    def test_template_actions_mixin_docstring(self):
+        from templatr.ui._template_actions import TemplateActionsMixin
+
+        doc = TemplateActionsMixin.__doc__
+        assert doc is not None
+        assert "Expects self to provide" in doc
+        for attr in ["current_template", "variable_form", "template_tree_widget",
+                      "status_bar", "llm_toolbar"]:
+            assert attr in doc, f"Missing {attr} in TemplateActionsMixin docstring"
+
+    def test_generation_mixin_docstring(self):
+        from templatr.ui._generation import GenerationMixin
+
+        doc = GenerationMixin.__doc__
+        assert doc is not None
+        assert "Expects self to provide" in doc
+        for attr in ["current_template", "variable_form", "output_pane",
+                      "status_bar", "llm_toolbar", "worker",
+                      "_last_prompt", "_last_output"]:
+            assert attr in doc, f"Missing {attr} in GenerationMixin docstring"
+
+    def test_window_state_mixin_docstring(self):
+        from templatr.ui._window_state import WindowStateMixin
+
+        doc = WindowStateMixin.__doc__
+        assert doc is not None
+        assert "Expects self to provide" in doc
+        for attr in ["current_template", "template_tree",
+                      "template_tree_widget", "splitter"]:
+            assert attr in doc, f"Missing {attr} in WindowStateMixin docstring"

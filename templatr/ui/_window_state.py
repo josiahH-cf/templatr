@@ -9,10 +9,17 @@ from templatr.core.config import get_config, save_config
 
 
 class WindowStateMixin:
-    """Window geometry, state save/restore, and about dialog.
+    """Window geometry, state save/restore, and close-event persistence.
 
-    Mixed into MainWindow. Expects the host class to provide:
-    template_tree (tree widget), current_template, splitter.
+    Mixed into MainWindow (must inherit QMainWindow for saveGeometry/
+    restoreGeometry/isMaximized).
+
+    Expects self to provide:
+        current_template (Optional[Template]): Currently selected template (read).
+        template_tree (QTreeWidget): Raw tree widget for folder expansion state.
+        template_tree_widget (TemplateTreeWidget): Sidebar tree
+            (.select_template_by_name()).
+        splitter (QSplitter): Main content splitter (.sizes()).
     """
 
     def _is_geometry_visible(self, geometry_data: QByteArray) -> bool:
