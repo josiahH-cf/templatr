@@ -24,6 +24,7 @@ class OutputPaneWidget(QWidget):
     """
 
     stop_requested = pyqtSignal()
+    retry_requested = pyqtSignal()
     status_message = pyqtSignal(str, int)
 
     def __init__(self, parent: Optional[QWidget] = None):
@@ -74,6 +75,15 @@ class OutputPaneWidget(QWidget):
         clear_btn.clicked.connect(self.clear)
         header.addWidget(clear_btn)
 
+        self._retry_btn = QPushButton("Retry")
+        self._retry_btn.setObjectName("secondary")
+        self._retry_btn.setStyleSheet(
+            "background-color: #c9a04e; color: #1e1e1e; font-weight: bold;"
+        )
+        self._retry_btn.clicked.connect(self.retry_requested.emit)
+        self._retry_btn.setVisible(False)
+        header.addWidget(self._retry_btn)
+
         layout.addLayout(header)
 
         self._output_text = QTextEdit()
@@ -109,15 +119,32 @@ class OutputPaneWidget(QWidget):
         """Return the current output text."""
         return self._output_text.toPlainText()
 
+    def show_error(self, message: str):
+        """Display a human-readable error message in the output pane.
+
+        Shows a styled error message and makes the Retry button visible.
+
+        Args:
+            message: The user-facing error message to display.
+        """
+        self._output_text.setHtml(
+            f'<p style="color: #f48771; font-weight: bold;">'
+            f'⚠ Error</p>'
+            f'<p style="color: #f48771;">{message}</p>'
+        )
+        self._retry_btn.setVisible(True)
+
     def clear(self):
-        """Clear the output text area."""
+        """Clear the output text area and hide the retry button."""
         self._output_text.clear()
+        self._retry_btn.setVisible(False)
 
     def set_streaming(self, streaming: bool):
         """Show or hide the stop button and generating indicator."""
         self._stop_btn.setVisible(streaming)
         self._generating_label.setVisible(streaming)
         if streaming:
+            self._retry_btn.setVisible(False)
             self._gen_dot_count = 0
             self._waiting_for_server = False
             self._gen_timer.start(500)

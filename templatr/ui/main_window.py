@@ -326,6 +326,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
 
         self.output_pane = OutputPaneWidget()
         self.output_pane.stop_requested.connect(self._stop_generation)
+        self.output_pane.retry_requested.connect(self._retry_generation)
         self.output_pane.status_message.connect(
             lambda msg, ms: self.status_bar.showMessage(msg, ms)
         )

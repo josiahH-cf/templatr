@@ -84,11 +84,12 @@ class GenerationMixin:
         self._last_output = result
 
     def _on_generation_error(self, error: str):
-        """Handle generation error."""
+        """Handle generation error by showing in the output pane with retry."""
         self.variable_form.generate_btn.setEnabled(True)
         self.variable_form.generate_btn.setText("Render with AI (Ctrl+G)")
         self.output_pane.set_streaming(False)
-        QMessageBox.critical(self, "Generation Error", error)
+        self.output_pane.show_error(error)
+        self.status_bar.showMessage("Generation failed", 5000)
 
     def _on_waiting_for_server_status(self, attempt: int, max_attempts: int):
         """Update status bar when waiting for server."""
@@ -96,6 +97,30 @@ class GenerationMixin:
             f"Waiting for model to start (attempt {attempt}/{max_attempts})...",
             5000,
         )
+
+    def _connect_output_retry(self):
+        """Connect the output pane's retry signal to re-submit generation."""
+        self.output_pane.retry_requested.connect(self._retry_generation)
+
+    def _retry_generation(self):
+        """Re-submit the last generation request."""
+        if self._last_prompt:
+            self.variable_form.generate_btn.setEnabled(False)
+            self.variable_form.generate_btn.setText("Generating...")
+            self.output_pane.clear()
+            self.output_pane.set_streaming(True)
+
+            self.worker = GenerationWorker(self._last_prompt, stream=True)
+            self.worker.token_received.connect(self.output_pane.append_text)
+            self.worker.finished.connect(self._on_generation_finished)
+            self.worker.error.connect(self._on_generation_error)
+            self.worker.waiting_for_server.connect(
+                self.output_pane.set_waiting_message
+            )
+            self.worker.waiting_for_server.connect(
+                self._on_waiting_for_server_status
+            )
+            self.worker.start()
 
     def _stop_generation(self):
         """Stop the current generation."""

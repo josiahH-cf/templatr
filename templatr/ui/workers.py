@@ -12,6 +12,53 @@ from templatr.integrations.llm import get_llm_client, validate_gguf
 logger = logging.getLogger(__name__)
 
 
+# Map common exception types to user-friendly messages
+_ERROR_MESSAGES = {
+    ConnectionRefusedError: (
+        "The LLM server isn't running.\n\n"
+        "Start it from the toolbar (LLM → Start Server)."
+    ),
+    ConnectionError: (
+        "Cannot connect to the LLM server.\n\n"
+        "Start it from the toolbar (LLM → Start Server)."
+    ),
+    TimeoutError: (
+        "The request timed out.\n\n"
+        "The model may still be loading, or the prompt is too long. "
+        "Try again in a moment."
+    ),
+}
+
+
+def format_error_message(error: Exception) -> str:
+    """Convert an exception to a human-readable error message.
+
+    Maps known exception types to helpful, actionable messages.
+    Falls back to the exception's string representation for unknown types.
+
+    Args:
+        error: The exception to format.
+
+    Returns:
+        A user-facing error message string.
+    """
+    # Check exact type first, then base classes
+    for exc_type, message in _ERROR_MESSAGES.items():
+        if isinstance(error, exc_type):
+            return message
+
+    # RuntimeError often already has a user-facing message from LLMClient
+    if isinstance(error, RuntimeError):
+        return str(error)
+
+    # Generic fallback
+    return (
+        f"An unexpected error occurred: {type(error).__name__}\n\n"
+        f"{error}"
+    )
+
+
+
 class GenerationWorker(QThread):
     """Background worker for LLM generation with retry on server startup."""
 
@@ -21,7 +68,7 @@ class GenerationWorker(QThread):
     waiting_for_server = pyqtSignal(int, int)
 
     MAX_RETRY_ATTEMPTS = 3
-    RETRY_DELAY_SECONDS = 3.0
+    RETRY_DELAYS = [1.0, 2.0, 4.0]
 
     def __init__(self, prompt: str, stream: bool = True):
         super().__init__()
@@ -44,7 +91,11 @@ class GenerationWorker(QThread):
         )
 
     def run(self):
-        """Execute the generation, with retries on connection errors."""
+        """Execute the generation with exponential backoff on connection errors.
+
+        Retries up to MAX_RETRY_ATTEMPTS times with delays from RETRY_DELAYS
+        (1s, 2s, 4s) on connection errors. Emits human-readable error messages.
+        """
         client = get_llm_client()
         last_error = None
 
@@ -70,7 +121,8 @@ class GenerationWorker(QThread):
                 last_error = e
                 if self._is_connection_error(e) and attempt < self.MAX_RETRY_ATTEMPTS:
                     self.waiting_for_server.emit(attempt, self.MAX_RETRY_ATTEMPTS)
-                    time.sleep(self.RETRY_DELAY_SECONDS)
+                    delay = self.RETRY_DELAYS[attempt - 1]
+                    time.sleep(delay)
                 else:
                     break
 
@@ -80,7 +132,7 @@ class GenerationWorker(QThread):
                 self.MAX_RETRY_ATTEMPTS,
                 exc_info=last_error,
             )
-            self.error.emit(str(last_error))
+            self.error.emit(format_error_message(last_error))
 
 
 class ModelCopyWorker(QThread):

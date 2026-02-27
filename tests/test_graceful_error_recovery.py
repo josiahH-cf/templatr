@@ -107,3 +107,111 @@ class TestModelCopyWithValidation:
         assert len(results) == 1
         success, message = results[0]
         assert success is True
+
+
+# ---------------------------------------------------------------------------
+# Task 2: Human-readable errors, retry button, exponential backoff
+# ---------------------------------------------------------------------------
+
+
+class TestFormatErrorMessage:
+    """format_error_message() translates exceptions to user-friendly text."""
+
+    def test_connection_refused(self):
+        """ConnectionRefusedError → helpful message about starting server."""
+        from templatr.ui.workers import format_error_message
+
+        msg = format_error_message(ConnectionRefusedError("Connection refused"))
+        assert "server" in msg.lower()
+        assert "start" in msg.lower()
+
+    def test_connection_error(self):
+        """ConnectionError → helpful message about starting server."""
+        from templatr.ui.workers import format_error_message
+
+        msg = format_error_message(
+            ConnectionError("Cannot connect to LLM server")
+        )
+        assert "server" in msg.lower()
+
+    def test_timeout_error(self):
+        """TimeoutError → message about model loading or long prompt."""
+        from templatr.ui.workers import format_error_message
+
+        msg = format_error_message(TimeoutError("timed out"))
+        assert "timed out" in msg.lower() or "timeout" in msg.lower()
+
+    def test_runtime_error_passthrough(self):
+        """RuntimeError with existing message → preserved as-is."""
+        from templatr.ui.workers import format_error_message
+
+        msg = format_error_message(RuntimeError("Generation failed: 500"))
+        assert "Generation failed" in msg
+
+    def test_unknown_error(self):
+        """Unknown exception types → generic user-friendly message."""
+        from templatr.ui.workers import format_error_message
+
+        msg = format_error_message(ValueError("something weird"))
+        assert len(msg) > 0  # should produce some message, not crash
+
+
+class TestExponentialBackoff:
+    """GenerationWorker uses 1s/2s/4s exponential backoff on retries."""
+
+    def test_backoff_delays(self):
+        """Retry delays follow exponential backoff pattern."""
+        from templatr.ui.workers import GenerationWorker
+
+        worker = GenerationWorker("test prompt")
+        delays = worker.RETRY_DELAYS
+        assert delays == [1.0, 2.0, 4.0]
+
+    def test_retry_count_matches_delays(self):
+        """MAX_RETRY_ATTEMPTS matches the number of delay values."""
+        from templatr.ui.workers import GenerationWorker
+
+        worker = GenerationWorker("test prompt")
+        assert worker.MAX_RETRY_ATTEMPTS == len(worker.RETRY_DELAYS)
+
+
+class TestOutputPaneErrorDisplay:
+    """OutputPaneWidget.show_error() displays styled error with Retry button."""
+
+    @pytest.fixture
+    def output_pane(self, qtbot):
+        from templatr.ui.output_pane import OutputPaneWidget
+
+        widget = OutputPaneWidget()
+        qtbot.addWidget(widget)
+        widget.show()
+        return widget
+
+    def test_show_error_displays_message(self, output_pane):
+        """show_error() puts error text in the output area."""
+        output_pane.show_error("Something went wrong")
+        text = output_pane.get_text()
+        assert "Something went wrong" in text
+
+    def test_show_error_shows_retry_button(self, output_pane):
+        """show_error() makes the retry button visible."""
+        output_pane.show_error("fail")
+        assert output_pane._retry_btn.isVisible()
+
+    def test_retry_button_emits_signal(self, output_pane, qtbot):
+        """Clicking the retry button emits retry_requested."""
+        output_pane.show_error("fail")
+        with qtbot.waitSignal(output_pane.retry_requested, timeout=1000):
+            output_pane._retry_btn.click()
+
+    def test_retry_button_hidden_on_clear(self, output_pane):
+        """Clearing the output hides the retry button."""
+        output_pane.show_error("fail")
+        output_pane.clear()
+        assert not output_pane._retry_btn.isVisible()
+
+    def test_retry_button_hidden_during_streaming(self, output_pane):
+        """Starting streaming hides the retry button."""
+        output_pane.show_error("fail")
+        output_pane.set_streaming(True)
+        assert not output_pane._retry_btn.isVisible()
