@@ -1,4 +1,4 @@
-"""Tests for automatr.integrations.llm.LLMClient — all HTTP calls mocked.
+"""Tests for templatr.integrations.llm.LLMClient — all HTTP calls mocked.
 
 Covers: health check (connected / disconnected), completion request payload,
 completion response parsing, streaming SSE response handling, and graceful
@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from automatr.integrations.llm import LLMClient
+from templatr.integrations.llm import LLMClient
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -35,7 +35,7 @@ def test_health_check_returns_true_when_server_ok() -> None:
     mock_response = MagicMock()
     mock_response.status_code = 200
 
-    with patch("automatr.integrations.llm.requests.get", return_value=mock_response):
+    with patch("templatr.integrations.llm.requests.get", return_value=mock_response):
         result = client.health_check()
 
     assert result is True
@@ -52,7 +52,7 @@ def test_health_check_returns_false_on_connection_error() -> None:
 
     client = _make_client()
     with patch(
-        "automatr.integrations.llm.requests.get",
+        "templatr.integrations.llm.requests.get",
         side_effect=req_lib.ConnectionError("refused"),
     ):
         result = client.health_check()
@@ -66,7 +66,7 @@ def test_health_check_returns_false_on_non_200_status() -> None:
     mock_response = MagicMock()
     mock_response.status_code = 503
 
-    with patch("automatr.integrations.llm.requests.get", return_value=mock_response):
+    with patch("templatr.integrations.llm.requests.get", return_value=mock_response):
         result = client.health_check()
 
     assert result is False
@@ -84,7 +84,7 @@ def test_generate_sends_correct_payload() -> None:
     mock_response.json.return_value = {"content": "result text"}
     mock_response.raise_for_status = MagicMock()
 
-    with patch("automatr.integrations.llm.requests.post", return_value=mock_response) as mock_post:
+    with patch("templatr.integrations.llm.requests.post", return_value=mock_response) as mock_post:
         client.generate(prompt="Hello world", max_tokens=100, temperature=0.5)
 
     call_kwargs = mock_post.call_args
@@ -107,7 +107,7 @@ def test_generate_returns_content_from_response() -> None:
     mock_response.json.return_value = {"content": "Generated output"}
     mock_response.raise_for_status = MagicMock()
 
-    with patch("automatr.integrations.llm.requests.post", return_value=mock_response):
+    with patch("templatr.integrations.llm.requests.post", return_value=mock_response):
         result = client.generate(prompt="test")
 
     assert result == "Generated output"
@@ -120,7 +120,7 @@ def test_generate_returns_empty_string_when_content_missing() -> None:
     mock_response.json.return_value = {}
     mock_response.raise_for_status = MagicMock()
 
-    with patch("automatr.integrations.llm.requests.post", return_value=mock_response):
+    with patch("templatr.integrations.llm.requests.post", return_value=mock_response):
         result = client.generate(prompt="test")
 
     assert result == ""
@@ -148,7 +148,7 @@ def test_generate_stream_yields_content_tokens() -> None:
     mock_response.raise_for_status = MagicMock()
     mock_response.iter_lines = MagicMock(return_value=iter(sse_lines))
 
-    with patch("automatr.integrations.llm.requests.post", return_value=mock_response):
+    with patch("templatr.integrations.llm.requests.post", return_value=mock_response):
         tokens = list(client.generate_stream(prompt="stream me"))
 
     assert tokens == ["Hello", " world"]
@@ -165,7 +165,7 @@ def test_generate_raises_connection_error_on_refused_connection() -> None:
 
     client = _make_client()
     with patch(
-        "automatr.integrations.llm.requests.post",
+        "templatr.integrations.llm.requests.post",
         side_effect=req_lib.ConnectionError("connection refused"),
     ):
         with pytest.raises(ConnectionError):
@@ -178,7 +178,7 @@ def test_generate_raises_runtime_error_on_timeout() -> None:
 
     client = _make_client()
     with patch(
-        "automatr.integrations.llm.requests.post",
+        "templatr.integrations.llm.requests.post",
         side_effect=req_lib.Timeout("timed out"),
     ):
         with pytest.raises(RuntimeError, match="timed out"):

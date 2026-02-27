@@ -1,4 +1,4 @@
-"""Tests for automatr.integrations.llm.LLMServerManager — filesystem operations mocked.
+"""Tests for templatr.integrations.llm.LLMServerManager — filesystem operations mocked.
 
 Covers: find_server_binary() resolves configured path, falls back through
 search locations, returns None when nothing found; find_models() discovers
@@ -13,8 +13,8 @@ import stat
 from pathlib import Path
 from unittest.mock import patch
 
-from automatr.core.config import LLMConfig
-from automatr.integrations.llm import LLMServerManager
+from templatr.core.config import LLMConfig
+from templatr.integrations.llm import LLMServerManager
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -63,8 +63,8 @@ def test_find_server_binary_skips_configured_path_when_not_executable(tmp_path: 
 
     # Redirect Path.home() to tmp_path and stub PATH lookup to isolate the test
     # from any real llama-server binaries installed on the host machine.
-    with patch("automatr.integrations.llm.Path.home", return_value=tmp_path):
-        with patch("automatr.integrations.llm.shutil.which", return_value=None):
+    with patch("templatr.integrations.llm.Path.home", return_value=tmp_path):
+        with patch("templatr.integrations.llm.shutil.which", return_value=None):
             result = mgr.find_server_binary()
 
     assert result is None
@@ -75,11 +75,11 @@ def test_find_server_binary_skips_configured_path_when_not_executable(tmp_path: 
 # ---------------------------------------------------------------------------
 
 
-def test_find_server_binary_finds_binary_in_automatr_data_dir(tmp_path: Path) -> None:
-    """find_server_binary() finds the binary in ~/.local/share/automatr/llama.cpp/build/bin/."""
-    # Build the expected automatr data dir path
+def test_find_server_binary_finds_binary_in_templatr_data_dir(tmp_path: Path) -> None:
+    """find_server_binary() finds the binary in ~/.local/share/templatr/llama.cpp/build/bin/."""
+    # Build the expected templatr data dir path
     binary_name = "llama-server" if os.name != "nt" else "llama-server.exe"
-    data_dir = tmp_path / ".local" / "share" / "automatr" / "llama.cpp" / "build" / "bin"
+    data_dir = tmp_path / ".local" / "share" / "templatr" / "llama.cpp" / "build" / "bin"
     data_dir.mkdir(parents=True)
     binary = data_dir / binary_name
     binary.write_text("#!/bin/sh\n")
@@ -89,8 +89,8 @@ def test_find_server_binary_finds_binary_in_automatr_data_dir(tmp_path: Path) ->
     mgr = _manager_with_config(cfg)
 
     # Patch Path.home() to point to tmp_path
-    with patch("automatr.integrations.llm.Path.home", return_value=tmp_path):
-        with patch("automatr.integrations.llm.shutil.which", return_value=None):
+    with patch("templatr.integrations.llm.Path.home", return_value=tmp_path):
+        with patch("templatr.integrations.llm.shutil.which", return_value=None):
             result = mgr.find_server_binary()
 
     assert result == binary
@@ -104,8 +104,8 @@ def test_find_server_binary_falls_back_to_path_environment(tmp_path: Path) -> No
     cfg = LLMConfig(server_binary="")
     mgr = _manager_with_config(cfg)
 
-    with patch("automatr.integrations.llm.Path.home", return_value=tmp_path):
-        with patch("automatr.integrations.llm.shutil.which", return_value=str(path_binary)):
+    with patch("templatr.integrations.llm.Path.home", return_value=tmp_path):
+        with patch("templatr.integrations.llm.shutil.which", return_value=str(path_binary)):
             result = mgr.find_server_binary()
 
     assert result == path_binary
@@ -121,8 +121,8 @@ def test_find_server_binary_returns_none_when_nothing_found(tmp_path: Path) -> N
     cfg = LLMConfig(server_binary="")
     mgr = _manager_with_config(cfg)
 
-    with patch("automatr.integrations.llm.Path.home", return_value=tmp_path):
-        with patch("automatr.integrations.llm.shutil.which", return_value=None):
+    with patch("templatr.integrations.llm.Path.home", return_value=tmp_path):
+        with patch("templatr.integrations.llm.shutil.which", return_value=None):
             result = mgr.find_server_binary()
 
     assert result is None

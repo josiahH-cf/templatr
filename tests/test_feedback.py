@@ -1,17 +1,17 @@
-"""Tests for automatr.core.feedback — FeedbackManager and prompt builder functions.
+"""Tests for templatr.core.feedback — FeedbackManager and prompt builder functions.
 
 Covers: saving a feedback entry to disk, loading entries back, and verifying
 that build_improvement_prompt() and build_generation_prompt() return non-empty
 strings containing the expected input content.
 
-FeedbackManager is isolated by patching automatr.core.feedback.get_config_dir
-so it writes to a tmp_path instead of the real ~/.config/automatr directory.
+FeedbackManager is isolated by patching templatr.core.feedback.get_config_dir
+so it writes to a tmp_path instead of the real ~/.config/templatr directory.
 """
 
 from pathlib import Path
 from unittest.mock import patch
 
-from automatr.core.feedback import (
+from templatr.core.feedback import (
     FeedbackManager,
     build_generation_prompt,
     build_improvement_prompt,
@@ -24,7 +24,7 @@ from automatr.core.feedback import (
 
 def _make_manager(tmp_path: Path) -> FeedbackManager:
     """Return a FeedbackManager that stores feedback.json inside tmp_path."""
-    with patch("automatr.core.feedback.get_config_dir", return_value=tmp_path):
+    with patch("templatr.core.feedback.get_config_dir", return_value=tmp_path):
         mgr = FeedbackManager()
     return mgr
 
@@ -86,7 +86,7 @@ def test_load_feedback_on_new_manager_reads_persisted_entries(tmp_path: Path) ->
     mgr1.add("Review", "prompt", "output", "up")
 
     # Construct a fresh manager pointing at the same directory
-    with patch("automatr.core.feedback.get_config_dir", return_value=tmp_path):
+    with patch("templatr.core.feedback.get_config_dir", return_value=tmp_path):
         mgr2 = FeedbackManager()
 
     entries = mgr2.get_all()
