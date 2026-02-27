@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from PyQt6.QtCore import Qt, QUrl, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, QUrl, pyqtSignal
 from PyQt6.QtGui import QAction, QDesktopServices
 from PyQt6.QtWidgets import (
     QApplication,
@@ -26,12 +26,20 @@ class LLMToolbar(QWidget):
     status_message = pyqtSignal(str, int)
     server_running_changed = pyqtSignal(bool)
 
+    HEALTH_POLL_INTERVAL_MS = 10_000  # 10 seconds
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._model_menu = None
         self._copy_worker = None
         self._progress_dialog = None
+        self._was_running = False
         self._setup_ui()
+
+        # Health polling timer - checks server every 10 seconds
+        self._health_timer = QTimer(self)
+        self._health_timer.timeout.connect(self._poll_health)
+        self._health_timer.start(self.HEALTH_POLL_INTERVAL_MS)
 
     def _setup_ui(self):
         """Build the toolbar layout."""
@@ -123,7 +131,63 @@ class LLMToolbar(QWidget):
         is_running = server.is_running()
 
         if is_running:
-            self.llm_status_label.setText("LLM: Connected")
+            self._was_running = True
+            self._update_health_status("healthy")
+        else:
+            self._was_running = False
+            self._update_health_status("stopped")
+
+        self.server_running_changed.emit(is_running)
+
+    def _poll_health(self):
+        """Poll the server health and update the status label.
+
+        Called periodically by _health_timer. Detects server death by
+        checking if a previously-running server has stopped responding.
+        """
+        server = get_llm_server()
+        is_running = server.is_running()
+
+        if is_running:
+            # Server is alive — check /health endpoint for detailed status
+            from templatr.integrations.llm import LLMClient, get_config
+            config = get_config().llm
+            client = LLMClient(f"http://localhost:{config.server_port}")
+            try:
+                import requests
+                resp = requests.get(
+                    f"{client.base_url}/health", timeout=5
+                )
+                if resp.status_code == 200:
+                    self._update_health_status("healthy")
+                else:
+                    self._update_health_status("degraded")
+            except Exception:
+                self._update_health_status("degraded")
+            self._was_running = True
+        else:
+            if self._was_running:
+                # Server was running but now isn't — unexpected death
+                self._update_health_status("stopped")
+                self.status_message.emit(
+                    "LLM server stopped unexpectedly. "
+                    "Use LLM → Start Server to restart.",
+                    10000,
+                )
+                self._was_running = False
+            else:
+                self._update_health_status("stopped")
+
+        self.server_running_changed.emit(is_running)
+
+    def _update_health_status(self, status: str):
+        """Update the toolbar status label to reflect server health.
+
+        Args:
+            status: One of "healthy", "degraded", or "stopped".
+        """
+        if status == "healthy":
+            self.llm_status_label.setText("LLM: Healthy")
             self.llm_status_label.setStyleSheet("color: #4ec9b0;")
             self.server_btn.setText("Open Server")
             self.server_btn.setStyleSheet(
@@ -133,15 +197,22 @@ class LLMToolbar(QWidget):
             self.stop_server_btn.setStyleSheet(
                 "background-color: #c42b1c; color: #ffffff;"
             )
-        else:
-            self.llm_status_label.setText("LLM: Not Running")
+        elif status == "degraded":
+            self.llm_status_label.setText("LLM: Degraded")
+            self.llm_status_label.setStyleSheet("color: #c9a04e;")
+            self.server_btn.setText("Open Server")
+            self.server_btn.setStyleSheet("")
+            self.stop_server_btn.setEnabled(True)
+            self.stop_server_btn.setStyleSheet(
+                "background-color: #c42b1c; color: #ffffff;"
+            )
+        else:  # stopped
+            self.llm_status_label.setText("LLM: Stopped")
             self.llm_status_label.setStyleSheet("color: #f48771;")
             self.server_btn.setText("Start Server")
             self.server_btn.setStyleSheet("")
             self.stop_server_btn.setEnabled(False)
             self.stop_server_btn.setStyleSheet("")
-
-        self.server_running_changed.emit(is_running)
 
     def populate_model_menu(self):
         """Populate the model selector submenu with discovered models."""

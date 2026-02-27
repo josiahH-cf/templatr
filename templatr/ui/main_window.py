@@ -150,9 +150,10 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         self._apply_scaling()
 
     def _on_server_running_changed(self, is_running: bool):
-        """Update menu actions when server status changes."""
+        """Update menu actions and button states when server status changes."""
         self.start_server_action.setEnabled(not is_running)
         self.stop_server_action.setEnabled(is_running)
+        self.variable_form.update_llm_ready(is_running)
 
     def _wire_tree_signals(self):
         """Connect TemplateTreeWidget signals to MainWindow slots."""

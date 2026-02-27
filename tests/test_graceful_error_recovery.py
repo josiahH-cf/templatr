@@ -215,3 +215,81 @@ class TestOutputPaneErrorDisplay:
         output_pane.show_error("fail")
         output_pane.set_streaming(True)
         assert not output_pane._retry_btn.isVisible()
+
+
+# ---------------------------------------------------------------------------
+# Task 3: Health polling, server death detection, button states
+# ---------------------------------------------------------------------------
+
+
+class TestHealthPoller:
+    """LLMToolbar polls server health and reflects status in the UI."""
+
+    @pytest.fixture
+    def toolbar(self, qtbot):
+        from templatr.ui.llm_toolbar import LLMToolbar
+
+        widget = LLMToolbar()
+        qtbot.addWidget(widget)
+        widget.show()
+        return widget
+
+    def test_toolbar_has_health_timer(self, toolbar):
+        """LLMToolbar has a _health_timer attribute for periodic polling."""
+        assert hasattr(toolbar, "_health_timer")
+
+    def test_status_label_shows_healthy(self, toolbar):
+        """When server is healthy, label shows 'Healthy'."""
+        toolbar._update_health_status("healthy")
+        assert "Healthy" in toolbar.llm_status_label.text()
+
+    def test_status_label_shows_degraded(self, toolbar):
+        """When health check returns degraded, label reflects it."""
+        toolbar._update_health_status("degraded")
+        assert "Degraded" in toolbar.llm_status_label.text()
+
+    def test_status_label_shows_stopped(self, toolbar):
+        """When server is stopped, label shows 'Stopped'."""
+        toolbar._update_health_status("stopped")
+        assert "Stopped" in toolbar.llm_status_label.text()
+
+    @patch("templatr.ui.llm_toolbar.get_llm_server")
+    def test_process_death_detected(self, mock_get_server, toolbar):
+        """If server process unexpectedly exits, status updates to stopped."""
+        mock_server = MagicMock()
+        mock_server.is_running.return_value = False
+        mock_server._process = None
+        mock_get_server.return_value = mock_server
+
+        toolbar._poll_health()
+        assert "Stopped" in toolbar.llm_status_label.text() or "Not Running" in toolbar.llm_status_label.text()
+
+
+class TestRenderButtonDisabledState:
+    """'Render with AI' button disabled when no model is loaded."""
+
+    @pytest.fixture
+    def variable_form(self, qtbot):
+        from templatr.ui.variable_form import VariableFormWidget
+
+        widget = VariableFormWidget()
+        qtbot.addWidget(widget)
+        widget.show()
+        return widget
+
+    def test_button_disabled_by_default(self, variable_form):
+        """Button starts disabled."""
+        assert not variable_form.generate_btn.isEnabled()
+
+    def test_update_llm_state_no_model(self, variable_form):
+        """When server not running, button is disabled with tooltip."""
+        variable_form.update_llm_ready(False)
+        assert not variable_form.generate_btn.isEnabled()
+        tooltip = variable_form.generate_btn.toolTip()
+        assert "server" in tooltip.lower() or "model" in tooltip.lower()
+
+    def test_update_llm_state_with_model(self, variable_form):
+        """When server is running with a model, button is enabled."""
+        variable_form.update_llm_ready(True)
+        assert variable_form.generate_btn.isEnabled()
+        assert variable_form.generate_btn.toolTip() == ""

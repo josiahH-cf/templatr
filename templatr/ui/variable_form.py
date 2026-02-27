@@ -148,6 +148,24 @@ class VariableFormWidget(QWidget):
             else:
                 widget.clear()
 
+    def update_llm_ready(self, ready: bool):
+        """Update the 'Render with AI' button based on LLM availability.
+
+        When the server is not running or no model is loaded, the button
+        is disabled with an explanatory tooltip. When ready, the button
+        is enabled and the tooltip is cleared.
+
+        Args:
+            ready: True if the LLM server is running with a model loaded.
+        """
+        self.generate_btn.setEnabled(ready)
+        if ready:
+            self.generate_btn.setToolTip("")
+        else:
+            self.generate_btn.setToolTip(
+                "Start the LLM server and load a model first"
+            )
+
     def set_buttons_enabled(self, enabled: bool):
         """Enable or disable the generate and render buttons."""
         self.generate_btn.setEnabled(enabled)
