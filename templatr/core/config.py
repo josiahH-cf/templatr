@@ -261,6 +261,15 @@ def get_config_manager() -> ConfigManager:
     return _config_manager
 
 
+def reset() -> None:
+    """Clear the cached ConfigManager instance.
+
+    For testing only — allows tests to start with a fresh instance.
+    """
+    global _config_manager
+    _config_manager = None
+
+
 def get_config() -> Config:
     """Get the current configuration."""
     return get_config_manager().config

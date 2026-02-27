@@ -414,7 +414,7 @@ class ImprovementPromptEditor(QDialog):
 
     def _save(self):
         """Save the prompt and close dialog."""
-        from templatr.core.templates import save_meta_template
+        from templatr.core.meta_templates import save_meta_template
 
         prompt = self.prompt_edit.toPlainText()
 

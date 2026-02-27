@@ -501,3 +501,21 @@ def get_llm_server() -> LLMServerManager:
     if _llm_server is None:
         _llm_server = LLMServerManager()
     return _llm_server
+
+
+def reset_llm_client() -> None:
+    """Clear the cached LLMClient instance.
+
+    For testing only — allows tests to start with a fresh instance.
+    """
+    global _llm_client
+    _llm_client = None
+
+
+def reset_llm_server() -> None:
+    """Clear the cached LLMServerManager instance.
+
+    For testing only — allows tests to start with a fresh instance.
+    """
+    global _llm_server
+    _llm_server = None
