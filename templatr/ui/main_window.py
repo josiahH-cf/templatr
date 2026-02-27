@@ -25,7 +25,12 @@ from PyQt6.QtWidgets import (
 )
 
 from templatr import __version__
-from templatr.core.config import get_config, get_config_manager, save_config
+from templatr.core.config import (
+    get_config,
+    get_config_manager,
+    get_log_dir,
+    save_config,
+)
 from templatr.core.templates import Template, get_template_manager
 from templatr.integrations.llm import get_llm_client, get_llm_server
 from templatr.ui._generation import GenerationMixin
@@ -241,7 +246,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         # Help menu
         help_menu = menubar.addMenu("&Help")
         view_log_action = QAction("View &Log File", self)
-        view_log_action.triggered.connect(self._view_log_file)
+        view_log_action.triggered.connect(self._open_log_directory)
         help_menu.addAction(view_log_action)
         help_menu.addSeparator()
         about_action = QAction("&About Templatr", self)
@@ -295,6 +300,11 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
     def _reset_font(self):
         """Reset font size to default (13pt)."""
         self._apply_font_size(13)
+
+    def _open_log_directory(self):
+        """Open the log directory in the system file manager."""
+        log_dir = get_log_dir()
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(log_dir)))
 
     def _show_about(self):
         """Show the about dialog."""
@@ -361,13 +371,6 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
             self.llm_toolbar.open_hugging_face
         )
         actions["refresh"].triggered.connect(self.llm_toolbar.check_status)
-
-    def _view_log_file(self):
-        """Open the log directory in the system file manager."""
-        from templatr.core.config import get_log_dir
-
-        log_dir = get_log_dir()
-        QDesktopServices.openUrl(QUrl.fromLocalFile(str(log_dir)))
 
     def _show_llm_settings(self):
         """Show the LLM settings dialog."""

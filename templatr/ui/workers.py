@@ -58,7 +58,6 @@ def format_error_message(error: Exception) -> str:
     )
 
 
-
 class GenerationWorker(QThread):
     """Background worker for LLM generation with retry on server startup."""
 
@@ -188,12 +187,14 @@ class ModelCopyWorker(QThread):
             self.finished.emit(True, str(self.dest))
 
         except PermissionError:
+            logger.error("Model copy failed: permission denied", exc_info=True)
             if self.dest.exists():
                 self.dest.unlink()
             self.finished.emit(
                 False, f"Permission denied writing to:\n{self.dest.parent}"
             )
         except OSError as e:
+            logger.error("Model copy failed", exc_info=True)
             if self.dest.exists():
                 self.dest.unlink()
             self.finished.emit(False, f"Failed to copy file: {e}")

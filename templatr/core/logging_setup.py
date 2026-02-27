@@ -1,99 +1,81 @@
 """Logging setup for Templatr.
 
-Configures structured local crash logging with rotating file handlers.
-All logging is local and privacy-respecting — no prompt content or model
-output is ever written to the log.
-
-Usage::
-
-    from templatr.core.logging_setup import setup_logging
-    setup_logging()  # call once at startup, before any other init
+Configures a rotating file handler that writes to ``<config_dir>/logs/templatr.log``.
+All log entries use ISO-8601 timestamps, level, and module name — no prompt content
+or model output is ever logged (privacy-first design).
 """
 
 import logging
-import logging.handlers
 import sys
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Optional
 
-_LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-_LOG_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
-_LOG_FILE_NAME = "templatr.log"
-_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
+from templatr.core.config import get_log_dir
+
+#: Maximum size per log file (5 MB).
+_MAX_BYTES = 5 * 1024 * 1024
+
+#: Number of rotated backup files to keep.
 _BACKUP_COUNT = 3
 
+#: Structured log format — timestamp, level, module only.
+_LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 
-def setup_logging(log_dir: Optional[Path] = None) -> None:
-    """Configure the ``templatr`` logger with a rotating file handler.
+#: ISO-8601 date format for log timestamps.
+_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
 
-    Creates a :class:`~logging.handlers.RotatingFileHandler` at
-    ``<log_dir>/templatr.log`` (5 MB rotation, 3 backups).  If *log_dir*
-    is ``None``, the default ``get_log_dir()`` path is used.
+_setup_done = False
 
-    This function is idempotent — calling it more than once will not
-    add duplicate handlers.
 
-    Args:
-        log_dir: Directory for log files.  Defaults to the platform
-            config-dir ``logs/`` subdirectory.
+def setup_logging() -> Path:
+    """Configure the root logger with a rotating file handler.
+
+    Safe to call more than once — duplicate handlers are prevented.
+
+    Returns:
+        Path to the active log file.
     """
-    if log_dir is None:
-        from templatr.core.config import get_log_dir
+    global _setup_done
 
-        log_dir = get_log_dir()
+    log_dir = get_log_dir()
+    log_file = log_dir / "templatr.log"
 
-    log_dir = Path(log_dir)
-    log_dir.mkdir(parents=True, exist_ok=True)
+    root_logger = logging.getLogger()
 
-    logger = logging.getLogger("templatr")
+    if _setup_done:
+        return log_file
 
-    # Idempotency guard: don't add handlers if one already exists for this file
-    log_path = log_dir / _LOG_FILE_NAME
-    for handler in logger.handlers:
-        if (
-            isinstance(handler, logging.handlers.RotatingFileHandler)
-            and Path(handler.baseFilename).resolve() == log_path.resolve()
-        ):
-            return  # already configured
+    root_logger.setLevel(logging.INFO)
 
-    logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(_LOG_FORMAT, datefmt=_DATE_FORMAT)
 
-    formatter = logging.Formatter(_LOG_FORMAT, datefmt=_LOG_DATE_FORMAT)
-
-    file_handler = logging.handlers.RotatingFileHandler(
-        filename=str(log_path),
+    # Rotating file handler
+    file_handler = RotatingFileHandler(
+        log_file,
         maxBytes=_MAX_BYTES,
         backupCount=_BACKUP_COUNT,
         encoding="utf-8",
     )
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
+    root_logger.addHandler(file_handler)
 
-    logger.addHandler(file_handler)
+    # Console handler (stderr) for development visibility
+    console_handler = logging.StreamHandler(sys.stderr)
+    console_handler.setLevel(logging.WARNING)
+    console_handler.setFormatter(formatter)
+    root_logger.addHandler(console_handler)
+
+    _setup_done = True
+
+    logging.getLogger(__name__).info("Logging initialised — %s", log_file)
+    return log_file
 
 
-def unhandled_exception_hook(
-    exc_type: type,
-    exc_value: BaseException,
-    exc_tb: object,
-) -> None:
-    """Global ``sys.excepthook`` replacement that logs CRITICAL.
+def reset_logging() -> None:
+    """Clear logging state so setup_logging() can run again.
 
-    Logs the full traceback at CRITICAL level before allowing the
-    interpreter to exit.  Keyboard interrupts are passed through to
-    the default handler to allow normal Ctrl-C behaviour.
-
-    Args:
-        exc_type: Exception class.
-        exc_value: Exception instance.
-        exc_tb: Traceback object.
+    For testing only.
     """
-    if issubclass(exc_type, KeyboardInterrupt):
-        sys.__excepthook__(exc_type, exc_value, exc_tb)
-        return
-
-    logger = logging.getLogger("templatr")
-    logger.critical(
-        "Unhandled exception",
-        exc_info=(exc_type, exc_value, exc_tb),
-    )
+    global _setup_done
+    _setup_done = False

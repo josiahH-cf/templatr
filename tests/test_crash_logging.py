@@ -1,31 +1,43 @@
-"""Tests for crash logging & diagnostics (spec: /specs/crash-logging.md).
+"""Tests for crash logging and diagnostics (spec: /specs/crash-logging.md).
 
 Covers:
-- Criterion 1: Rotating log file at <config_dir>/logs/<appname>.log
-- Criterion 2: Global sys.excepthook logs CRITICAL unhandled exceptions
-- Criterion 3: Worker errors logged at ERROR with full traceback
-- Criterion 4: Help menu "View Log File" action exists
-- Criterion 5: Rotation config (5 MB, 3 backups)
-- Criterion 6: No prompt content in log format
+- Task 1: logging module setup, rotation config, log format
+- Task 2: global exception hook, worker error logging, privacy
+- Task 3: Help menu "View Log File" action
 """
 
 import logging
-import logging.handlers
+import re
 import sys
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def log_dir(tmp_path, monkeypatch):
+    """Provide an isolated log directory via a temp config dir."""
+    monkeypatch.setattr(
+        "templatr.core.config.get_config_dir", lambda: tmp_path
+    )
+    return tmp_path / "logs"
+
 
 @pytest.fixture(autouse=True)
-def _clean_logging_handlers():
-    """Remove file handlers added by setup_logging after each test."""
+def _clean_root_logger():
+    """Remove handlers added by setup_logging() after each test."""
     yield
-    logger = logging.getLogger("templatr")
-    for handler in logger.handlers[:]:
-        if isinstance(handler, logging.handlers.RotatingFileHandler):
-            handler.close()
-            logger.removeHandler(handler)
+    root = logging.getLogger()
+    for handler in root.handlers[:]:
+        handler.close()
+        root.removeHandler(handler)
+    root.setLevel(logging.WARNING)  # restore default
 
 
 # ---------------------------------------------------------------------------
@@ -33,94 +45,108 @@ def _clean_logging_handlers():
 # ---------------------------------------------------------------------------
 
 
+class TestGetLogDir:
+    """Tests for get_log_dir() in config.py."""
+
+    def test_creates_log_directory(self, log_dir):
+        """get_log_dir() creates the logs/ subdirectory."""
+        from templatr.core.config import get_log_dir
+
+        result = get_log_dir()
+        assert result == log_dir
+        assert result.is_dir()
+
+    def test_returns_same_path_on_repeated_calls(self, log_dir):
+        """get_log_dir() is idempotent."""
+        from templatr.core.config import get_log_dir
+
+        assert get_log_dir() == get_log_dir()
+
+
 class TestSetupLogging:
-    """Verify setup_logging creates the expected logger configuration."""
+    """Tests for setup_logging() in logging_setup.py."""
 
-    def test_log_file_created(self, tmp_path):
-        """Criterion 1: A log file is written under the log directory."""
+    def test_creates_log_file(self, log_dir):
+        """setup_logging() creates the templatr.log file."""
         from templatr.core.logging_setup import setup_logging
 
-        setup_logging(log_dir=tmp_path)
+        log_path = setup_logging()
+        assert log_path.exists()
+        assert log_path.name == "templatr.log"
+        assert log_path.parent == log_dir
 
-        log_file = tmp_path / "templatr.log"
-        # Write a log entry to flush handler
-        logger = logging.getLogger("templatr")
-        logger.info("test message")
-        # Force flush
-        for handler in logger.handlers:
-            handler.flush()
-
-        assert log_file.exists(), "Log file was not created"
-
-    def test_log_format_iso8601(self, tmp_path):
-        """Criterion 1: Log entries contain ISO-8601 timestamp, level, module."""
+    def test_returns_log_file_path(self, log_dir):
+        """setup_logging() returns a Path to the log file."""
         from templatr.core.logging_setup import setup_logging
 
-        setup_logging(log_dir=tmp_path)
+        result = setup_logging()
+        assert isinstance(result, Path)
 
-        logger = logging.getLogger("templatr.test_format")
-        logger.warning("format check")
+    def test_rotating_handler_max_bytes(self, log_dir):
+        """RotatingFileHandler is configured with 5 MB max size."""
+        from templatr.core.logging_setup import setup_logging
 
-        log_file = tmp_path / "templatr.log"
-        for handler in logging.getLogger("templatr").handlers:
-            handler.flush()
+        setup_logging()
+        root = logging.getLogger()
+        rotating = [
+            h for h in root.handlers if isinstance(h, RotatingFileHandler)
+        ]
+        assert len(rotating) == 1
+        assert rotating[0].maxBytes == 5 * 1024 * 1024
 
-        content = log_file.read_text()
-        # ISO-8601 date pattern YYYY-MM-DD HH:MM:SS
-        assert "format check" in content
+    def test_rotating_handler_backup_count(self, log_dir):
+        """RotatingFileHandler keeps 3 backup files."""
+        from templatr.core.logging_setup import setup_logging
+
+        setup_logging()
+        root = logging.getLogger()
+        rotating = [
+            h for h in root.handlers if isinstance(h, RotatingFileHandler)
+        ]
+        assert rotating[0].backupCount == 3
+
+    def test_root_logger_level_info(self, log_dir):
+        """Root logger is set to INFO level."""
+        from templatr.core.logging_setup import setup_logging
+
+        setup_logging()
+        assert logging.getLogger().level == logging.INFO
+
+    def test_log_format_iso8601_timestamp(self, log_dir):
+        """Log entries contain ISO-8601 timestamps."""
+        from templatr.core.logging_setup import setup_logging
+
+        log_path = setup_logging()
+        logger = logging.getLogger("test.format")
+        logger.info("format check")
+
+        content = log_path.read_text(encoding="utf-8")
+        # ISO-8601 pattern: YYYY-MM-DDTHH:MM:SS
+        assert re.search(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", content)
+
+    def test_log_format_contains_level_and_module(self, log_dir):
+        """Log entries include level name and logger name."""
+        from templatr.core.logging_setup import setup_logging
+
+        log_path = setup_logging()
+        logger = logging.getLogger("test.module_check")
+        logger.warning("level check")
+
+        content = log_path.read_text(encoding="utf-8")
         assert "[WARNING]" in content
-        assert "templatr.test_format" in content
+        assert "test.module_check" in content
 
-    def test_rotating_handler_config(self, tmp_path):
-        """Criterion 5: RotatingFileHandler uses 5 MB / 3 backups."""
+    def test_idempotent_setup(self, log_dir):
+        """Calling setup_logging() twice does not duplicate handlers."""
         from templatr.core.logging_setup import setup_logging
 
-        setup_logging(log_dir=tmp_path)
-
-        root_logger = logging.getLogger("templatr")
-        rotating_handlers = [
-            h
-            for h in root_logger.handlers
-            if isinstance(h, logging.handlers.RotatingFileHandler)
+        setup_logging()
+        setup_logging()
+        root = logging.getLogger()
+        rotating = [
+            h for h in root.handlers if isinstance(h, RotatingFileHandler)
         ]
-        assert len(rotating_handlers) >= 1, "No RotatingFileHandler found"
-
-        handler = rotating_handlers[0]
-        assert handler.maxBytes == 5 * 1024 * 1024, "maxBytes should be 5 MB"
-        assert handler.backupCount == 3, "backupCount should be 3"
-
-    def test_no_prompt_content_in_format(self, tmp_path):
-        """Criterion 6: Log format does not include prompt content fields."""
-        from templatr.core.logging_setup import setup_logging
-
-        setup_logging(log_dir=tmp_path)
-
-        root_logger = logging.getLogger("templatr")
-        rotating_handlers = [
-            h
-            for h in root_logger.handlers
-            if isinstance(h, logging.handlers.RotatingFileHandler)
-        ]
-        fmt = rotating_handlers[0].formatter._fmt
-        # Format should NOT contain anything that could leak user content
-        assert "prompt" not in fmt.lower()
-        assert "output" not in fmt.lower()
-        assert "content" not in fmt.lower()
-
-    def test_idempotent_setup(self, tmp_path):
-        """Calling setup_logging twice should not duplicate handlers."""
-        from templatr.core.logging_setup import setup_logging
-
-        setup_logging(log_dir=tmp_path)
-        setup_logging(log_dir=tmp_path)
-
-        root_logger = logging.getLogger("templatr")
-        rotating_handlers = [
-            h
-            for h in root_logger.handlers
-            if isinstance(h, logging.handlers.RotatingFileHandler)
-        ]
-        assert len(rotating_handlers) == 1, "Duplicate handlers after double setup"
+        assert len(rotating) == 1
 
 
 # ---------------------------------------------------------------------------
@@ -128,77 +154,135 @@ class TestSetupLogging:
 # ---------------------------------------------------------------------------
 
 
-class TestGlobalExceptionHook:
-    """Verify the global exception hook writes CRITICAL log entries."""
+class TestExceptionHook:
+    """Tests for the global sys.excepthook handler."""
 
-    def test_exception_hook_logs_critical(self, tmp_path):
-        """Criterion 2: Unhandled exceptions logged at CRITICAL level."""
-        from templatr.core.logging_setup import setup_logging, unhandled_exception_hook
+    def test_exception_hook_logs_critical(self, log_dir):
+        """Unhandled exception hook writes a CRITICAL log entry."""
+        from templatr.core.logging_setup import setup_logging
 
-        setup_logging(log_dir=tmp_path)
+        log_path = setup_logging()
 
-        # Simulate an unhandled exception
+        from templatr.__main__ import _exception_hook
+
         try:
             raise RuntimeError("boom")
         except RuntimeError:
             exc_type, exc_value, exc_tb = sys.exc_info()
-            unhandled_exception_hook(exc_type, exc_value, exc_tb)
+            _exception_hook(exc_type, exc_value, exc_tb)
 
-        log_file = tmp_path / "templatr.log"
-        for handler in logging.getLogger("templatr").handlers:
-            handler.flush()
-
-        content = log_file.read_text()
+        content = log_path.read_text(encoding="utf-8")
         assert "[CRITICAL]" in content
         assert "boom" in content
 
-    def test_exception_hook_includes_traceback(self, tmp_path):
-        """Criterion 2: The CRITICAL entry includes the traceback."""
-        from templatr.core.logging_setup import setup_logging, unhandled_exception_hook
+    def test_exception_hook_includes_traceback(self, log_dir):
+        """Hook output includes traceback detail."""
+        from templatr.core.logging_setup import setup_logging
 
-        setup_logging(log_dir=tmp_path)
+        log_path = setup_logging()
+
+        from templatr.__main__ import _exception_hook
 
         try:
-            raise ValueError("detailed error")
+            raise ValueError("trace test")
         except ValueError:
             exc_type, exc_value, exc_tb = sys.exc_info()
-            unhandled_exception_hook(exc_type, exc_value, exc_tb)
+            _exception_hook(exc_type, exc_value, exc_tb)
 
-        log_file = tmp_path / "templatr.log"
-        for handler in logging.getLogger("templatr").handlers:
-            handler.flush()
-
-        content = log_file.read_text()
+        content = log_path.read_text(encoding="utf-8")
         assert "Traceback" in content
-        assert "detailed error" in content
+        assert "ValueError" in content
 
 
 class TestWorkerErrorLogging:
-    """Verify GenerationWorker errors are logged at ERROR level."""
+    """Tests for error logging in GenerationWorker."""
 
-    def test_generation_worker_logs_error(self, tmp_path):
-        """Criterion 3: Worker errors logged at ERROR with full exception chain."""
+    def test_generation_worker_logs_error(self, log_dir):
+        """GenerationWorker logs errors at ERROR level with traceback."""
         from templatr.core.logging_setup import setup_logging
 
-        setup_logging(log_dir=tmp_path)
+        log_path = setup_logging()
 
-        # Patch get_llm_client so the worker's generate call raises
         mock_client = MagicMock()
-        mock_client.generate_stream.side_effect = ConnectionError("server down")
+        mock_client.generate_stream.side_effect = RuntimeError("LLM down")
 
         with patch("templatr.ui.workers.get_llm_client", return_value=mock_client):
             from templatr.ui.workers import GenerationWorker
 
-            worker = GenerationWorker("test prompt", stream=True)
-            worker.run()  # run synchronously for testing
+            worker = GenerationWorker("test prompt")
+            worker.run()
 
-        log_file = tmp_path / "templatr.log"
-        for handler in logging.getLogger("templatr").handlers:
-            handler.flush()
-
-        content = log_file.read_text()
+        content = log_path.read_text(encoding="utf-8")
         assert "[ERROR]" in content
-        assert "server down" in content
+        assert "LLM down" in content
+
+    def test_worker_error_does_not_log_prompt(self, log_dir):
+        """Prompt text must not appear in log output (privacy)."""
+        from templatr.core.logging_setup import setup_logging
+
+        log_path = setup_logging()
+
+        secret_prompt = "SUPER_SECRET_PROMPT_CONTENT_xyz123"
+        mock_client = MagicMock()
+        mock_client.generate_stream.side_effect = RuntimeError("fail")
+
+        with patch("templatr.ui.workers.get_llm_client", return_value=mock_client):
+            from templatr.ui.workers import GenerationWorker
+
+            worker = GenerationWorker(secret_prompt)
+            worker.run()
+
+        content = log_path.read_text(encoding="utf-8")
+        assert secret_prompt not in content
+
+    def test_model_copy_worker_logs_error(self, log_dir, tmp_path):
+        """ModelCopyWorker logs errors at ERROR level."""
+        from templatr.core.logging_setup import setup_logging
+
+        log_path = setup_logging()
+
+        from templatr.ui.workers import ModelCopyWorker
+
+        source = tmp_path / "missing.gguf"
+        dest = tmp_path / "dest.gguf"
+        worker = ModelCopyWorker(source, dest)
+        worker.run()
+
+        content = log_path.read_text(encoding="utf-8")
+        assert "[ERROR]" in content
+
+
+class TestLLMServerLogging:
+    """Tests for logging in LLM server manager."""
+
+    def test_server_start_failure_logged(self, log_dir):
+        """Failed server start is logged at ERROR level."""
+        from templatr.core.logging_setup import setup_logging
+
+        log_path = setup_logging()
+
+        from templatr.integrations.llm import LLMServerManager
+
+        manager = LLMServerManager()
+        # No binary configured — start will fail
+        manager.start()
+
+        content = log_path.read_text(encoding="utf-8")
+        assert "[ERROR]" in content or "[WARNING]" in content
+
+    def test_server_stop_logged(self, log_dir):
+        """Server stop is logged at INFO level."""
+        from templatr.core.logging_setup import setup_logging
+
+        log_path = setup_logging()
+
+        from templatr.integrations.llm import LLMServerManager
+
+        manager = LLMServerManager()
+        manager.stop()
+
+        content = log_path.read_text(encoding="utf-8")
+        assert "[INFO]" in content
 
 
 # ---------------------------------------------------------------------------
@@ -206,11 +290,15 @@ class TestWorkerErrorLogging:
 # ---------------------------------------------------------------------------
 
 
-class TestViewLogFileAction:
-    """Verify the Help menu has a View Log File action."""
+class TestViewLogAction:
+    """Tests for the Help menu 'View Log File' action."""
 
-    def test_help_menu_has_view_log_action(self, qtbot):
-        """Criterion 4: Help menu includes 'View Log File' action."""
+    def test_help_menu_has_view_log_action(self, qtbot, log_dir):
+        """Help menu contains a 'View Log File' action."""
+        from templatr.core.logging_setup import setup_logging
+
+        setup_logging()
+
         from templatr.ui.main_window import MainWindow
 
         window = MainWindow()
@@ -219,26 +307,30 @@ class TestViewLogFileAction:
         menubar = window.menuBar()
         help_menu = None
         for action in menubar.actions():
-            if action.text() == "&Help":
+            if action.text().replace("&", "") == "Help":
                 help_menu = action.menu()
                 break
 
         assert help_menu is not None, "Help menu not found"
+        action_texts = [a.text().replace("&", "") for a in help_menu.actions()]
+        assert "View Log File" in action_texts
 
-        action_texts = [a.text() for a in help_menu.actions()]
-        assert any(
-            "Log" in t for t in action_texts
-        ), f"No log action found in Help menu. Actions: {action_texts}"
+    def test_view_log_opens_directory(self, qtbot, log_dir):
+        """Triggering 'View Log File' calls QDesktopServices.openUrl."""
+        from templatr.core.logging_setup import setup_logging
 
-    def test_view_log_opens_file_manager(self, qtbot):
-        """Criterion 4: The action opens the log directory via QDesktopServices."""
+        setup_logging()
+
         from templatr.ui.main_window import MainWindow
 
         window = MainWindow()
         qtbot.addWidget(window)
 
-        with patch("templatr.ui.main_window.QDesktopServices.openUrl") as mock_open:
-            window._view_log_file()
-            mock_open.assert_called_once()
-            url = mock_open.call_args[0][0]
-            assert "logs" in url.toLocalFile()
+        with patch("templatr.ui.main_window.QDesktopServices") as mock_desktop:
+            mock_desktop.openUrl.return_value = True
+            window._open_log_directory()
+            mock_desktop.openUrl.assert_called_once()
+
+            url = mock_desktop.openUrl.call_args[0][0]
+            url_str = url.toLocalFile()
+            assert "logs" in url_str

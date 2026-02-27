@@ -98,7 +98,6 @@ def get_config_path() -> Path:
     return get_config_dir() / "config.json"
 
 
-
 def get_log_dir() -> Path:
     """Get the log directory path.
 
@@ -108,6 +107,7 @@ def get_log_dir() -> Path:
     log_dir = get_config_dir() / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     return log_dir
+
 
 def get_templates_dir() -> Path:
     """Get the templates directory path."""
