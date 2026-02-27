@@ -1,8 +1,6 @@
 """Tests for graceful error recovery & model validation (spec: graceful-error-recovery)."""
 
 import struct
-import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest

@@ -192,12 +192,12 @@ def test_toolbar_check_status_updates_ui(qtbot):
         widget.check_status()
 
         assert widget.server_btn.text() == "Start Server"
-        assert "Not Running" in widget.llm_status_label.text()
+        assert "Stopped" in widget.llm_status_label.text()
         assert not widget.stop_server_btn.isEnabled()
 
         server.is_running.return_value = True
         widget.check_status()
 
         assert widget.server_btn.text() == "Open Server"
-        assert "Connected" in widget.llm_status_label.text()
+        assert "Healthy" in widget.llm_status_label.text()
         assert widget.stop_server_btn.isEnabled()
