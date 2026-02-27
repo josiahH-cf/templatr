@@ -25,7 +25,12 @@ from PyQt6.QtWidgets import (
 )
 
 from templatr import __version__
-from templatr.core.config import get_config, get_config_manager, get_log_dir, save_config
+from templatr.core.config import (
+    get_config,
+    get_config_manager,
+    get_log_dir,
+    save_config,
+)
 from templatr.core.templates import Template, get_template_manager
 from templatr.integrations.llm import get_llm_client, get_llm_server
 from templatr.ui._generation import GenerationMixin

@@ -4,8 +4,8 @@ Manages the llama.cpp server process and provides an HTTP client
 for sending prompts.
 """
 
-import os
 import logging
+import os
 import shutil
 import subprocess
 import time

@@ -10,9 +10,16 @@ via @runtime_checkable.
 """
 
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Tuple, runtime_checkable
-
-from typing import Protocol
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Protocol,
+    Tuple,
+    runtime_checkable,
+)
 
 
 @runtime_checkable

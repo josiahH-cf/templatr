@@ -122,7 +122,7 @@ class ModelCopyWorker(QThread):
             shutil.copystat(self.source, self.dest)
             self.finished.emit(True, str(self.dest))
 
-        except PermissionError as e:
+        except PermissionError:
             logger.error("Model copy failed: permission denied", exc_info=True)
             if self.dest.exists():
                 self.dest.unlink()
