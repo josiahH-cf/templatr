@@ -41,8 +41,8 @@ Replace the 3-pane splitter layout with a single-pane conversational chat interf
 
 ## Dependencies
 
+- Hard dep: `repo-migration` — codebase must be in the new `templatr` repo before adding major new UI
 - Benefits from Spec: `graceful-error-recovery` (error messages display inline in chat)
-- No hard blockers — can proceed independently
 
 ## Notes
 
