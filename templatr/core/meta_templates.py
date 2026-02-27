@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from typing import Optional
 
-from templatr.core.config import get_templates_dir
+from templatr.core.config import get_bundle_dir, get_templates_dir
 from templatr.core.templates import Template
 
 
@@ -27,8 +27,7 @@ def get_meta_templates_dir() -> Path:
     if user_meta.exists():
         return user_meta
 
-    bundled_meta = Path(__file__).parent.parent.parent / "templates" / "_meta"
-    return bundled_meta
+    return get_bundle_dir() / "templates" / "_meta"
 
 
 def get_bundled_meta_templates_dir() -> Path:
@@ -37,7 +36,7 @@ def get_bundled_meta_templates_dir() -> Path:
     Returns:
         Path to bundled _meta directory.
     """
-    return Path(__file__).parent.parent.parent / "templates" / "_meta"
+    return get_bundle_dir() / "templates" / "_meta"
 
 
 def get_user_meta_templates_dir() -> Path:

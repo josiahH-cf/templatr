@@ -12,3 +12,9 @@ CLAUDE.local.md
 
 # Worktree scratch directories
 .trees/
+
+# Build artifacts
+dist/
+build/
+vendor/
+*.spec.bak

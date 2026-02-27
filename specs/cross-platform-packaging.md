@@ -6,13 +6,13 @@ Package the app as standalone executables for Linux, macOS, and Windows using Py
 
 ## Acceptance Criteria
 
-- [ ] A PyInstaller spec file produces a working standalone directory-mode executable for the current platform
-- [ ] The Linux build produces an AppImage that launches on Ubuntu 22.04+ without installing any system dependencies
-- [ ] The macOS build produces a `.app` bundle (in a `.dmg`) that launches on macOS 12+ (separate builds for Intel and Apple Silicon)
-- [ ] The Windows build produces a directory-mode executable that launches on Windows 10+ without Python installed
-- [ ] Each platform build bundles a pre-compiled `llama-server` binary (downloaded from llama.cpp GitHub releases, not compiled from source)
-- [ ] The bundled app discovers its bundled llama-server binary before searching system paths
-- [ ] A `scripts/build.py` script automates the full build-and-package process for the current platform
+- [x] A PyInstaller spec file produces a working standalone directory-mode executable for the current platform
+- [x] The Linux build produces an AppImage that launches on Ubuntu 22.04+ without installing any system dependencies
+- [x] The macOS build produces a `.app` bundle (in a `.dmg`) that launches on macOS 12+ (separate builds for Intel and Apple Silicon)
+- [x] The Windows build produces a directory-mode executable that launches on Windows 10+ without Python installed
+- [x] Each platform build bundles a pre-compiled `llama-server` binary (downloaded from llama.cpp GitHub releases, not compiled from source)
+- [x] The bundled app discovers its bundled llama-server binary before searching system paths
+- [x] A `scripts/build.py` script automates the full build-and-package process for the current platform
 
 ## Affected Areas
 

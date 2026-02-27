@@ -214,13 +214,16 @@ class LLMServerManager:
 
         Searches in order:
         1. Configured path (config.llm.server_binary)
-        2. Templatr data directory (~/.local/share/templatr/llama.cpp/build/bin/)
-        3. PATH environment
-        4. Legacy locations (~/llama.cpp/build/bin/)
+        2. Bundled binary inside a PyInstaller package
+        3. Templatr data directory (~/.local/share/templatr/llama.cpp/build/bin/)
+        4. PATH environment
+        5. Legacy locations (~/llama.cpp/build/bin/)
 
         Returns:
             Path to binary, or None if not found.
         """
+        from templatr.core.config import get_bundle_dir
+
         binary_name = "llama-server" if os.name != "nt" else "llama-server.exe"
 
         # 1. Check configured path
@@ -229,26 +232,31 @@ class LLMServerManager:
             if path.exists() and os.access(path, os.X_OK):
                 return path
 
-        # 2. Check Templatr standard data directory (Linux/WSL)
+        # 2. Check bundled binary (PyInstaller frozen app)
+        bundled = get_bundle_dir() / "vendor" / "llama-server" / binary_name
+        if bundled.exists() and os.access(bundled, os.X_OK):
+            return bundled
+
+        # 3. Check Templatr standard data directory (Linux/WSL)
         templatr_llama = (
             Path.home() / ".local" / "share" / "templatr" / "llama.cpp" / "build" / "bin" / binary_name
         )
         if templatr_llama.exists() and os.access(templatr_llama, os.X_OK):
             return templatr_llama
 
-        # 2b. Check macOS data directory
+        # 3b. Check macOS data directory
         templatr_llama_macos = (
             Path.home() / "Library" / "Application Support" / "templatr" / "llama.cpp" / "build" / "bin" / binary_name
         )
         if templatr_llama_macos.exists() and os.access(templatr_llama_macos, os.X_OK):
             return templatr_llama_macos
 
-        # 3. Check PATH
+        # 4. Check PATH
         path_binary = shutil.which(binary_name)
         if path_binary:
             return Path(path_binary)
 
-        # 4. Check legacy/common locations
+        # 5. Check legacy/common locations
         candidates = [
             Path.home() / "llama.cpp" / "build" / "bin" / binary_name,
             Path.home() / ".local" / "bin" / binary_name,

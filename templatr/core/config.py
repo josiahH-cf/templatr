@@ -5,9 +5,29 @@ Handles loading/saving app configuration from a single JSON file.
 
 import json
 import platform
+import sys
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Optional
+
+
+def is_frozen() -> bool:
+    """Return True when running inside a PyInstaller bundle."""
+    return getattr(sys, "_MEIPASS", None) is not None
+
+
+def get_bundle_dir() -> Path:
+    """Return the PyInstaller extraction directory, or the project root.
+
+    Inside a frozen app ``sys._MEIPASS`` points to the temp directory
+    where PyInstaller extracted the bundled data files.  During normal
+    development it falls back to the repository root (two levels up
+    from this file).
+    """
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        return Path(meipass)
+    return Path(__file__).resolve().parent.parent.parent
 
 
 def get_platform() -> str:
