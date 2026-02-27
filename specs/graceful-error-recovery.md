@@ -6,12 +6,12 @@ Make every LLM failure visible, actionable, and recoverable. Validate model file
 
 ## Acceptance Criteria
 
-- [ ] Model files are validated on import by checking the GGUF magic bytes (`0x47475546`); invalid files are rejected with a user-facing message naming the file and the specific problem
-- [ ] Generation errors display a human-readable message in the output pane (not a Python stack trace) with a "Retry" button that re-submits the last request
-- [ ] Server health is polled every 10 seconds while running; the toolbar status label reflects actual server state (healthy / degraded / stopped) within one poll cycle
-- [ ] If the server process dies unexpectedly, the UI detects this within 15 seconds and updates status to "Server stopped" with a prompt to restart
-- [ ] Streaming generation failures retry up to 3 times with exponential backoff (1s, 2s, 4s) before surfacing a final error to the user
-- [ ] When no model is loaded, the "Render with AI" button is disabled with a tooltip explaining why (e.g., "Start the LLM server and load a model first")
+- [x] Model files are validated on import by checking the GGUF magic bytes (`0x47475546`); invalid files are rejected with a user-facing message naming the file and the specific problem
+- [x] Generation errors display a human-readable message in the output pane (not a Python stack trace) with a "Retry" button that re-submits the last request
+- [x] Server health is polled every 10 seconds while running; the toolbar status label reflects actual server state (healthy / degraded / stopped) within one poll cycle
+- [x] If the server process dies unexpectedly, the UI detects this within 15 seconds and updates status to "Server stopped" with a prompt to restart
+- [x] Streaming generation failures retry up to 3 times with exponential backoff (1s, 2s, 4s) before surfacing a final error to the user
+- [x] When no model is loaded, the "Render with AI" button is disabled with a tooltip explaining why (e.g., "Start the LLM server and load a model first")
 
 ## Affected Areas
 
