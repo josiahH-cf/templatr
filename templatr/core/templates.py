@@ -1,4 +1,4 @@
-"""Template management for Automatr.
+"""Template management for Templatr.
 
 Handles loading, saving, and rendering JSON templates.
 Templates are stored as individual JSON files in the templates directory.

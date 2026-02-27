@@ -1,4 +1,4 @@
-"""PyQt6 theme configuration for Automatr."""
+"""PyQt6 theme configuration for Templatr."""
 
 # Dark theme stylesheet
 DARK_THEME = """

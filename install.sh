@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# Automatr Unified Installer
+# Templatr Unified Installer
 #
-# This script installs Automatr and all its dependencies on:
+# This script installs Templatr and all its dependencies on:
 # - Ubuntu/Debian Linux
 # - WSL2 (Windows Subsystem for Linux)
 # - macOS (experimental)
@@ -32,11 +32,11 @@ LLAMA_CPP_DIR=""
 
 set_platform_paths() {
     if [[ "$PLATFORM" == "macos" ]]; then
-        DATA_DIR="$HOME/Library/Application Support/automatr"
+        DATA_DIR="$HOME/Library/Application Support/templatr"
         CONFIG_DIR="$DATA_DIR"
     else
-        DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/automatr"
-        CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/automatr"
+        DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/templatr"
+        CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/templatr"
     fi
     LLAMA_CPP_DIR="${DATA_DIR}/llama.cpp"
 }
@@ -165,7 +165,7 @@ setup_python_env() {
     # Upgrade pip
     pip install --upgrade pip wheel setuptools
     
-    # Install automatr
+    # Install templatr
     pip install -e "$SCRIPT_DIR"
     
     log_success "Python environment ready: $VENV_DIR"
@@ -315,11 +315,11 @@ setup_alias() {
     fi
     
     if [[ -n "$SHELL_RC" ]]; then
-        ALIAS_LINE="alias automatr='source $VENV_DIR/bin/activate && automatr'"
+        ALIAS_LINE="alias templatr='source $VENV_DIR/bin/activate && templatr'"
         
-        if ! grep -q "alias automatr=" "$SHELL_RC" 2>/dev/null; then
+        if ! grep -q "alias templatr=" "$SHELL_RC" 2>/dev/null; then
             echo "" >> "$SHELL_RC"
-            echo "# Automatr" >> "$SHELL_RC"
+            echo "# Templatr" >> "$SHELL_RC"
             echo "$ALIAS_LINE" >> "$SHELL_RC"
             log_success "Added alias to $SHELL_RC"
         fi
@@ -333,7 +333,7 @@ smoke_test() {
     source "$VENV_DIR/bin/activate"
     
     # Test import
-    if python3 -c "import automatr; print(f'Version: {automatr.__version__}')" 2>/dev/null; then
+    if python3 -c "import templatr; print(f'Version: {templatr.__version__}')" 2>/dev/null; then
         log_success "Import test passed"
     else
         log_error "Import test failed"
@@ -341,7 +341,7 @@ smoke_test() {
     fi
     
     # Test config
-    if python3 -c "from automatr.core.config import get_config; get_config()" 2>/dev/null; then
+    if python3 -c "from templatr.core.config import get_config; get_config()" 2>/dev/null; then
         log_success "Config test passed"
     else
         log_error "Config test failed"
@@ -349,7 +349,7 @@ smoke_test() {
     fi
     
     # Test templates
-    if python3 -c "from automatr.core.templates import get_template_manager; print(f'Templates: {len(get_template_manager().list_all())}')" 2>/dev/null; then
+    if python3 -c "from templatr.core.templates import get_template_manager; print(f'Templates: {len(get_template_manager().list_all())}')" 2>/dev/null; then
         log_success "Template test passed"
     else
         log_error "Template test failed"
@@ -370,7 +370,7 @@ smoke_test() {
 print_summary() {
     echo ""
     echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║                  Automatr Installation Complete             ║${NC}"
+    echo -e "${GREEN}║                  Templatr Installation Complete             ║${NC}"
     echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "  ${BLUE}Virtual environment:${NC} $VENV_DIR"
@@ -378,17 +378,17 @@ print_summary() {
     echo -e "  ${BLUE}Data directory:${NC}      $DATA_DIR"
     echo -e "  ${BLUE}llama.cpp:${NC}           $LLAMA_CPP_DIR"
     echo ""
-    echo -e "  ${YELLOW}To start Automatr:${NC}"
+    echo -e "  ${YELLOW}To start Templatr:${NC}"
     echo -e "    source $VENV_DIR/bin/activate"
-    echo -e "    automatr"
+    echo -e "    templatr"
     echo ""
     echo -e "  ${YELLOW}Or restart your shell and run:${NC}"
-    echo -e "    automatr"
+    echo -e "    templatr"
     echo ""
     echo -e "  ${YELLOW}Next steps:${NC}"
     echo -e "    1. Download a GGUF model to ~/models/"
     echo -e "    2. Select model in LLM menu or edit $CONFIG_DIR/config.json"
-    echo -e "    3. Run 'automatr' to start the GUI"
+    echo -e "    3. Run 'templatr' to start the GUI"
     echo ""
 }
 
@@ -396,7 +396,7 @@ print_summary() {
 main() {
     echo ""
     echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║                    Automatr Installer                       ║${NC}"
+    echo -e "${BLUE}║                    Templatr Installer                       ║${NC}"
     echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     

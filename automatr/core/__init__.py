@@ -1,1 +1,0 @@
-"""Automatr core modules."""

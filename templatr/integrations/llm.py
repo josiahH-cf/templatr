@@ -1,4 +1,4 @@
-"""Local LLM integration for Automatr.
+"""Local LLM integration for Templatr.
 
 Manages the llama.cpp server process and provides an HTTP client
 for sending prompts.

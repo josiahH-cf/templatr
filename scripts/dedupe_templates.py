@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-One-time deduplication script for automatr templates.
+One-time deduplication script for templatr templates.
 
 Rule: Templates in folders take precedence over root-level templates.
 If a template exists in both root and a folder, the root version is removed.
@@ -18,11 +18,11 @@ from pathlib import Path
 def get_templates_dir() -> Path:
     """Get the templates directory path."""
     if os.name == 'nt':  # Windows
-        config_dir = Path(os.environ.get('APPDATA', '')) / 'automatr'
+        config_dir = Path(os.environ.get('APPDATA', '')) / 'templatr'
     elif os.uname().sysname == 'Darwin':  # macOS
-        config_dir = Path.home() / 'Library' / 'Application Support' / 'automatr'
+        config_dir = Path.home() / 'Library' / 'Application Support' / 'templatr'
     else:  # Linux/WSL
-        config_dir = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'automatr'
+        config_dir = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'templatr'
     return config_dir / 'templates'
 
 

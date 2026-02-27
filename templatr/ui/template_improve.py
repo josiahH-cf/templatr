@@ -1,4 +1,4 @@
-"""Template improvement dialog for Automatr.
+"""Template improvement dialog for Templatr.
 
 Unified workflow for template improvement:
 1. Prompt user for feedback on what could be better

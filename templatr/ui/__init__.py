@@ -1,1 +1,1 @@
-"""Automatr UI components."""
+"""Templatr UI components."""

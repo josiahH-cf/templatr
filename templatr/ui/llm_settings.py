@@ -1,4 +1,4 @@
-"""LLM Settings dialog for Automatr.
+"""LLM Settings dialog for Templatr.
 
 Simplified GUI for max token length setting.
 Advanced settings available in llama.cpp web UI.

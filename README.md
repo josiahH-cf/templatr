@@ -1,17 +1,17 @@
-# 🤖 Automatr Prompt
+# 🤖 Templatr
 
 **Create reusable AI prompts that run 100% on your computer.**
 
 No cloud. No API keys. No subscriptions. Just you and your local AI.
 
-![Automatr Screenshot](docs/screenshot.png)
+![Templatr Screenshot](docs/screenshot.png)
 <!-- TODO: Add screenshot showing the main window with a template -->
 
 ---
 
-## ✨ What is Automatr?
+## ✨ What is Templatr?
 
-Automatr helps you build **prompt templates** — reusable prompts with fill-in-the-blank variables. Think of them like form letters for AI.
+Templatr helps you build **prompt templates** — reusable prompts with fill-in-the-blank variables. Think of them like form letters for AI.
 
 **Example:** Instead of retyping "Review this code for bugs..." every time, create a template once and reuse it forever.
 
@@ -31,8 +31,8 @@ Everything runs on your computer:
 Open a terminal and run:
 
 ```bash
-git clone https://github.com/josiahH-cf/automatr-prompt.git
-cd automatr-prompt
+git clone https://github.com/josiahH-cf/templatr.git
+cd templatr
 ./install.sh
 ```
 
@@ -42,7 +42,7 @@ This takes 5-10 minutes. It downloads and sets up everything automatically.
 
 You need a `.gguf` model file — this is the "brain" that generates responses.
 
-1. Launch Automatr: `automatr`
+1. Launch Templatr: `templatr`
 2. Go to **LLM → Download Models (Hugging Face)**
 3. Download any model (start small, around 3-8GB)
 4. Go to **LLM → Select Model → Add Model from File...**
@@ -82,23 +82,23 @@ Now you can reuse this template anytime — just fill in the blanks!
 **Linux / WSL2:**
 | What | Location |
 |------|----------|
-| Settings & Templates | `~/.config/automatr/` |
-| LLM Server | `~/.local/share/automatr/` |
+| Settings & Templates | `~/.config/templatr/` |
+| LLM Server | `~/.local/share/templatr/` |
 | Models | `~/models/` |
 
 **macOS:**
 | What | Location |
 |------|----------|
-| Settings & Templates | `~/Library/Application Support/automatr/` |
+| Settings & Templates | `~/Library/Application Support/templatr/` |
 | Models | `~/models/` |
 
 **To remove everything:**
 ```bash
 # Linux/WSL2
-rm -rf ~/.config/automatr/ ~/.local/share/automatr/ ~/models/*.gguf
+rm -rf ~/.config/templatr/ ~/.local/share/templatr/ ~/models/*.gguf
 
 # macOS  
-rm -rf ~/Library/Application\ Support/automatr/ ~/models/*.gguf
+rm -rf ~/Library/Application\ Support/templatr/ ~/models/*.gguf
 ```
 
 ---
@@ -118,7 +118,7 @@ A: Any `.gguf` format model. Browse [Hugging Face](https://huggingface.co/models
 A: Use a smaller model, or upgrade your hardware. A GPU helps significantly.
 
 **Q: Is there an Espanso integration?**
-A: Espanso support lives in a separate project: [automatr-espanso](https://github.com/josiahH-cf/automatr-espanso).
+A: Espanso support lives in a separate project: [templatr-espanso](https://github.com/josiahH-cf/templatr-espanso).
 
 ---
 

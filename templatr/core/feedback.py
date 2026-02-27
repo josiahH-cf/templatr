@@ -1,4 +1,4 @@
-"""Feedback management for Automatr.
+"""Feedback management for Templatr.
 
 Captures user feedback (thumbs-up/down) on LLM-generated outputs
 to enable future template improvements.

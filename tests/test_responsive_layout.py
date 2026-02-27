@@ -358,7 +358,7 @@ class TestStretchAndFill:
 
         import tomllib
 
-        pyproject = Path("/home/josiah/automatr-prompt/pyproject.toml")
+        pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
         with open(pyproject, "rb") as f:
             data = tomllib.load(f)
 

@@ -1,4 +1,4 @@
-"""Template generation dialog for Automatr.
+"""Template generation dialog for Templatr.
 
 Workflow for AI-powered template generation:
 1. User provides description of what the template should do

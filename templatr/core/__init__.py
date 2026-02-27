@@ -1,1 +1,1 @@
-"""Automatr core modules."""
+"""Templatr core modules."""

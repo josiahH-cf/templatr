@@ -1,6 +1,6 @@
 # Project
 
-- Project name: Automatr Prompt
+- Project name: Templatr
 - Description: A local-model prompt optimizer desktop app with reusable templates and llama.cpp integration. No cloud, no API keys.
 - Primary language/framework: Python with PyQt6
 - Scope: Local prompt optimization, template management, llama.cpp LLM runtime
@@ -18,10 +18,10 @@
 
 # Architecture
 
-- `automatr/`: Main Python package and app entrypoint.
-- `automatr/core/`: Core configuration, template handling, and user feedback utilities.
-- `automatr/integrations/`: LLM runtime integration (llama.cpp server lifecycle, model management).
-- `automatr/ui/`: PyQt6 user interface — decomposed into focused widgets:
+- `templatr/`: Main Python package and app entrypoint.
+- `templatr/core/`: Core configuration, template handling, and user feedback utilities.
+- `templatr/integrations/`: LLM runtime integration (llama.cpp server lifecycle, model management).
+- `templatr/ui/`: PyQt6 user interface — decomposed into focused widgets:
   - `main_window.py`: Top-level window composing mixins for template actions, generation, and window state.
   - `template_tree.py`: Sidebar tree for browsing and selecting templates.
   - `template_editor.py`: Template content editor widget.

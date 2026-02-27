@@ -1,4 +1,4 @@
-"""Template editor widget for Automatr."""
+"""Template editor widget for Templatr."""
 
 from typing import List, Optional
 

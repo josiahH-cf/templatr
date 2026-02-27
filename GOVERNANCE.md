@@ -1,4 +1,4 @@
-# Governance — Automatr Prompt
+# Governance — Templatr
 
 ## Scope
 
@@ -10,7 +10,7 @@ Local-model prompt optimizer desktop application:
 
 ## Non-Goals
 
-- Espanso or text-expander integration (see [automatr-espanso](https://github.com/josiahH-cf/automatr-espanso))
+- Espanso or text-expander integration (see [templatr-espanso](https://github.com/josiahH-cf/templatr-espanso))
 - Cloud LLM APIs (OpenAI, Anthropic, etc.)
 - Multi-tenant or multi-user access
 - Mobile or web deployment

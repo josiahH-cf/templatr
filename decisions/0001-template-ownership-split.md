@@ -6,8 +6,8 @@
 
 ## Context
 
-Automatr is being split into two independent repos: `automatr-prompt` (local prompt optimizer
-with LLM integration) and `automatr-espanso` (Espanso automation GUI). Each repo must know
+Templatr is being split into two independent repos: `templatr` (local prompt optimizer
+with LLM integration) and `templatr-espanso` (Espanso automation GUI). Each repo must know
 which bundled templates to ship. The 33 bundled templates (31 user-facing in `templates/` and
 2 system templates in `templates/_meta/`) all currently live in the monorepo and need explicit
 ownership assigned before the split proceeds (AC-6).
