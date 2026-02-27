@@ -64,7 +64,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         self.template_manager = templates or get_template_manager()
         self.llm_client = llm_client or get_llm_client()
         self.llm_server = llm_server or get_llm_server()
-        self.setWindowTitle(f"Automatr v{__version__}")
+        self.setWindowTitle(f"Templatr v{__version__}")
         self.setMinimumSize(600, 400)  # Allow proper window snapping on all screen sizes
 
         cfg = self.config_manager.config
@@ -248,7 +248,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         view_log_action.triggered.connect(self._open_log_directory)
         help_menu.addAction(view_log_action)
         help_menu.addSeparator()
-        about_action = QAction("&About Automatr", self)
+        about_action = QAction("&About Templatr", self)
         about_action.triggered.connect(self._show_about)
         help_menu.addAction(about_action)
 
@@ -382,7 +382,7 @@ def run_gui() -> int:
         Exit code.
     """
     app = QApplication(sys.argv)
-    app.setApplicationName("Automatr")
+    app.setApplicationName("Templatr")
     app.setApplicationVersion(__version__)
 
     # Apply theme with font size

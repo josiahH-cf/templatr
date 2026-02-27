@@ -47,7 +47,7 @@ def test_main_window_creates(qtbot):
         window = MainWindow()
         qtbot.addWidget(window)
 
-        assert window.windowTitle().startswith("Automatr")
+        assert window.windowTitle().startswith("Templatr")
         assert window.template_tree_widget is not None
         assert window.variable_form is not None
         assert window.output_pane is not None
