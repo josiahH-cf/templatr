@@ -7,7 +7,7 @@ from pathlib import Path
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
-from templatr.integrations.llm import get_llm_client
+from templatr.integrations.llm import get_llm_client, validate_gguf
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +124,15 @@ class ModelCopyWorker(QThread):
                         self.progress.emit(percent)
 
             shutil.copystat(self.source, self.dest)
+
+            # Validate GGUF magic bytes after copy
+            valid, validation_msg = validate_gguf(self.dest)
+            if not valid:
+                if self.dest.exists():
+                    self.dest.unlink()
+                self.finished.emit(False, validation_msg)
+                return
+
             self.finished.emit(True, str(self.dest))
 
         except PermissionError:

@@ -37,6 +37,41 @@ class ModelInfo:
         )
 
 
+GGUF_MAGIC = b"GGUF"  # 0x47 0x47 0x55 0x46
+
+
+def validate_gguf(path: Path) -> Tuple[bool, str]:
+    """Validate that a file is a GGUF model by checking its magic bytes.
+
+    Reads only the first 4 bytes. Does not load or parse the full file.
+
+    Args:
+        path: Path to the model file to validate.
+
+    Returns:
+        Tuple of (valid, error_message). If valid, error_message is empty.
+    """
+    filename = path.name
+    if not path.exists():
+        return False, f"Model file not found: {filename}"
+    try:
+        with open(path, "rb") as f:
+            header = f.read(4)
+    except OSError as e:
+        return False, f"Cannot read model file {filename}: {e}"
+
+    if len(header) < 4:
+        return False, (
+            f"Invalid model file: {filename} \u2014 file is too small to be a GGUF model"
+        )
+    if header != GGUF_MAGIC:
+        return False, (
+            f"Invalid model file: {filename} \u2014 expected GGUF format "
+            f"(magic bytes mismatch)"
+        )
+    return True, ""
+
+
 class LLMClient:
     """HTTP client for communicating with llama-server."""
 
