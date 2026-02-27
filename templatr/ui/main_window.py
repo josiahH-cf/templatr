@@ -24,8 +24,9 @@ from PyQt6.QtWidgets import (
 )
 
 from templatr import __version__
-from templatr.core.config import get_config, save_config
-from templatr.core.templates import Template
+from templatr.core.config import get_config, get_config_manager, save_config
+from templatr.core.templates import Template, get_template_manager
+from templatr.integrations.llm import get_llm_client, get_llm_server
 from templatr.ui._generation import GenerationMixin
 from templatr.ui._template_actions import TemplateActionsMixin
 from templatr.ui._window_state import WindowStateMixin
@@ -41,13 +42,27 @@ from templatr.ui.workers import GenerationWorker
 class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainWindow):
     """Main application window."""
 
-    def __init__(self):
+    def __init__(self, config=None, templates=None, llm_client=None, llm_server=None):
+        """Initialize the main window.
+
+        Args:
+            config: ConfigManager instance. Uses the global singleton if None.
+            templates: TemplateManager instance. Uses the global singleton if None.
+            llm_client: LLMClient instance. Uses the global singleton if None.
+            llm_server: LLMServerManager instance. Uses the global singleton if None.
+        """
         super().__init__()
+
+        # Store injected dependencies (fall back to global singletons)
+        self.config_manager = config or get_config_manager()
+        self.template_manager = templates or get_template_manager()
+        self.llm_client = llm_client or get_llm_client()
+        self.llm_server = llm_server or get_llm_server()
         self.setWindowTitle(f"Automatr v{__version__}")
         self.setMinimumSize(600, 400)  # Allow proper window snapping on all screen sizes
 
-        config = get_config()
-        self.resize(config.ui.window_width, config.ui.window_height)
+        cfg = self.config_manager.config
+        self.resize(cfg.ui.window_width, cfg.ui.window_height)
 
         self.current_template: Optional[Template] = None
         self.worker: Optional[GenerationWorker] = None

@@ -18,9 +18,15 @@ from templatr.ui.template_improve import TemplateImproveDialog
 class TemplateActionsMixin:
     """Template CRUD, version history, and AI instruction editing.
 
-    Mixed into MainWindow. Expects the host class to provide:
-    current_template, variable_form, template_tree_widget,
-    status_bar, llm_toolbar.
+    Mixed into MainWindow (must inherit QMainWindow).
+
+    Expects self to provide:
+        current_template (Optional[Template]): Currently selected template (read/write).
+        variable_form (VariableFormWidget): Variable input form (.set_template()).
+        template_tree_widget (TemplateTreeWidget): Sidebar tree (.refresh(),
+            .load_templates(), .select_template_by_name()).
+        status_bar (QStatusBar): Status bar for messages (.showMessage()).
+        llm_toolbar (LLMToolbar): Server controls (.check_status()).
     """
 
     def _new_template(self):

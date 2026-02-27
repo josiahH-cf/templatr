@@ -6,12 +6,12 @@ Incrementally decouple the codebase by extracting Protocol interfaces, breaking 
 
 ## Acceptance Criteria
 
-- [ ] Protocol classes (abstract interfaces) exist for `ConfigManager`, `TemplateManager`, `LLMClient`, and `LLMServer` in a new `templatr/core/interfaces.py`, each documenting the public contract
-- [ ] The circular import between `templatr/core/feedback.py` and `templatr/core/templates.py` is eliminated — no function-level or deferred imports between them
-- [ ] Each global singleton (`get_config_manager`, `get_template_manager`, `get_llm_client`, `get_llm_server`, `get_feedback_manager`) supports a `reset()` call that clears the cached instance, enabling clean test isolation
-- [ ] `MainWindow.__init__` accepts optional dependency parameters (config, templates, LLM) with defaults that call the current singletons — preserving backward-compatible construction
-- [ ] All existing tests pass without modification after the refactor (no test changes to accommodate structural changes)
-- [ ] Each mixin class (`TemplateActionsMixin`, `GenerationMixin`, `WindowStateMixin`) has a docstring listing the attributes and methods it expects on `self`
+- [x] Protocol classes (abstract interfaces) exist for `ConfigManager`, `TemplateManager`, `LLMClient`, and `LLMServer` in a new `templatr/core/interfaces.py`, each documenting the public contract
+- [x] The circular import between `templatr/core/feedback.py` and `templatr/core/templates.py` is eliminated — no function-level or deferred imports between them
+- [x] Each global singleton (`get_config_manager`, `get_template_manager`, `get_llm_client`, `get_llm_server`, `get_feedback_manager`) supports a `reset()` call that clears the cached instance, enabling clean test isolation
+- [x] `MainWindow.__init__` accepts optional dependency parameters (config, templates, LLM) with defaults that call the current singletons — preserving backward-compatible construction
+- [x] All existing tests pass without modification after the refactor (no test changes to accommodate structural changes)
+- [x] Each mixin class (`TemplateActionsMixin`, `GenerationMixin`, `WindowStateMixin`) has a docstring listing the attributes and methods it expects on `self`
 
 ## Affected Areas
 

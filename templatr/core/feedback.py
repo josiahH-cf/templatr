@@ -141,6 +141,15 @@ def get_feedback_manager() -> FeedbackManager:
     return _feedback_manager
 
 
+def reset() -> None:
+    """Clear the cached FeedbackManager instance.
+
+    For testing only — allows tests to start with a fresh instance.
+    """
+    global _feedback_manager
+    _feedback_manager = None
+
+
 def build_improvement_prompt(template_content: str, refinements: List[str], additional_notes: str = "") -> str:
     """Build a prompt asking the LLM to improve a template using the meta-template.
 
@@ -154,7 +163,7 @@ def build_improvement_prompt(template_content: str, refinements: List[str], addi
     Returns:
         A prompt string for the LLM.
     """
-    from templatr.core.templates import load_meta_template
+    from templatr.core.meta_templates import load_meta_template
 
     # Load the meta-template
     meta_template = load_meta_template("template_improver")
@@ -193,7 +202,7 @@ def build_generation_prompt(description: str, expected_variables: List[str]) -> 
     Returns:
         A prompt string for the LLM.
     """
-    from templatr.core.templates import load_meta_template
+    from templatr.core.meta_templates import load_meta_template
 
     # Load the meta-template
     meta_template = load_meta_template("template_generator")

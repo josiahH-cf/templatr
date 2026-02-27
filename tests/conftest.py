@@ -16,6 +16,20 @@ import pytest
 from templatr.core.templates import Template, Variable
 
 
+@pytest.fixture(autouse=True)
+def _reset_singletons():
+    """Reset all global singletons after each test for clean isolation."""
+    yield
+    from templatr.core import config, feedback, templates
+    from templatr.integrations import llm
+
+    config.reset()
+    templates.reset()
+    feedback.reset()
+    llm.reset_llm_client()
+    llm.reset_llm_server()
+
+
 @pytest.fixture
 def tmp_config_dir(tmp_path: Path) -> Path:
     """Temporary config directory pre-populated with a default config.json.
