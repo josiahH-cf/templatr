@@ -5,8 +5,8 @@
 ## Status
 
 - Total: 3
-- Complete: 0
-- Remaining: 3
+- Complete: 3
+- Remaining: 0
 
 ## Task List
 
@@ -15,21 +15,21 @@
 - **Files:** `.github/workflows/release.yml` (new)
 - **Done when:** Workflow triggers on `v*` tag push. Build matrix covers Ubuntu (latest), macOS (latest + macos-13 for Intel), and Windows (latest). Each matrix job runs `scripts/build.py` and uploads the artifact. All artifacts appear on the GitHub Release.
 - **Criteria covered:** Criterion 1 (workflow triggers on tags), Criterion 2 (matrix builds), Criterion 3 (artifacts on release)
-- **Status:** [ ] Not started
+- **Status:** [x] Complete
 
 ### Task 2: CI gating and workflow reuse
 
 - **Files:** `.github/workflows/ci.yml` (add `workflow_call` trigger), `.github/workflows/release.yml` (call CI as a prerequisite job)
 - **Done when:** Release workflow calls CI workflow as a required first job. If CI fails (tests or lint), no artifacts are published. Release job depends on CI job passing.
 - **Criteria covered:** Criterion 5 (CI must pass before publish)
-- **Status:** [ ] Not started
+- **Status:** [x] Complete
 
 ### Task 3: Changelog generation and version management
 
 - **Files:** `.github/workflows/release.yml` (add changelog step), `pyproject.toml` (document version bump convention)
 - **Done when:** Release body includes auto-generated changelog from commits since previous tag. Version in `pyproject.toml` is the source of truth — tag name and package version must match. Workflow completes in under 30 minutes across all platforms.
 - **Criteria covered:** Criterion 4 (changelog), Criterion 6 (under 30 min)
-- **Status:** [ ] Not started
+- **Status:** [x] Complete
 
 ## Test Strategy
 
@@ -45,3 +45,9 @@
 ## Session Log
 
 <!-- Append after each session: date, completed, blockers -->
+
+### 2026-02-28
+
+- **Completed:** All 3 tasks (release workflow, CI gating reuse, changelog + version gate)
+- **Files changed:** `.github/workflows/release.yml` (new), `.github/workflows/ci.yml` (`workflow_call`), `pyproject.toml` (version-source-of-truth note), `tests/test_release_automation.py` (new)
+- **Validation:** `.venv/bin/ruff check .` and `.venv/bin/pytest -q` both pass (220 tests)

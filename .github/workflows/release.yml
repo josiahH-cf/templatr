@@ -1,0 +1,143 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci_gate:
+    uses: ./.github/workflows/ci.yml
+    timeout-minutes: 15
+
+  build:
+    name: Build ${{ matrix.label }}
+    needs: ci_gate
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: linux-x64
+            artifact_glob: dist/*.AppImage
+            artifact_fallback: dist/templatr.AppDir
+          - os: macos-latest
+            label: macos-arm64
+            artifact_glob: dist/*.dmg
+            artifact_fallback: dist/Templatr.app
+          - os: macos-13
+            label: macos-x64
+            artifact_glob: dist/*.dmg
+            artifact_fallback: dist/Templatr.app
+          - os: windows-latest
+            label: windows-x64
+            artifact_glob: dist/*.zip
+            # Fallback is the PyInstaller output directory; upload-artifact zips it automatically.
+            artifact_fallback: dist/templatr
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libxkbcommon0 libxcb-cursor0 libfuse2
+          sudo apt-get install -y appimagetool || true
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+          pip install pyinstaller
+
+      - name: Build platform artifact
+        run: python scripts/build.py
+
+      - name: Resolve artifact path
+        id: artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          pattern="${{ matrix.artifact_glob }}"
+          fallback="${{ matrix.artifact_fallback }}"
+          shopt -s nullglob
+          matches=( $pattern )
+          if [ ${#matches[@]} -gt 0 ]; then
+            echo "path=${matches[0]}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -e "$fallback" ]; then
+            echo "path=$fallback" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "No artifact found with pattern '$pattern' or fallback '$fallback'." >&2
+          find dist -mindepth 1 -maxdepth 3 -print || true
+          exit 1
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: templatr-${{ matrix.label }}
+          path: ${{ steps.artifact.outputs.path }}
+
+  release:
+    name: Publish release
+    needs: [ci_gate, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.10"
+
+      - name: Validate tag matches pyproject version
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYPROJECT_VERSION="$(python - <<'PY'
+          import tomllib
+          from pathlib import Path
+          data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          print(data["project"]["version"])
+          PY
+          )"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$PYPROJECT_VERSION" != "$TAG_VERSION" ]; then
+            echo "Version mismatch: tag '$TAG_VERSION' does not match pyproject.toml '$PYPROJECT_VERSION'." >&2
+            exit 1
+          fi
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+        with:
+          path: release-artifacts
+          pattern: templatr-*
+          merge-multiple: true
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
+        with:
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: release-artifacts/**

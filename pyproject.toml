@@ -4,6 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "templatr"
+# Source of truth for releases: keep this in sync with git tag `vX.Y.Z`.
 version = "1.0.0"
 description = "Local prompt optimizer with reusable templates and llama.cpp integration. No cloud, no API keys."
 readme = "README.md"
