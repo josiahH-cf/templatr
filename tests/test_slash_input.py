@@ -11,9 +11,9 @@ These tests were written before the implementation (TDD).
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtTest import QTest
-from templatr.ui.slash_input import SlashInputWidget
 
 from templatr.core.templates import Template, Variable
+from templatr.ui.slash_input import SlashInputWidget
 
 
 def _make_template_no_vars():
@@ -51,6 +51,7 @@ def test_typing_slash_shows_palette(qtbot):
     """Typing '/' in the input bar makes the template palette visible."""
     widget = SlashInputWidget()
     qtbot.addWidget(widget)
+    widget.show()
     widget.set_templates(_make_template_list())
 
     qtbot.keyClicks(widget._text_input, "/")
@@ -70,6 +71,7 @@ def test_filter_narrows_results(qtbot):
     """Typing '/code' shows only templates containing 'code' in their name."""
     widget = SlashInputWidget()
     qtbot.addWidget(widget)
+    widget.show()
     widget.set_templates(_make_template_list())
 
     qtbot.keyClicks(widget._text_input, "/code")
@@ -89,6 +91,7 @@ def test_escape_dismisses_palette(qtbot):
     """Pressing Escape hides the palette and clears the input."""
     widget = SlashInputWidget()
     qtbot.addWidget(widget)
+    widget.show()
     widget.set_templates(_make_template_list())
 
     qtbot.keyClicks(widget._text_input, "/")
@@ -120,6 +123,7 @@ def test_selecting_template_with_vars_shows_inline_form(qtbot):
     """Selecting a template with variables shows the inline variable form."""
     widget = SlashInputWidget()
     qtbot.addWidget(widget)
+    widget.show()
     with_vars = _make_template_with_vars()
     widget.set_templates([with_vars])
 
@@ -140,6 +144,7 @@ def test_filling_form_and_submitting_emits_template_submitted(qtbot):
     with the rendered prompt (variables substituted)."""
     widget = SlashInputWidget()
     qtbot.addWidget(widget)
+    widget.show()
     with_vars = _make_template_with_vars()
     widget.set_templates([with_vars])
 
