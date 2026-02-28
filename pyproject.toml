@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "templatr"
-version = "1.0.0"
+version = "1.1.0"
 description = "Local prompt optimizer with reusable templates and llama.cpp integration. No cloud, no API keys."
 readme = "README.md"
 license = {text = "MIT"}
