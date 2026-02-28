@@ -4,7 +4,9 @@ Handles loading/saving app configuration from a single JSON file.
 """
 
 import json
+import os
 import platform
+import shutil
 import sys
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
@@ -30,34 +32,168 @@ def get_bundle_dir() -> Path:
     return Path(__file__).resolve().parent.parent.parent
 
 
+# ---------------------------------------------------------------------------
+# PlatformConfig — single source of truth for platform detection and paths
+# ---------------------------------------------------------------------------
+
+
+def _is_wsl2() -> bool:
+    """Check whether we are running inside WSL2."""
+    try:
+        with open("/proc/version", "r") as f:
+            version = f.read().lower()
+            return "microsoft" in version or "wsl" in version
+    except (OSError, IOError):
+        return False
+
+
+@dataclass(frozen=True)
+class PlatformConfig:
+    """Platform-derived configuration — populated once by get_platform_config().
+
+    All runtime code should consume this dataclass instead of calling
+    ``platform.system()``, ``os.name``, or reading ``/proc/version`` directly.
+    """
+
+    platform: str
+    config_dir: Path
+    data_dir: Path
+    models_dir: Path
+    binary_name: str
+    binary_search_paths: list
+
+
+_platform_config_cache: Optional["PlatformConfig"] = None
+
+
+def get_platform_config(*, _bypass_cache: bool = False) -> PlatformConfig:
+    """Build and cache a PlatformConfig for the current host.
+
+    This is the **only** function that calls ``platform.system()`` at runtime.
+    Every other module must consume the returned dataclass.
+
+    Args:
+        _bypass_cache: When True, rebuild even if a cached value exists.
+            Intended for tests only.
+
+    Returns:
+        A frozen PlatformConfig dataclass.
+    """
+    global _platform_config_cache
+    if _platform_config_cache is not None and not _bypass_cache:
+        return _platform_config_cache
+
+    system = platform.system()
+    home = Path.home()
+
+    if system == "Windows":
+        plat = "windows"
+        appdata = os.environ.get("APPDATA")
+        localappdata = os.environ.get("LOCALAPPDATA")
+        if appdata:
+            config_dir = Path(appdata) / "templatr"
+        else:
+            config_dir = home / ".templatr"
+        if localappdata:
+            data_dir = Path(localappdata) / "templatr"
+        else:
+            data_dir = config_dir
+        binary_name = "llama-server.exe"
+        models_dir = home / "models"
+        binary_search_paths = [
+            data_dir / "llama.cpp" / "build" / "bin",
+            home / "llama.cpp" / "build" / "bin",
+        ]
+    elif system == "Darwin":
+        plat = "macos"
+        app_support = home / "Library" / "Application Support" / "templatr"
+        config_dir = app_support
+        data_dir = app_support
+        binary_name = "llama-server"
+        models_dir = home / "models"
+        binary_search_paths = [
+            data_dir / "llama.cpp" / "build" / "bin",
+            home / "llama.cpp" / "build" / "bin",
+            home / ".local" / "bin",
+            Path("/usr/local/bin"),
+            Path("/opt/homebrew/bin"),
+        ]
+    else:
+        # Linux or WSL2
+        plat = "wsl2" if _is_wsl2() else "linux"
+        xdg_config = os.environ.get("XDG_CONFIG_HOME")
+        xdg_data = os.environ.get("XDG_DATA_HOME")
+        config_dir = (
+            Path(xdg_config) / "templatr"
+            if xdg_config
+            else home / ".config" / "templatr"
+        )
+        data_dir = (
+            Path(xdg_data) / "templatr"
+            if xdg_data
+            else home / ".local" / "share" / "templatr"
+        )
+        binary_name = "llama-server"
+        models_dir = home / "models"
+        binary_search_paths = [
+            data_dir / "llama.cpp" / "build" / "bin",
+            home / "llama.cpp" / "build" / "bin",
+            home / ".local" / "bin",
+            Path("/usr/local/bin"),
+        ]
+
+    pc = PlatformConfig(
+        platform=plat,
+        config_dir=config_dir,
+        data_dir=data_dir,
+        models_dir=models_dir,
+        binary_name=binary_name,
+        binary_search_paths=binary_search_paths,
+    )
+    if not _bypass_cache:
+        _platform_config_cache = pc
+    return pc
+
+
+def _reset_platform_config_cache() -> None:
+    """Clear the cached PlatformConfig. For testing only."""
+    global _platform_config_cache
+    _platform_config_cache = None
+
+
+# ---------------------------------------------------------------------------
+# Convenience wrappers (backward-compatible)
+# ---------------------------------------------------------------------------
+
+
 def get_platform() -> str:
     """Get the current platform.
 
     Returns:
         'windows', 'linux', 'wsl2', or 'macos'
-    """
-    system = platform.system()
 
-    if system == "Windows":
-        return "windows"
-    elif system == "Darwin":
-        return "macos"
-    elif system == "Linux":
-        # Check for WSL2
-        try:
-            with open("/proc/version", "r") as f:
-                version = f.read().lower()
-                if "microsoft" in version or "wsl" in version:
-                    return "wsl2"
-        except (OSError, IOError):
-            pass
-        return "linux"
-    return "unknown"
+    Delegates to ``get_platform_config()`` — does not call
+    ``platform.system()`` directly.
+    """
+    return get_platform_config().platform
 
 
 def is_windows() -> bool:
     """Check if running on native Windows."""
-    return get_platform() == "windows"
+    return get_platform_config().platform == "windows"
+
+
+def get_data_dir(*, _bypass_cache: bool = False) -> Path:
+    """Get the data directory path.
+
+    On Linux: XDG_DATA_HOME/templatr or ~/.local/share/templatr
+    On macOS: ~/Library/Application Support/templatr
+    On Windows: %LOCALAPPDATA%/templatr
+
+    Returns:
+        Path to the data directory.
+    """
+    return get_platform_config(_bypass_cache=_bypass_cache).data_dir
 
 
 def get_config_dir() -> Path:
@@ -65,27 +201,15 @@ def get_config_dir() -> Path:
 
     On macOS: ~/Library/Application Support/templatr
     On Linux/WSL: XDG_CONFIG_HOME or ~/.config/templatr
+    On Windows: %APPDATA%/templatr
 
     Migrates from the old ~/.config/automatr/ path if it exists and the new
     path does not.
     """
-    import os
-    import shutil
+    config_dir = get_platform_config().config_dir
 
-    system = platform.system()
-    if system == "Darwin":
-        base = Path.home() / "Library" / "Application Support"
-    else:
-        xdg_config = os.environ.get("XDG_CONFIG_HOME")
-        if xdg_config:
-            base = Path(xdg_config)
-        else:
-            base = Path.home() / ".config"
-
-    config_dir = base / "templatr"
-    old_config_dir = base / "automatr"
-
-    # Migrate from old config directory if needed
+    # Migration from old automatr config directory
+    old_config_dir = config_dir.parent / "automatr"
     if not config_dir.exists() and old_config_dir.exists():
         shutil.copytree(old_config_dir, config_dir)
 
@@ -135,6 +259,18 @@ class LLMConfig:
     repeat_penalty: float = 1.1
 
 
+# Default keyboard shortcut bindings — keys are action names, values are
+# QKeySequence strings.  Users may override individual entries in config.json
+# under ui.shortcuts; unspecified entries retain these defaults.
+_DEFAULT_SHORTCUTS: dict = {
+    "generate": "Ctrl+Return",
+    "copy_output": "Ctrl+Shift+C",
+    "clear_chat": "Ctrl+L",
+    "next_template": "Ctrl+]",
+    "prev_template": "Ctrl+[",
+}
+
+
 @dataclass
 class UIConfig:
     """Configuration for the UI."""
@@ -163,6 +299,9 @@ class UIConfig:
         10  # Max versions to keep per template (original always preserved)
     )
 
+    # Keyboard shortcuts — action name → QKeySequence string
+    shortcuts: dict = field(default_factory=lambda: dict(_DEFAULT_SHORTCUTS))
+
 
 @dataclass
 class Config:
@@ -189,17 +328,21 @@ class Config:
         llm_fields = {f.name for f in fields(LLMConfig)}
         ui_fields = {f.name for f in fields(UIConfig)}
 
+        ui_kwargs: dict = {k: v for k, v in ui_data.items() if k in ui_fields}
+        # Merge shortcut overrides on top of defaults so partial overrides
+        # (e.g. only "generate" in JSON) keep the remaining default bindings.
+        if "shortcuts" in ui_kwargs:
+            merged = dict(_DEFAULT_SHORTCUTS)
+            merged.update(ui_kwargs["shortcuts"])
+            ui_kwargs["shortcuts"] = merged
+
         return cls(
             llm=(
                 LLMConfig(**{k: v for k, v in llm_data.items() if k in llm_fields})
                 if llm_data
                 else LLMConfig()
             ),
-            ui=(
-                UIConfig(**{k: v for k, v in ui_data.items() if k in ui_fields})
-                if ui_data
-                else UIConfig()
-            ),
+            ui=UIConfig(**ui_kwargs) if ui_data else UIConfig(),
         )
 
 
