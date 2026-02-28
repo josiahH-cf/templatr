@@ -353,6 +353,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         self.slash_input = SlashInputWidget()
         self.slash_input.template_submitted.connect(self._generate)
         self.slash_input.plain_submitted.connect(self._generate)
+        self.slash_input.system_command.connect(self._on_system_command)
         right_layout.addWidget(self.slash_input)
 
         self.splitter.addWidget(right_col)
@@ -403,6 +404,37 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
     def _show_llm_settings(self):
         """Show the LLM settings dialog."""
         LLMSettingsDialog(self).exec()
+
+    def _on_system_command(self, command_id: str) -> None:
+        """Handle a system command from the slash input bar.
+
+        Args:
+            command_id: The command identifier (e.g., "help", "settings").
+        """
+        if command_id == "help":
+            help_text = (
+                "**Available commands:**\n\n"
+                "- `/help` — Show this help message\n"
+                "- `/new` — Create a new template\n"
+                "- `/import` — Import a template\n"
+                "- `/export` — Export a template\n"
+                "- `/settings` — Open LLM settings\n\n"
+                "Type `/` followed by a template name to search templates.\n"
+                "Type `:trigger` to invoke a template by its trigger shortcut."
+            )
+            bubble = self.chat_widget.add_ai_bubble()
+            bubble.set_text(help_text)
+        elif command_id == "settings":
+            self._show_llm_settings()
+        elif command_id == "new":
+            if hasattr(self, "_new_template"):
+                self._new_template()
+        elif command_id == "import":
+            if hasattr(self, "_import_template"):
+                self._import_template()
+        elif command_id == "export":
+            if hasattr(self, "_export_template"):
+                self._export_template()
 
 
 def run_gui() -> int:

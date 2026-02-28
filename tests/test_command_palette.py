@@ -9,7 +9,6 @@ Covers:
 """
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtTest import QTest
 from PyQt6.QtWidgets import QWidget
 
 from templatr.ui.command_palette import CommandPalette, PaletteItem
@@ -289,7 +288,7 @@ def test_show_anchored_positions_above_parent(qtbot):
 
 def _key_event(key):
     """Create a minimal key event for testing keyPressEvent."""
-    from PyQt6.QtGui import QKeyEvent
     from PyQt6.QtCore import QEvent
+    from PyQt6.QtGui import QKeyEvent
 
     return QKeyEvent(QEvent.Type.KeyPress, key, Qt.KeyboardModifier.NoModifier)

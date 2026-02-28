@@ -128,7 +128,7 @@ class _PaletteItemDelegate(QStyledItemDelegate):
 
         painter.restore()
 
-    def sizeHint(self, option: QStyleOptionViewItem, index) -> "QSize":
+    def sizeHint(self, option: QStyleOptionViewItem, index):  # noqa: N802
         """Return fixed row height for consistent layout."""
         from PyQt6.QtCore import QSize
 
