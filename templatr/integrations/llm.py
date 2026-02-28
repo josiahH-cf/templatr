@@ -15,7 +15,7 @@ from typing import Iterator, Optional, Tuple
 
 import requests
 
-from templatr.core.config import get_config
+from templatr.core.config import get_config, get_config_dir, get_platform_config
 
 logger = logging.getLogger(__name__)
 
@@ -262,16 +262,16 @@ class LLMServerManager:
         Searches in order:
         1. Configured path (config.llm.server_binary)
         2. Bundled binary inside a PyInstaller package
-        3. Templatr data directory (~/.local/share/templatr/llama.cpp/build/bin/)
+        3. PlatformConfig.binary_search_paths (data dir, legacy locations)
         4. PATH environment
-        5. Legacy locations (~/llama.cpp/build/bin/)
 
         Returns:
             Path to binary, or None if not found.
         """
         from templatr.core.config import get_bundle_dir
 
-        binary_name = "llama-server" if os.name != "nt" else "llama-server.exe"
+        pc = get_platform_config()
+        binary_name = pc.binary_name
 
         # 1. Check configured path
         if self.config.server_binary:
@@ -284,50 +284,16 @@ class LLMServerManager:
         if bundled.exists() and os.access(bundled, os.X_OK):
             return bundled
 
-        # 3. Check Templatr standard data directory (Linux/WSL)
-        templatr_llama = (
-            Path.home()
-            / ".local"
-            / "share"
-            / "templatr"
-            / "llama.cpp"
-            / "build"
-            / "bin"
-            / binary_name
-        )
-        if templatr_llama.exists() and os.access(templatr_llama, os.X_OK):
-            return templatr_llama
-
-        # 3b. Check macOS data directory
-        templatr_llama_macos = (
-            Path.home()
-            / "Library"
-            / "Application Support"
-            / "templatr"
-            / "llama.cpp"
-            / "build"
-            / "bin"
-            / binary_name
-        )
-        if templatr_llama_macos.exists() and os.access(templatr_llama_macos, os.X_OK):
-            return templatr_llama_macos
+        # 3. Check platform-specific search paths
+        for search_dir in pc.binary_search_paths:
+            candidate = search_dir / binary_name
+            if candidate.exists() and os.access(candidate, os.X_OK):
+                return candidate
 
         # 4. Check PATH
         path_binary = shutil.which(binary_name)
         if path_binary:
             return Path(path_binary)
-
-        # 5. Check legacy/common locations
-        candidates = [
-            Path.home() / "llama.cpp" / "build" / "bin" / binary_name,
-            Path.home() / ".local" / "bin" / binary_name,
-            Path("/usr/local/bin") / binary_name,
-            Path("/opt/homebrew/bin") / binary_name,  # macOS Apple Silicon
-        ]
-
-        for path in candidates:
-            if path.exists() and os.access(path, os.X_OK):
-                return path
 
         return None
 
@@ -342,7 +308,7 @@ class LLMServerManager:
         """
         search_dir = model_dir or self.config.model_dir
         if not search_dir:
-            search_dir = str(Path.home() / "models")
+            search_dir = str(get_platform_config().models_dir)
 
         path = Path(search_dir).expanduser()
         if not path.exists():
@@ -365,7 +331,7 @@ class LLMServerManager:
         """
         model_dir = self.config.model_dir
         if not model_dir:
-            model_dir = str(Path.home() / "models")
+            model_dir = str(get_platform_config().models_dir)
 
         path = Path(model_dir).expanduser()
         path.mkdir(parents=True, exist_ok=True)
@@ -434,24 +400,27 @@ class LLMServerManager:
         # Find binary
         binary = self.find_server_binary()
         if not binary:
+            config_path = get_config_dir() / "config.json"
             logger.error("llama-server binary not found")
             return False, (
                 "llama-server binary not found.\n\n"
                 "To fix:\n"
                 "1. Run ./install.sh to build llama.cpp, or\n"
-                "2. Set 'server_binary' in ~/.config/templatr/config.json"
+                f"2. Set 'server_binary' in {config_path}"
             )
 
         # Determine model
         model = model_path or self.config.model_path
         if not model:
+            pc = get_platform_config()
+            config_path = get_config_dir() / "config.json"
             logger.error("No model configured for LLM server")
             return False, (
                 "No model configured.\n\n"
                 "To fix:\n"
-                "1. Place .gguf model files in ~/models/\n"
+                f"1. Place .gguf model files in {pc.models_dir}\n"
                 "2. Use LLM → Select Model in the menu, or\n"
-                "3. Set 'model_path' in ~/.config/templatr/config.json"
+                f"3. Set 'model_path' in {config_path}"
             )
 
         model_file = Path(model).expanduser()

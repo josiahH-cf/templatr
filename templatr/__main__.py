@@ -48,8 +48,18 @@ def main() -> int:
         action="version",
         version=f"templatr {__version__}",
     )
+    parser.add_argument(
+        "--doctor",
+        action="store_true",
+        help="Run diagnostic checks and report platform, paths, and status",
+    )
 
-    parser.parse_args()
+    args = parser.parse_args()
+
+    if args.doctor:
+        from templatr.doctor import run_doctor
+
+        return run_doctor()
 
     from templatr.ui.main_window import run_gui
 

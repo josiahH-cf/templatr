@@ -7,6 +7,7 @@ and config directory migration from automatr to templatr.
 """
 
 import json
+import os
 from pathlib import Path
 from unittest.mock import patch
 
@@ -225,7 +226,15 @@ def test_config_dir_migrates_from_old_automatr_path(tmp_path: Path) -> None:
     old_dir.mkdir(parents=True)
     (old_dir / "config.json").write_text('{"migrated": true}')
 
-    with patch.dict("os.environ", {"XDG_CONFIG_HOME": str(base)}):
+    env = {"XDG_CONFIG_HOME": str(base), "XDG_DATA_HOME": "", "APPDATA": "", "LOCALAPPDATA": ""}
+    with (
+        patch("templatr.core.config.platform.system", return_value="Linux"),
+        patch("templatr.core.config._is_wsl2", return_value=False),
+        patch("templatr.core.config.Path.home", return_value=tmp_path),
+        patch.dict(os.environ, env, clear=False),
+    ):
+        from templatr.core.config import _reset_platform_config_cache
+        _reset_platform_config_cache()
         result = get_config_dir()
 
     assert result == new_dir
@@ -244,7 +253,15 @@ def test_config_dir_does_not_overwrite_existing(tmp_path: Path) -> None:
     new_dir.mkdir(parents=True)
     (new_dir / "config.json").write_text('{"new": true}')
 
-    with patch.dict("os.environ", {"XDG_CONFIG_HOME": str(base)}):
+    env = {"XDG_CONFIG_HOME": str(base), "XDG_DATA_HOME": "", "APPDATA": "", "LOCALAPPDATA": ""}
+    with (
+        patch("templatr.core.config.platform.system", return_value="Linux"),
+        patch("templatr.core.config._is_wsl2", return_value=False),
+        patch("templatr.core.config.Path.home", return_value=tmp_path),
+        patch.dict(os.environ, env, clear=False),
+    ):
+        from templatr.core.config import _reset_platform_config_cache
+        _reset_platform_config_cache()
         result = get_config_dir()
 
     assert result == new_dir

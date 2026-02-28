@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from templatr.core.config import get_config
+from templatr.core.config import get_config, get_platform_config
 from templatr.integrations.llm import get_llm_server
 from templatr.ui.workers import ModelCopyWorker
 
@@ -222,7 +222,9 @@ class LLMToolbar(QWidget):
             no_models.setEnabled(False)
             self._model_menu.addAction(no_models)
 
-            hint = QAction("Place .gguf files in ~/models/", self)
+            hint = QAction(
+                f"Place .gguf files in {get_platform_config().models_dir}", self
+            )
             hint.setEnabled(False)
             self._model_menu.addAction(hint)
 

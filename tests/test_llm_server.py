@@ -8,17 +8,34 @@ No real processes are started. Filesystem interactions use tmp_path or
 unittest.mock to avoid side effects.
 """
 
-import os
 import stat
 from pathlib import Path
 from unittest.mock import patch
 
-from templatr.core.config import LLMConfig
+from templatr.core.config import LLMConfig, PlatformConfig
 from templatr.integrations.llm import LLMServerManager
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _linux_platform_config(home: Path) -> PlatformConfig:
+    """Build a PlatformConfig for Linux tests."""
+    data_dir = home / ".local" / "share" / "templatr"
+    return PlatformConfig(
+        platform="linux",
+        config_dir=home / ".config" / "templatr",
+        data_dir=data_dir,
+        models_dir=home / "models",
+        binary_name="llama-server",
+        binary_search_paths=[
+            data_dir / "llama.cpp" / "build" / "bin",
+            home / "llama.cpp" / "build" / "bin",
+            home / ".local" / "bin",
+            Path("/usr/local/bin"),
+        ],
+    )
 
 
 def _make_executable(path: Path) -> None:
@@ -63,9 +80,8 @@ def test_find_server_binary_skips_configured_path_when_not_executable(
     cfg = LLMConfig(server_binary=str(binary))
     mgr = _manager_with_config(cfg)
 
-    # Redirect Path.home() to tmp_path and stub PATH lookup to isolate the test
-    # from any real llama-server binaries installed on the host machine.
-    with patch("templatr.integrations.llm.Path.home", return_value=tmp_path):
+    pc = _linux_platform_config(tmp_path)
+    with patch("templatr.integrations.llm.get_platform_config", return_value=pc):
         with patch("templatr.integrations.llm.shutil.which", return_value=None):
             result = mgr.find_server_binary()
 
@@ -78,22 +94,20 @@ def test_find_server_binary_skips_configured_path_when_not_executable(
 
 
 def test_find_server_binary_finds_binary_in_templatr_data_dir(tmp_path: Path) -> None:
-    """find_server_binary() finds the binary in ~/.local/share/templatr/llama.cpp/build/bin/."""
-    # Build the expected templatr data dir path
-    binary_name = "llama-server" if os.name != "nt" else "llama-server.exe"
-    data_dir = (
-        tmp_path / ".local" / "share" / "templatr" / "llama.cpp" / "build" / "bin"
-    )
-    data_dir.mkdir(parents=True)
-    binary = data_dir / binary_name
+    """find_server_binary() finds the binary in the PlatformConfig data dir search path."""
+    pc = _linux_platform_config(tmp_path)
+    binary_name = pc.binary_name
+    # The first binary_search_path is data_dir/llama.cpp/build/bin
+    data_bin_dir = pc.binary_search_paths[0]
+    data_bin_dir.mkdir(parents=True)
+    binary = data_bin_dir / binary_name
     binary.write_text("#!/bin/sh\n")
     _make_executable(binary)
 
     cfg = LLMConfig(server_binary="")  # no configured path
     mgr = _manager_with_config(cfg)
 
-    # Patch Path.home() to point to tmp_path
-    with patch("templatr.integrations.llm.Path.home", return_value=tmp_path):
+    with patch("templatr.integrations.llm.get_platform_config", return_value=pc):
         with patch("templatr.integrations.llm.shutil.which", return_value=None):
             result = mgr.find_server_binary()
 
@@ -102,13 +116,14 @@ def test_find_server_binary_finds_binary_in_templatr_data_dir(tmp_path: Path) ->
 
 def test_find_server_binary_falls_back_to_path_environment(tmp_path: Path) -> None:
     """find_server_binary() finds binary via PATH when data dir has nothing."""
-    binary_name = "llama-server" if os.name != "nt" else "llama-server.exe"
+    pc = _linux_platform_config(tmp_path)
+    binary_name = pc.binary_name
     path_binary = tmp_path / binary_name
 
     cfg = LLMConfig(server_binary="")
     mgr = _manager_with_config(cfg)
 
-    with patch("templatr.integrations.llm.Path.home", return_value=tmp_path):
+    with patch("templatr.integrations.llm.get_platform_config", return_value=pc):
         with patch(
             "templatr.integrations.llm.shutil.which", return_value=str(path_binary)
         ):
@@ -124,10 +139,11 @@ def test_find_server_binary_falls_back_to_path_environment(tmp_path: Path) -> No
 
 def test_find_server_binary_returns_none_when_nothing_found(tmp_path: Path) -> None:
     """find_server_binary() returns None when the binary cannot be located anywhere."""
+    pc = _linux_platform_config(tmp_path)
     cfg = LLMConfig(server_binary="")
     mgr = _manager_with_config(cfg)
 
-    with patch("templatr.integrations.llm.Path.home", return_value=tmp_path):
+    with patch("templatr.integrations.llm.get_platform_config", return_value=pc):
         with patch("templatr.integrations.llm.shutil.which", return_value=None):
             result = mgr.find_server_binary()
 

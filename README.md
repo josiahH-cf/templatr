@@ -141,10 +141,11 @@ See [TEMPLATES.md](TEMPLATES.md) for the full template authoring guide, includin
 
 | What | Location |
 |------|----------|
-| Settings & Templates | Stored alongside the extracted application |
-| Models | `~/models/` |
+| Settings & Templates | `%APPDATA%\templatr\` |
+| Data | `%LOCALAPPDATA%\templatr\` |
+| Models | `%USERPROFILE%\models\` |
 
-> **Note:** Windows paths apply to the pre-built binary download. Native Windows development paths are not yet standardized — see the [platform-config-consolidation](specs/platform-config-consolidation.md) spec for planned improvements.
+> **Tip:** Run `templatr --doctor` to see your exact platform-specific paths and check for missing dependencies.
 
 **To remove everything:**
 ```bash
@@ -153,6 +154,9 @@ rm -rf ~/.config/templatr/ ~/.local/share/templatr/ ~/models/*.gguf
 
 # macOS
 rm -rf ~/Library/Application\ Support/templatr/ ~/models/*.gguf
+
+# Windows (PowerShell)
+Remove-Item -Recurse "$env:APPDATA\templatr", "$env:LOCALAPPDATA\templatr"
 ```
 
 ---

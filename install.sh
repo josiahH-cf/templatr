@@ -70,9 +70,8 @@ detect_platform() {
         log_warn "Native Windows detected!"
         echo ""
         echo "  This bash installer is for Linux/WSL2/macOS."
-        echo "  For Windows, run the PowerShell installer instead:"
-        echo ""
-        echo "  Use Linux, WSL2, or macOS to run the bash installer."
+        echo "  For Windows, use WSL2 or download the pre-built binary"
+        echo "  from GitHub Releases."
         echo ""
         exit 0
     fi
@@ -277,28 +276,8 @@ print(f"Templates: {copied} new, {updated} updated, {skipped} skipped (folder pr
 PY
     fi
     
-    # Create default config if it doesn't exist
-    if [[ ! -f "$CONFIG_DIR/config.json" ]]; then
-        cat > "$CONFIG_DIR/config.json" << EOF
-{
-  "llm": {
-    "model_path": "",
-    "model_dir": "$HOME/models",
-    "server_port": 8080,
-    "context_size": 4096,
-    "gpu_layers": 0,
-    "server_binary": ""
-  },
-  "ui": {
-    "theme": "dark",
-    "window_width": 900,
-    "window_height": 700,
-    "font_size": 11
-  }
-}
-EOF
-        log_info "Created default configuration"
-    fi
+    # config.json is no longer created by the installer — the app creates
+    # it with correct defaults on first run.  See templatr.core.config.
     
     log_success "Configuration ready: $CONFIG_DIR"
 }

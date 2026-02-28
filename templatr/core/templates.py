@@ -6,13 +6,17 @@ Version history is stored in _versions/ subdirectory.
 """
 
 import json
+import logging
 import re
+import shutil
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from templatr.core.config import get_config, get_templates_dir
+from templatr.core.config import get_bundle_dir, get_config, get_templates_dir
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -216,6 +220,46 @@ def auto_detect_variables(content: str) -> List[Variable]:
     return variables
 
 
+def seed_templates(user_dir: Path) -> int:
+    """Copy bundled templates into the user templates directory if it is empty.
+
+    Only runs when the user directory contains no ``.json`` files.  Never
+    overwrites existing files.  Safe to call on every startup (idempotent).
+
+    Args:
+        user_dir: Path to the user's templates directory.
+
+    Returns:
+        Number of templates copied (0 if the directory was non-empty or the
+        bundle directory does not exist).
+    """
+    # Skip if the user already has any templates
+    existing = list(user_dir.glob("*.json"))
+    if existing:
+        return 0
+
+    bundle_templates = get_bundle_dir() / "templates"
+    if not bundle_templates.is_dir():
+        return 0
+
+    copied = 0
+    for src in bundle_templates.rglob("*.json"):
+        # Skip meta-templates (_meta/) — those are internal
+        rel = src.relative_to(bundle_templates)
+        if rel.parts[0] == "_meta" if len(rel.parts) > 1 else False:
+            continue
+        dest = user_dir / rel
+        if dest.exists():
+            continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest)
+        copied += 1
+
+    if copied:
+        logger.info("Seeded %d bundled templates into %s", copied, user_dir)
+    return copied
+
+
 class TemplateManager:
     """Manages template CRUD operations.
 
@@ -234,6 +278,8 @@ class TemplateManager:
         """
         self.templates_dir = templates_dir or get_templates_dir()
         self.templates_dir.mkdir(parents=True, exist_ok=True)
+        # Seed bundled templates on first run
+        seed_templates(self.templates_dir)
         # Create versions directory
         self._versions_dir = self.templates_dir / self.VERSIONS_DIR
         self._versions_dir.mkdir(parents=True, exist_ok=True)

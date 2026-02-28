@@ -9,14 +9,13 @@ Covers:
 - ``pyproject.toml`` has no new runtime dependencies
 """
 
-import os
 import stat
 import sys
 from pathlib import Path
 from unittest.mock import patch
 
 from scripts import download_llama_server as dl_mod
-from templatr.core.config import LLMConfig, get_bundle_dir, is_frozen
+from templatr.core.config import LLMConfig, PlatformConfig, get_bundle_dir, is_frozen
 from templatr.integrations.llm import LLMServerManager
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -30,6 +29,24 @@ ROOT = Path(__file__).resolve().parent.parent
 def _make_executable(path: Path) -> None:
     """Mark a file as executable."""
     path.chmod(path.stat().st_mode | stat.S_IXUSR)
+
+
+def _linux_platform_config(home: Path) -> PlatformConfig:
+    """Build a PlatformConfig for Linux tests."""
+    data_dir = home / ".local" / "share" / "templatr"
+    return PlatformConfig(
+        platform="linux",
+        config_dir=home / ".config" / "templatr",
+        data_dir=data_dir,
+        models_dir=home / "models",
+        binary_name="llama-server",
+        binary_search_paths=[
+            data_dir / "llama.cpp" / "build" / "bin",
+            home / "llama.cpp" / "build" / "bin",
+            home / ".local" / "bin",
+            Path("/usr/local/bin"),
+        ],
+    )
 
 
 def _manager_with_config(llm_cfg: LLMConfig) -> LLMServerManager:
@@ -81,7 +98,8 @@ def test_get_bundle_dir_returns_meipass_when_frozen(tmp_path: Path) -> None:
 
 def test_find_server_binary_prefers_bundled_binary(tmp_path: Path) -> None:
     """find_server_binary() returns the bundled binary before system paths."""
-    binary_name = "llama-server" if os.name != "nt" else "llama-server.exe"
+    pc = _linux_platform_config(tmp_path / "home")
+    binary_name = pc.binary_name
 
     # Create vendor dir inside fake MEIPASS
     vendor_dir = tmp_path / "vendor" / "llama-server"
@@ -95,7 +113,7 @@ def test_find_server_binary_prefers_bundled_binary(tmp_path: Path) -> None:
 
     with patch.object(sys, "_MEIPASS", str(tmp_path), create=True):
         with patch(
-            "templatr.integrations.llm.Path.home", return_value=tmp_path / "home"
+            "templatr.integrations.llm.get_platform_config", return_value=pc
         ):
             with patch("templatr.integrations.llm.shutil.which", return_value=None):
                 result = mgr.find_server_binary()
@@ -105,7 +123,8 @@ def test_find_server_binary_prefers_bundled_binary(tmp_path: Path) -> None:
 
 def test_find_server_binary_falls_through_when_no_bundled(tmp_path: Path) -> None:
     """find_server_binary() falls through to system paths when no bundled binary exists."""
-    binary_name = "llama-server" if os.name != "nt" else "llama-server.exe"
+    pc = _linux_platform_config(tmp_path / "home")
+    binary_name = pc.binary_name
 
     # system binary on PATH
     system_bin = tmp_path / "system" / binary_name
@@ -114,7 +133,9 @@ def test_find_server_binary_falls_through_when_no_bundled(tmp_path: Path) -> Non
     mgr = _manager_with_config(cfg)
 
     # No _MEIPASS, no vendor dir
-    with patch("templatr.integrations.llm.Path.home", return_value=tmp_path / "home"):
+    with patch(
+        "templatr.integrations.llm.get_platform_config", return_value=pc
+    ):
         with patch(
             "templatr.integrations.llm.shutil.which", return_value=str(system_bin)
         ):

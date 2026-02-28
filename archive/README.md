@@ -32,7 +32,7 @@ This directory contains completed task files, specs, and decision records from A
 ## Context
 
 These files document the full development lifecycle that separated the monolithic Automatr app into two independent applications:
-- [automatr-prompt](https://github.com/josiahH-cf/automatr-prompt) — Local prompt optimizer
-- [automatr-espanso](https://github.com/josiahH-cf/automatr-espanso) — Espanso automation GUI
+- [templatr](https://github.com/josiahH-cf/templatr) — Local prompt optimizer (formerly automatr-prompt)
+- [templatr-espanso](https://github.com/josiahH-cf/templatr-espanso) — Espanso automation GUI (formerly automatr-espanso)
 
 They are preserved for historical reference and traceability.

@@ -11,22 +11,9 @@ Usage:
 """
 
 import argparse
-import os
 from pathlib import Path
 
-
-def get_templates_dir() -> Path:
-    """Get the templates directory path."""
-    if os.name == "nt":  # Windows
-        config_dir = Path(os.environ.get("APPDATA", "")) / "templatr"
-    elif os.uname().sysname == "Darwin":  # macOS
-        config_dir = Path.home() / "Library" / "Application Support" / "templatr"
-    else:  # Linux/WSL
-        config_dir = (
-            Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-            / "templatr"
-        )
-    return config_dir / "templates"
+from templatr.core.config import get_templates_dir
 
 
 def find_duplicates(templates_dir: Path) -> dict[str, list[Path]]:

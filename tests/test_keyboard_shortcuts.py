@@ -18,15 +18,12 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 from PyQt6.QtCore import Qt
-from PyQt6.QtTest import QTest
 from PyQt6.QtWidgets import QApplication
 
 from templatr.core.config import ConfigManager, UIConfig
 from templatr.core.templates import Template, Variable
 from templatr.ui.slash_input import SlashInputWidget
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -94,6 +91,7 @@ def _make_window(qtbot, templates=None):
         )
         qtbot.addWidget(win)
         win.show()
+        win.activateWindow()
         return win
 
 
