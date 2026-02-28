@@ -35,6 +35,19 @@ SYSTEM_COMMANDS: list[PaletteItem] = [
     PaletteItem(
         name="/help", description="Show available commands", payload="cmd:help"
     ),
+    PaletteItem(
+        name="/history", description="Show recent prompt history", payload="cmd:history"
+    ),
+    PaletteItem(
+        name="/favorites",
+        description="Show favorite outputs",
+        payload="cmd:favorites",
+    ),
+    PaletteItem(
+        name="/favorite",
+        description="Favorite the last output",
+        payload="cmd:favorite",
+    ),
     PaletteItem(name="/new", description="Create a new template", payload="cmd:new"),
     PaletteItem(name="/import", description="Import a template", payload="cmd:import"),
     PaletteItem(name="/export", description="Export a template", payload="cmd:export"),

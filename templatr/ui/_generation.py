@@ -92,6 +92,8 @@ class GenerationMixin:
         self.chat_widget.finalize_last_ai(result)
         self._active_ai_bubble = None
         self._last_output = result
+        if hasattr(self, "_record_generation_history"):
+            self._record_generation_history(self._last_prompt or "", result)
         self.status_bar.showMessage("Generation complete", 3000)
 
     def _on_generation_error(self, error: str):

@@ -1,5 +1,6 @@
 """Main window for Templatr GUI."""
 
+import re
 import sys
 from pathlib import Path
 from typing import Optional
@@ -36,6 +37,7 @@ from templatr.core.config import (
     get_log_dir,
     save_config,
 )
+from templatr.core.prompt_history import PromptHistoryStore, get_prompt_history_store
 from templatr.core.templates import Template, get_template_manager
 from templatr.integrations.llm import get_llm_client, get_llm_server
 from templatr.ui._generation import GenerationMixin
@@ -53,7 +55,14 @@ from templatr.ui.workers import GenerationWorker
 class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainWindow):
     """Main application window."""
 
-    def __init__(self, config=None, templates=None, llm_client=None, llm_server=None):
+    def __init__(
+        self,
+        config=None,
+        templates=None,
+        llm_client=None,
+        llm_server=None,
+        prompt_history: Optional[PromptHistoryStore] = None,
+    ):
         """Initialize the main window.
 
         Args:
@@ -69,6 +78,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         self.template_manager = templates or get_template_manager()
         self.llm_client = llm_client or get_llm_client()
         self.llm_server = llm_server or get_llm_server()
+        self.prompt_history = prompt_history or get_prompt_history_store()
         self.setWindowTitle(f"Templatr v{__version__}")
         self.setMinimumSize(600, 400)
 
@@ -544,6 +554,9 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
             help_text = (
                 "**Available commands:**\n\n"
                 "- `/help` — Show this help message\n"
+                "- `/history` — Show recent outputs for current template\n"
+                "- `/favorites` — Show favorite outputs\n"
+                "- `/favorite` — Favorite the last output\n"
                 "- `/new` — Create a new template\n"
                 "- `/import` — Import a template\n"
                 "- `/export` — Export a template\n"
@@ -570,6 +583,12 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         elif command_id == "export":
             if hasattr(self, "_export_template"):
                 self._export_template()
+        elif command_id == "history":
+            self._handle_history_command("/history")
+        elif command_id == "favorites":
+            self._handle_history_command("/favorites")
+        elif command_id == "favorite":
+            self._handle_history_command("/favorite")
 
     def _handle_plain_input(self, text: str) -> None:
         """Route plain text input, delegating to an active flow or generation.
@@ -582,7 +601,112 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         """
         if self._handle_flow_input(text):
             return
+        if self._handle_history_command(text):
+            return
         self._generate(text)
+
+    def _record_generation_history(self, prompt: str, output: str) -> None:
+        """Persist a prompt/output pair in history storage.
+
+        Args:
+            prompt: Rendered prompt text sent to the model.
+            output: Completed model output text.
+        """
+        if not prompt or not output:
+            return
+        template_name = self.current_template.name if self.current_template else None
+        self.prompt_history.add_entry(template_name, prompt, output)
+
+    def _handle_history_command(self, text: str) -> bool:
+        """Handle history-related slash commands from plain input.
+
+        Supported commands:
+            /history [query|YYYY-MM-DD]
+            /favorites [query]
+            /favorite
+
+        Args:
+            text: Raw input text.
+
+        Returns:
+            True if the command was handled.
+        """
+        stripped = text.strip()
+        if not stripped.startswith("/"):
+            return False
+
+        parts = stripped.split(maxsplit=1)
+        command = parts[0].lower()
+        arg = parts[1].strip() if len(parts) > 1 else ""
+
+        template_name = self.current_template.name if self.current_template else None
+
+        if command == "/favorite":
+            if not self._last_output:
+                self.chat_widget.add_system_message("No output available to favorite yet.")
+                return True
+            marked = self.prompt_history.mark_latest_favorite(
+                template_name,
+                self._last_output,
+                favorite=True,
+            )
+            if marked:
+                self.chat_widget.add_system_message("Marked last output as favorite.")
+            else:
+                self.chat_widget.add_system_message(
+                    "Could not find a matching history entry for the last output."
+                )
+            return True
+
+        if command not in ("/history", "/favorites"):
+            return False
+
+        favorites_only = command == "/favorites"
+        date_prefix = None
+        query = arg or None
+        if arg:
+            if arg.startswith("date:"):
+                date_prefix = arg[5:].strip() or None
+                query = None
+            elif re.fullmatch(r"\d{4}-\d{2}-\d{2}", arg):
+                date_prefix = arg
+                query = None
+
+        entries = self.prompt_history.list_entries(
+            template_name=template_name,
+            query=query,
+            date_prefix=date_prefix,
+            favorites_only=favorites_only,
+            limit=20,
+        )
+
+        scope = template_name or "plain prompts"
+        if favorites_only:
+            title = f"Favorite outputs ({scope})"
+        else:
+            title = f"History ({scope})"
+
+        self.chat_widget.add_system_message(self._render_history_entries(title, entries))
+        return True
+
+    def _render_history_entries(self, title: str, entries: list) -> str:
+        """Render history entries into a compact Markdown message."""
+        if not entries:
+            return f"**{title}:**\n\n_No matching entries found._"
+
+        lines = [f"**{title}:**", ""]
+        for entry in entries:
+            star = "★" if entry.favorite else ""
+            prompt_preview = entry.prompt.strip().replace("\n", " ")
+            if len(prompt_preview) > 60:
+                prompt_preview = f"{prompt_preview[:57]}..."
+            preview = entry.output.strip().replace("\n", " ")
+            if len(preview) > 90:
+                preview = f"{preview[:87]}..."
+            lines.append(
+                f"- `{entry.created_at}` {star} Prompt: {prompt_preview} → Output: {preview}"
+            )
+        return "\n".join(lines)
 
     # ------------------------------------------------------------------
     # Drag-and-drop import
