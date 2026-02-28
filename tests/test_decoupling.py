@@ -189,9 +189,9 @@ class TestMixinDocstrings:
         doc = GenerationMixin.__doc__
         assert doc is not None
         assert "Expects self to provide" in doc
-        for attr in ["current_template", "variable_form", "output_pane",
+        for attr in ["current_template", "chat_widget", "slash_input",
                       "status_bar", "llm_toolbar", "worker",
-                      "_last_prompt", "_last_output"]:
+                      "_last_prompt", "_last_output", "_active_ai_bubble"]:
             assert attr in doc, f"Missing {attr} in GenerationMixin docstring"
 
     def test_window_state_mixin_docstring(self):

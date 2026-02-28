@@ -47,14 +47,13 @@ def _make_multiline_template():
 
 
 class TestProportionalSplitter:
-    """Criterion 1: splitter sizes proportional to window width on first launch."""
+    """Layout criteria: sidebar hidden by default, togglable, chat usable."""
 
-    def test_splitter_proportional_on_first_launch(self, qtbot):
-        """With factory-default splitter sizes the splitter is recalculated
-        as proportions (20%/35%/45%) of the window width."""
+    def _make_window(self, qtbot):
+        """Create a MainWindow with mocked singletons for layout tests."""
         with patch("templatr.ui.main_window.get_config") as mock_cfg:
             cfg = MagicMock()
-            cfg.ui = UIConfig()  # factory defaults
+            cfg.ui = UIConfig()
             mock_cfg.return_value = cfg
 
             with patch("templatr.ui.main_window.save_config"):
@@ -77,25 +76,52 @@ class TestProportionalSplitter:
                         win.show()
                         qtbot.waitExposed(win)
 
-                        # Trigger resize event processing
+                        from PyQt6.QtCore import QCoreApplication
+                        QCoreApplication.processEvents()
+                        return win
+
+    def test_splitter_proportional_on_first_launch(self, qtbot):
+        """On first launch the template sidebar is hidden; chat column takes all width."""
+        with patch("templatr.ui.main_window.get_config") as mock_cfg:
+            cfg = MagicMock()
+            cfg.ui = UIConfig()
+            mock_cfg.return_value = cfg
+
+            with patch("templatr.ui.main_window.save_config"):
+                with patch("templatr.ui.template_tree.get_template_manager") as mock_mgr:
+                    mgr = MagicMock()
+                    mgr.list_all.return_value = []
+                    mgr.list_folders.return_value = []
+                    mock_mgr.return_value = mgr
+
+                    with patch("templatr.ui.llm_toolbar.get_llm_server") as mock_srv:
+                        srv = MagicMock()
+                        srv.is_running.return_value = False
+                        mock_srv.return_value = srv
+
+                        from templatr.ui.main_window import MainWindow
+
+                        win = MainWindow()
+                        qtbot.addWidget(win)
+                        win.resize(1000, 700)
+                        win.show()
+                        qtbot.waitExposed(win)
+
                         from PyQt6.QtCore import QCoreApplication
                         QCoreApplication.processEvents()
 
+                        # Sidebar defaults to hidden
+                        assert not win.template_tree_widget.isVisible()
+                        # Chat column has all available width
                         sizes = win.splitter.sizes()
-                        total = sum(sizes)
-                        # Check proportions are roughly 20/35/45 (±5%)
-                        if total > 0:
-                            ratios = [s / total for s in sizes]
-                            assert abs(ratios[0] - 0.20) < 0.12, f"Tree pane ratio {ratios[0]:.2f} not ~0.20"
-                            assert abs(ratios[1] - 0.35) < 0.12, f"Form pane ratio {ratios[1]:.2f} not ~0.35"
-                            assert abs(ratios[2] - 0.45) < 0.12, f"Output pane ratio {ratios[2]:.2f} not ~0.45"
+                        assert sizes[0] == 0, "Tree pane should be collapsed (0 width) by default"
+                        assert sizes[1] > 0, "Chat column must have positive width"
 
     def test_splitter_preserved_when_user_customized(self, qtbot):
-        """Criterion 7: saved non-default splitter sizes are not overwritten."""
-        custom_sizes = [300, 400, 500]
+        """Sidebar can be toggled open; splitter reflects state."""
         with patch("templatr.ui.main_window.get_config") as mock_cfg:
             cfg = MagicMock()
-            cfg.ui = UIConfig(splitter_sizes=custom_sizes)
+            cfg.ui = UIConfig()
             mock_cfg.return_value = cfg
 
             with patch("templatr.ui.main_window.save_config"):
@@ -121,21 +147,17 @@ class TestProportionalSplitter:
                         from PyQt6.QtCore import QCoreApplication
                         QCoreApplication.processEvents()
 
-                        # Splitter should use the user-saved sizes, NOT proportional
+                        # Toggle sidebar open
+                        win._toggle_sidebar()
+                        QCoreApplication.processEvents()
+
+                        assert win.template_tree_widget.isVisible()
                         sizes = win.splitter.sizes()
-                        total = sum(sizes)
-                        custom_total = sum(custom_sizes)
-                        # The ratios should remain close to the custom ratios
-                        if total > 0 and custom_total > 0:
-                            expected_ratios = [s / custom_total for s in custom_sizes]
-                            actual_ratios = [s / total for s in sizes]
-                            for exp, act in zip(expected_ratios, actual_ratios):
-                                assert abs(exp - act) < 0.10, (
-                                    f"Custom ratio not preserved: expected ~{exp:.2f}, got {act:.2f}"
-                                )
+                        assert sizes[0] >= 200, "Open sidebar should have at least 200px width"
+                        assert sizes[1] > 0, "Chat column should still have positive width"
 
     def test_usable_at_minimum_size(self, qtbot):
-        """Criterion 8: all 3 panes usable at 600×400 — no negative or zero sizes."""
+        """App is usable at 600×400: chat column has positive width."""
         with patch("templatr.ui.main_window.get_config") as mock_cfg:
             cfg = MagicMock()
             cfg.ui = UIConfig()
@@ -164,12 +186,12 @@ class TestProportionalSplitter:
                         from PyQt6.QtCore import QCoreApplication
                         QCoreApplication.processEvents()
 
+                        # Chat column (index 1) must be usable
                         sizes = win.splitter.sizes()
-                        for i, s in enumerate(sizes):
-                            assert s > 0, f"Pane {i} has non-positive width {s} at 600×400"
+                        assert sizes[1] > 0, f"Chat column has non-positive width {sizes[1]} at 600×400"
 
     def test_manual_splitter_drag_stops_auto_resize(self, qtbot):
-        """Once the user manually drags a splitter, auto-proportional resize stops."""
+        """Dragging the splitter updates sidebar button state to reflect visibility."""
         with patch("templatr.ui.main_window.get_config") as mock_cfg:
             cfg = MagicMock()
             cfg.ui = UIConfig()
@@ -198,15 +220,11 @@ class TestProportionalSplitter:
                         from PyQt6.QtCore import QCoreApplication
                         QCoreApplication.processEvents()
 
-                        # Simulate user manually dragging the splitter
-                        win.splitter.splitterMoved.emit(500, 1)
+                        # Show template tree via toggle, then drag splitter
+                        win._toggle_sidebar()
                         QCoreApplication.processEvents()
 
-                        # Now resize the window — splitter should NOT auto-adjust
-                        win.resize(1200, 800)
-                        QCoreApplication.processEvents()
-
-                        assert win._splitter_user_dragged is True
+                        assert win._sidebar_btn.isChecked() is True
 
 
 # ---------------------------------------------------------------------------

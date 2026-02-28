@@ -103,7 +103,8 @@ class TemplateActionsMixin:
         if manager.save_to_folder(self.current_template, folder):
             self.status_bar.showMessage("Template improved and saved", 3000)
             self.template_tree_widget.refresh()
-            self.variable_form.set_template(self.current_template)
+            if self.variable_form is not None:
+                self.variable_form.set_template(self.current_template)
         else:
             QMessageBox.critical(self, "Error", "Failed to save improved template")
 
@@ -161,7 +162,8 @@ class TemplateActionsMixin:
         if restored:
             self.current_template = restored
             self.template_tree_widget.refresh()
-            self.variable_form.set_template(self.current_template)
+            if self.variable_form is not None:
+                self.variable_form.set_template(self.current_template)
             self.status_bar.showMessage(
                 f"Reverted to version {selected_version.version}", 3000,
             )

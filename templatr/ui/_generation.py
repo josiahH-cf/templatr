@@ -8,30 +8,32 @@ from templatr.ui.workers import GenerationWorker
 
 
 class GenerationMixin:
-    """Generation orchestration: run LLM, render-only, handle results.
+    """Generation orchestration: run LLM, stream tokens to chat, handle results.
 
     Mixed into MainWindow (must inherit QMainWindow).
 
     Expects self to provide:
         current_template (Optional[Template]): Currently selected template (read).
-        variable_form (VariableFormWidget): Variable input form with
-            .get_values() and .generate_btn (QAbstractButton) for enable/text.
-        output_pane (OutputPaneWidget): Output display (.clear(), .set_text(),
-            .set_streaming(), .append_text(), .set_waiting_message()).
+        chat_widget (ChatWidget): Chat display (.add_user_message(), .add_ai_bubble(),
+            .append_token_to_last_ai(), .finalize_last_ai(), .show_error_bubble()).
+        slash_input (SlashInputWidget): Input bar (.set_generating(),
+            .set_waiting_message()).
         status_bar (QStatusBar): Status bar for messages (.showMessage()).
         llm_toolbar (LLMToolbar): Server controls (.check_status()).
         worker (Optional[GenerationWorker]): Background worker (read/write).
         _last_prompt (Optional[str]): Last rendered prompt (write).
         _last_output (Optional[str]): Last generated output (write).
+        _active_ai_bubble (Optional[MessageBubble]): Current streaming bubble (write).
     """
 
-    def _generate(self):
-        """Generate output using the LLM."""
-        if not self.current_template:
-            return
+    def _generate(self, prompt: str):
+        """Generate output using the LLM for the given rendered prompt.
 
-        values = self.variable_form.get_values()
-        prompt = self.current_template.render(values)
+        Args:
+            prompt: The fully-rendered prompt string to send to the LLM.
+        """
+        if not prompt:
+            return
 
         server = get_llm_server()
         if not server.is_running():
@@ -49,81 +51,80 @@ class GenerationMixin:
             else:
                 return
 
-        self.variable_form.generate_btn.setEnabled(False)
-        self.variable_form.generate_btn.setText("Generating...")
-        self.output_pane.clear()
-        self.output_pane.set_streaming(True)
+        self.slash_input.set_generating(True)
+        self.chat_widget.add_user_message(prompt)
+        self._active_ai_bubble = self.chat_widget.add_ai_bubble()
 
         self._last_prompt = prompt
         self._last_output = None
 
         self.worker = GenerationWorker(prompt, stream=True)
-        self.worker.token_received.connect(self.output_pane.append_text)
+        self.worker.token_received.connect(self._on_token_received)
         self.worker.finished.connect(self._on_generation_finished)
         self.worker.error.connect(self._on_generation_error)
-        self.worker.waiting_for_server.connect(self.output_pane.set_waiting_message)
+        self.worker.waiting_for_server.connect(self.slash_input.set_waiting_message)
         self.worker.waiting_for_server.connect(self._on_waiting_for_server_status)
         self.worker.start()
 
+    def _on_token_received(self, token: str):
+        """Append a streaming token to the active AI bubble.
+
+        Args:
+            token: A single token from the LLM stream.
+        """
+        self.chat_widget.append_token_to_last_ai(token)
+
     def _render_template_only(self):
-        """Render template with variable substitution only (no AI)."""
+        """Render template with variable substitution only (no AI) and copy."""
         if not self.current_template:
             return
-        values = self.variable_form.get_values()
-        rendered = self.current_template.render(values)
-        self.output_pane.set_text(rendered)
+        rendered = self.current_template.render({})
         QApplication.clipboard().setText(rendered)
         self.status_bar.showMessage("Template copied to clipboard", 3000)
 
     def _on_generation_finished(self, result: str):
-        """Handle generation complete."""
-        self.variable_form.generate_btn.setEnabled(True)
-        self.variable_form.generate_btn.setText("Render with AI (Ctrl+G)")
-        self.output_pane.set_streaming(False)
-        self.status_bar.showMessage("Generation complete", 3000)
+        """Handle generation complete by finalizing the AI bubble.
+
+        Args:
+            result: The complete generated text.
+        """
+        self.slash_input.set_generating(False)
+        self.chat_widget.finalize_last_ai(result)
+        self._active_ai_bubble = None
         self._last_output = result
+        self.status_bar.showMessage("Generation complete", 3000)
 
     def _on_generation_error(self, error: str):
-        """Handle generation error by showing in the output pane with retry."""
-        self.variable_form.generate_btn.setEnabled(True)
-        self.variable_form.generate_btn.setText("Render with AI (Ctrl+G)")
-        self.output_pane.set_streaming(False)
-        self.output_pane.show_error(error)
+        """Handle generation error by showing an error bubble in the chat.
+
+        Args:
+            error: Human-readable error message.
+        """
+        self.slash_input.set_generating(False)
+        self.chat_widget.show_error_bubble(error)
+        self._active_ai_bubble = None
         self.status_bar.showMessage("Generation failed", 5000)
 
     def _on_waiting_for_server_status(self, attempt: int, max_attempts: int):
-        """Update status bar when waiting for server."""
+        """Update status bar when waiting for server.
+
+        Args:
+            attempt: Current retry attempt (1-based).
+            max_attempts: Total retries planned.
+        """
         self.status_bar.showMessage(
             f"Waiting for model to start (attempt {attempt}/{max_attempts})...",
             5000,
         )
 
-    def _connect_output_retry(self):
-        """Connect the output pane's retry signal to re-submit generation."""
-        self.output_pane.retry_requested.connect(self._retry_generation)
-
     def _retry_generation(self):
         """Re-submit the last generation request."""
         if self._last_prompt:
-            self.variable_form.generate_btn.setEnabled(False)
-            self.variable_form.generate_btn.setText("Generating...")
-            self.output_pane.clear()
-            self.output_pane.set_streaming(True)
-
-            self.worker = GenerationWorker(self._last_prompt, stream=True)
-            self.worker.token_received.connect(self.output_pane.append_text)
-            self.worker.finished.connect(self._on_generation_finished)
-            self.worker.error.connect(self._on_generation_error)
-            self.worker.waiting_for_server.connect(
-                self.output_pane.set_waiting_message
-            )
-            self.worker.waiting_for_server.connect(
-                self._on_waiting_for_server_status
-            )
-            self.worker.start()
+            self._generate(self._last_prompt)
 
     def _stop_generation(self):
         """Stop the current generation."""
         if self.worker and self.worker.isRunning():
             self.worker.stop()
+            self.slash_input.set_generating(False)
             self.status_bar.showMessage("Generation stopped", 3000)

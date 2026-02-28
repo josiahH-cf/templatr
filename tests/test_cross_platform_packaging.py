@@ -224,4 +224,4 @@ def test_no_new_runtime_dependencies() -> None:
 
     deps = data["project"]["dependencies"]
     dep_names = sorted(d.split(">")[0].split("=")[0].split("<")[0].strip() for d in deps)
-    assert dep_names == ["PyQt6", "requests"]
+    assert dep_names == ["PyQt6", "mistune", "requests"]

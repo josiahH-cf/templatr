@@ -49,6 +49,9 @@ def test_main_window_creates(qtbot):
 
         assert window.windowTitle().startswith("Templatr")
         assert window.template_tree_widget is not None
-        assert window.variable_form is not None
-        assert window.output_pane is not None
+        assert window.chat_widget is not None
+        assert window.slash_input is not None
         assert window.llm_toolbar is not None
+        # These are retained as None (not instantiated in the new chat layout)
+        assert window.variable_form is None
+        assert window.output_pane is None
