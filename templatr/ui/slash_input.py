@@ -265,7 +265,12 @@ class SlashInputWidget(QWidget):
                 self._show_palette()
             items = self._build_trigger_items(query)
             self._palette.populate(items)
-            self._palette.filter(query)
+            # Don't call filter() here — _build_trigger_items already
+            # pre-filtered by trigger match. Calling filter() would
+            # re-filter by name, incorrectly hiding templates whose
+            # trigger doesn't match their name.
+            if self._palette._list.count() > 0:
+                self._palette._list.setCurrentRow(0)
         else:
             if self._palette.isVisible():
                 self._dismiss_palette()
