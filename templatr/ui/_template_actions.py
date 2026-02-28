@@ -10,11 +10,11 @@ from templatr.core.templates import Template, get_template_manager
 from templatr.integrations.llm import get_llm_server
 from templatr.ui.new_template_flow import NewTemplateFlow
 from templatr.ui.template_editor import TemplateEditor
-from templatr.ui.template_generate import (
+from templatr.ui.template_improve import TemplateImproveDialog
+from templatr.ui.template_prompt_editors import (
     GenerationPromptEditor,
     ImprovementPromptEditor,
 )
-from templatr.ui.template_improve import TemplateImproveDialog
 
 
 class TemplateActionsMixin:

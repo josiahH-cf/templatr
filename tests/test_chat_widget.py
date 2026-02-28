@@ -8,6 +8,7 @@ These tests were written before the implementation (TDD).
 """
 
 from PyQt6.QtWidgets import QApplication
+
 from templatr.ui.chat_widget import ChatWidget
 from templatr.ui.message_bubble import MessageBubble, MessageRole
 

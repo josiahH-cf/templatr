@@ -1,17 +1,8 @@
-"""Template generation dialog for Templatr.
+"""Template generation dialog for Templatr."""
 
-Workflow for AI-powered template generation:
-1. User provides description of what the template should do
-2. User optionally defines expected variables
-3. AI generates a draft template
-4. User reviews/edits the draft before applying
-5. Generated content populates the template editor
-"""
+from typing import List, Optional
 
-import re
-from typing import List, Optional, Set
-
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -27,126 +18,19 @@ from PyQt6.QtWidgets import (
 )
 
 from templatr.core.feedback import build_generation_prompt
-from templatr.integrations.llm import get_llm_client, get_llm_server
-
-
-class GenerationWorker(QThread):
-    """Background worker for LLM-based template generation with retry on server startup."""
-
-    finished = pyqtSignal(str)
-    error = pyqtSignal(str)
-    waiting_for_server = pyqtSignal(int, int)
-
-    MAX_RETRY_ATTEMPTS = 3
-    RETRY_DELAY_SECONDS = 3.0
-
-    def __init__(self, prompt: str):
-        super().__init__()
-        self.prompt = prompt
-        self._stopped = False
-
-    def stop(self):
-        """Request generation to stop."""
-        self._stopped = True
-
-    def _is_connection_error(self, error: Exception) -> bool:
-        """Check if error is a connection issue (server not ready)."""
-        error_str = str(error).lower()
-        return (
-            isinstance(error, ConnectionError)
-            or "cannot connect" in error_str
-            or "connection refused" in error_str
-            or "connection error" in error_str
-        )
-
-    def _extract_template_content(self, text: str) -> str:
-        """Extract template content from LLM response.
-
-        Looks for content within <generated_template> tags first,
-        falls back to full text with markdown cleanup.
-
-        Args:
-            text: Raw LLM response text.
-
-        Returns:
-            Extracted template content.
-        """
-        import re
-
-        # Try to extract from <generated_template> tags
-        match = re.search(
-            r"<generated_template>(.*?)</generated_template>", text, re.DOTALL
-        )
-        if match:
-            return match.group(1).strip()
-
-        # Fallback: clean up markdown and return
-        result = text.strip()
-        if result.startswith("```"):
-            lines = result.split("\n")
-            lines = lines[1:]
-            if lines and lines[-1].strip() == "```":
-                lines = lines[:-1]
-            result = "\n".join(lines)
-
-        return result
-
-    def run(self):
-        import time
-
-        client = get_llm_client()
-        last_error = None
-
-        for attempt in range(1, self.MAX_RETRY_ATTEMPTS + 1):
-            if self._stopped:
-                return
-
-            try:
-                result = client.generate(self.prompt)
-                # Extract template content from response
-                result = self._extract_template_content(result)
-                self.finished.emit(result)
-                return
-
-            except Exception as e:
-                if self._stopped:
-                    return
-
-                last_error = e
-
-                if self._is_connection_error(e) and attempt < self.MAX_RETRY_ATTEMPTS:
-                    self.waiting_for_server.emit(attempt, self.MAX_RETRY_ATTEMPTS)
-                    time.sleep(self.RETRY_DELAY_SECONDS)
-                else:
-                    break
-
-        if last_error and not self._stopped:
-            self.error.emit(str(last_error))
-
-
-def extract_variables_from_content(content: str) -> Set[str]:
-    """Extract variable names from template content.
-
-    Finds all {{variable_name}} patterns and returns the variable names.
-    """
-    pattern = r"\{\{\s*(\w+)\s*\}\}"
-    matches = re.findall(pattern, content)
-    return set(matches)
+from templatr.integrations.llm import get_llm_server
+from templatr.ui.template_ai_workers import GenerationWorker
+from templatr.ui.template_dialog_utils import (
+    extract_variables_from_content,
+    format_variable_warning,
+    sanitize_variable_name,
+)
 
 
 class TemplateGenerateDialog(QDialog):
-    """Dialog for generating new templates using AI.
+    """Dialog for generating new templates using AI."""
 
-    Workflow:
-    1. User describes what the template should do
-    2. User optionally adds expected variables
-    3. AI generates a draft template
-    4. User can edit the draft
-    5. User applies to populate the template editor
-    """
-
-    # Emitted when user wants to apply the generated content
-    content_generated = pyqtSignal(str, list)  # (content, variables)
+    content_generated = pyqtSignal(str, list)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -157,10 +41,9 @@ class TemplateGenerateDialog(QDialog):
         self.setMinimumSize(700, 550)
         self._setup_ui()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
 
-        # Instructions
         instructions = QLabel(
             "Describe what your template should do. Optionally add variables that should be included."
         )
@@ -168,15 +51,12 @@ class TemplateGenerateDialog(QDialog):
         instructions.setWordWrap(True)
         layout.addWidget(instructions)
 
-        # Main splitter
         splitter = QSplitter(Qt.Orientation.Vertical)
 
-        # Top section: Description + Variables
         top_widget = QWidget()
         top_layout = QVBoxLayout(top_widget)
         top_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Description input
         desc_label = QLabel("Template Description:")
         desc_label.setStyleSheet("font-weight: bold;")
         top_layout.addWidget(desc_label)
@@ -190,7 +70,6 @@ class TemplateGenerateDialog(QDialog):
         self.description_edit.setMaximumHeight(100)
         top_layout.addWidget(self.description_edit)
 
-        # Variables section
         var_layout = QHBoxLayout()
 
         var_left = QVBoxLayout()
@@ -205,12 +84,11 @@ class TemplateGenerateDialog(QDialog):
         self.var_list = QListWidget()
         self.var_list.setMaximumHeight(80)
         var_left.addWidget(self.var_list)
-
         var_layout.addLayout(var_left)
 
         var_buttons = QVBoxLayout()
-
         var_input_layout = QHBoxLayout()
+
         self.var_input = QLineEdit()
         self.var_input.setPlaceholderText("variable_name")
         self.var_input.returnPressed.connect(self._add_variable)
@@ -219,7 +97,6 @@ class TemplateGenerateDialog(QDialog):
         add_var_btn = QPushButton("Add")
         add_var_btn.clicked.connect(self._add_variable)
         var_input_layout.addWidget(add_var_btn)
-
         var_buttons.addLayout(var_input_layout)
 
         remove_var_btn = QPushButton("Remove Selected")
@@ -232,14 +109,12 @@ class TemplateGenerateDialog(QDialog):
 
         top_layout.addLayout(var_layout)
 
-        # Generate button
         self.generate_btn = QPushButton("Generate Template")
         self.generate_btn.clicked.connect(self._generate)
         top_layout.addWidget(self.generate_btn)
 
         splitter.addWidget(top_widget)
 
-        # Bottom section: Preview
         bottom_widget = QWidget()
         bottom_layout = QVBoxLayout(bottom_widget)
         bottom_layout.setContentsMargins(0, 0, 0, 0)
@@ -263,19 +138,14 @@ class TemplateGenerateDialog(QDialog):
         bottom_layout.addWidget(self.preview_edit)
 
         splitter.addWidget(bottom_widget)
-
-        # Set splitter sizes
         splitter.setSizes([250, 300])
         layout.addWidget(splitter)
 
-        # Status label
         self.status_label = QLabel("")
         self.status_label.setStyleSheet("color: #888;")
         layout.addWidget(self.status_label)
 
-        # Buttons
         button_layout = QHBoxLayout()
-
         button_layout.addStretch()
 
         self.cancel_btn = QPushButton("Cancel")
@@ -291,32 +161,23 @@ class TemplateGenerateDialog(QDialog):
 
         layout.addLayout(button_layout)
 
-    def _add_variable(self):
-        """Add a variable to the list."""
-        var_name = self.var_input.text().strip()
-        if not var_name:
-            return
-
-        # Sanitize: remove special chars, lowercase
-        var_name = re.sub(r"[^a-zA-Z0-9_]", "", var_name).lower()
-        if not var_name:
-            return
-
-        if var_name not in self.expected_variables:
+    def _add_variable(self) -> None:
+        """Add a sanitized variable name to the expected-variable list."""
+        var_name = sanitize_variable_name(self.var_input.text().strip())
+        if var_name and var_name not in self.expected_variables:
             self.expected_variables.append(var_name)
             self.var_list.addItem(f"{{{{{var_name}}}}}")
-
         self.var_input.clear()
 
-    def _remove_variable(self):
-        """Remove selected variable from the list."""
+    def _remove_variable(self) -> None:
+        """Remove the selected expected variable."""
         row = self.var_list.currentRow()
-        if row >= 0 and row < len(self.expected_variables):
+        if 0 <= row < len(self.expected_variables):
             del self.expected_variables[row]
             self.var_list.takeItem(row)
 
-    def _generate(self):
-        """Generate template using AI."""
+    def _generate(self) -> None:
+        """Generate template content using the configured LLM server."""
         description = self.description_edit.toPlainText().strip()
         if not description:
             QMessageBox.warning(
@@ -326,7 +187,6 @@ class TemplateGenerateDialog(QDialog):
             )
             return
 
-        # Check LLM status first
         server = get_llm_server()
         if not server.is_running():
             reply = QMessageBox.question(
@@ -365,265 +225,59 @@ class TemplateGenerateDialog(QDialog):
         self.worker.waiting_for_server.connect(self._on_waiting_for_server)
         self.worker.start()
 
-    def _on_generation_finished(self, result: str):
+    def _on_generation_finished(self, result: str) -> None:
         """Handle successful generation."""
         self.preview_edit.setPlainText(result)
         self.status_label.setText("Review and edit the generated template, then apply")
         self.apply_btn.setEnabled(True)
         self.generate_btn.setEnabled(True)
         self.cancel_btn.setText("Cancel")
-        self._check_variable_warnings(result)
+        self._update_warning(result)
 
-    def _on_generation_error(self, error: str):
+    def _on_generation_error(self, error: str) -> None:
         """Handle generation error."""
         self.status_label.setText(f"Error: {error}")
         self.generate_btn.setEnabled(True)
         self.cancel_btn.setText("Cancel")
         QMessageBox.critical(self, "Generation Error", error)
 
-    def _on_waiting_for_server(self, attempt: int, max_attempts: int):
-        """Handle waiting for server to become ready."""
+    def _on_waiting_for_server(self, attempt: int, max_attempts: int) -> None:
+        """Handle waiting for server startup."""
         self.status_label.setText(
             f"Model starting... (attempt {attempt}/{max_attempts})"
         )
 
-    def _on_preview_changed(self):
-        """Handle changes to the preview text."""
+    def _on_preview_changed(self) -> None:
+        """Enable apply and refresh warnings after preview edits."""
         content = self.preview_edit.toPlainText().strip()
         self.apply_btn.setEnabled(bool(content))
         if content:
-            self._check_variable_warnings(content)
-
-    def _check_variable_warnings(self, content: str):
-        """Check if expected variables are present and warn if not."""
-        if not self.expected_variables:
+            self._update_warning(content)
+        else:
             self.warning_label.setVisible(False)
-            return
 
-        found_vars = extract_variables_from_content(content)
-        expected_set = set(self.expected_variables)
-
-        missing = expected_set - found_vars
-        extra = found_vars - expected_set
-
-        warnings = []
-        if missing:
-            warnings.append(f"Missing: {', '.join(sorted(missing))}")
-        if (
-            extra and self.expected_variables
-        ):  # Only warn about extras if user defined some
-            warnings.append(f"Extra: {', '.join(sorted(extra))}")
-
-        if warnings:
-            self.warning_label.setText("⚠️ " + "; ".join(warnings))
+    def _update_warning(self, content: str) -> None:
+        """Refresh missing/extra variable warning text."""
+        warning = format_variable_warning(self.expected_variables, content)
+        if warning:
+            self.warning_label.setText(f"Warning: {warning}")
             self.warning_label.setVisible(True)
         else:
             self.warning_label.setVisible(False)
 
-    def _on_cancel(self):
+    def _on_cancel(self) -> None:
         """Handle cancel button."""
         if self.worker and self.worker.isRunning():
             self.worker.stop()
             self.status_label.setText("Canceled")
         self.reject()
 
-    def _apply(self):
-        """Apply the generated content."""
+    def _apply(self) -> None:
+        """Emit generated content and variables back to the editor workflow."""
         content = self.preview_edit.toPlainText().strip()
         if not content:
             return
 
-        # Extract variables from the final content
         found_vars = list(extract_variables_from_content(content))
-
         self.content_generated.emit(content, found_vars)
         self.accept()
-
-
-class GenerationPromptEditor(QDialog):
-    """Dialog for editing the system prompt used for template generation."""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Edit Template Generation Instructions")
-        self.setMinimumSize(700, 500)
-        self._setup_ui()
-
-    def _setup_ui(self):
-        from templatr.core.templates import (
-            get_bundled_meta_template_content,
-            load_meta_template,
-        )
-
-        layout = QVBoxLayout(self)
-
-        # Instructions
-        instructions = QLabel(
-            "Customize the instructions used when generating new templates.\n"
-            "Available placeholders: {{description}}, {{variables}}"
-        )
-        instructions.setStyleSheet("color: #888; margin-bottom: 10px;")
-        instructions.setWordWrap(True)
-        layout.addWidget(instructions)
-
-        # Text editor
-        self.prompt_edit = QPlainTextEdit()
-        template = load_meta_template("template_generator")
-        self.prompt_edit.setPlainText(template.content if template else "")
-        self.prompt_edit.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
-        layout.addWidget(self.prompt_edit)
-
-        # Validation warning
-        self.warning_label = QLabel("")
-        self.warning_label.setStyleSheet("color: #ff6b6b;")
-        self.warning_label.setVisible(False)
-        layout.addWidget(self.warning_label)
-
-        # Buttons
-        button_layout = QHBoxLayout()
-
-        reset_btn = QPushButton("Reset to Default")
-        reset_btn.setObjectName("secondary")
-        reset_btn.setToolTip("Restore the default generation instructions")
-        default_content = get_bundled_meta_template_content("template_generator") or ""
-        reset_btn.clicked.connect(
-            lambda: self.prompt_edit.setPlainText(default_content)
-        )
-        button_layout.addWidget(reset_btn)
-
-        button_layout.addStretch()
-
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.setObjectName("secondary")
-        cancel_btn.clicked.connect(self.reject)
-        button_layout.addWidget(cancel_btn)
-
-        save_btn = QPushButton("Save")
-        save_btn.clicked.connect(self._save)
-        button_layout.addWidget(save_btn)
-
-        layout.addLayout(button_layout)
-
-    def _save(self):
-        """Save the prompt and close dialog."""
-        from templatr.core.meta_templates import save_meta_template
-
-        prompt = self.prompt_edit.toPlainText()
-
-        # Validate required placeholder
-        if "{{description}}" not in prompt:
-            self.warning_label.setText(
-                "Warning: Prompt must contain {{description}} placeholder"
-            )
-            self.warning_label.setVisible(True)
-            reply = QMessageBox.warning(
-                self,
-                "Missing Placeholder",
-                "The prompt is missing the {{description}} placeholder.\n\n"
-                "Without this, the AI won't receive the user's description.\n\n"
-                "Save anyway?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            )
-            if reply != QMessageBox.StandardButton.Yes:
-                return
-
-        if save_meta_template("template_generator", prompt):
-            self.accept()
-        else:
-            QMessageBox.critical(self, "Error", "Failed to save prompt")
-
-
-class ImprovementPromptEditor(QDialog):
-    """Dialog for editing the system prompt used for template improvements.
-
-    This is a standalone version that can be opened from the File menu.
-    """
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Edit Template Improvement Instructions")
-        self.setMinimumSize(700, 500)
-        self._setup_ui()
-
-    def _setup_ui(self):
-        from templatr.core.templates import (
-            get_bundled_meta_template_content,
-            load_meta_template,
-        )
-
-        layout = QVBoxLayout(self)
-
-        # Instructions
-        instructions = QLabel(
-            "Customize the instructions used when improving existing templates.\n"
-            "Available placeholders: {{template_content}}, {{refinements}}, {{additional_notes}}"
-        )
-        instructions.setStyleSheet("color: #888; margin-bottom: 10px;")
-        instructions.setWordWrap(True)
-        layout.addWidget(instructions)
-
-        # Text editor
-        self.prompt_edit = QPlainTextEdit()
-        template = load_meta_template("template_improver")
-        self.prompt_edit.setPlainText(template.content if template else "")
-        self.prompt_edit.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
-        layout.addWidget(self.prompt_edit)
-
-        # Validation warning
-        self.warning_label = QLabel("")
-        self.warning_label.setStyleSheet("color: #ff6b6b;")
-        self.warning_label.setVisible(False)
-        layout.addWidget(self.warning_label)
-
-        # Buttons
-        button_layout = QHBoxLayout()
-
-        reset_btn = QPushButton("Reset to Default")
-        reset_btn.setObjectName("secondary")
-        reset_btn.setToolTip("Restore the default improvement instructions")
-        default_content = get_bundled_meta_template_content("template_improver") or ""
-        reset_btn.clicked.connect(
-            lambda: self.prompt_edit.setPlainText(default_content)
-        )
-        button_layout.addWidget(reset_btn)
-
-        button_layout.addStretch()
-
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.setObjectName("secondary")
-        cancel_btn.clicked.connect(self.reject)
-        button_layout.addWidget(cancel_btn)
-
-        save_btn = QPushButton("Save")
-        save_btn.clicked.connect(self._save)
-        button_layout.addWidget(save_btn)
-
-        layout.addLayout(button_layout)
-
-    def _save(self):
-        """Save the prompt and close dialog."""
-        from templatr.core.meta_templates import save_meta_template
-
-        prompt = self.prompt_edit.toPlainText()
-
-        # Validate required placeholder
-        if "{{template_content}}" not in prompt:
-            self.warning_label.setText(
-                "Warning: Prompt must contain {{template_content}} placeholder"
-            )
-            self.warning_label.setVisible(True)
-            reply = QMessageBox.warning(
-                self,
-                "Missing Placeholder",
-                "The prompt is missing the {{template_content}} placeholder.\n\n"
-                "Without this, the AI won't receive the template to improve.\n\n"
-                "Save anyway?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            )
-            if reply != QMessageBox.StandardButton.Yes:
-                return
-
-        if save_meta_template("template_improver", prompt):
-            self.accept()
-        else:
-            QMessageBox.critical(self, "Error", "Failed to save prompt")
