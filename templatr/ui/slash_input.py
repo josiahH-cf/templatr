@@ -156,6 +156,29 @@ class _InlineVariableForm(QFrame):
         self._setup_ui()
         self.hide()
 
+    def eventFilter(self, obj, event) -> bool:  # noqa: N802
+        """Handle Escape (cancel) and Enter (submit) in form fields.
+
+        Args:
+            obj: The watched field widget.
+            event: The event.
+
+        Returns:
+            True if the event was consumed.
+        """
+        from PyQt6.QtCore import QEvent
+
+        if event.type() == QEvent.Type.KeyPress:
+            key = event.key()
+            if key == Qt.Key.Key_Escape:
+                self._on_cancel()
+                return True
+            if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                if not (event.modifiers() & Qt.KeyboardModifier.ShiftModifier):
+                    self._on_submit()
+                    return True
+        return super().eventFilter(obj, event)
+
     def set_template(self, template: Template) -> None:
         """Build form fields for the template's variables and show the form.
 
@@ -169,6 +192,7 @@ class _InlineVariableForm(QFrame):
             field.setPlaceholderText(var.default or f"Enter {var.label or var.name}")
             if var.default:
                 field.setText(var.default)
+            field.installEventFilter(self)
             self._fields[var.name] = field
             self._form_layout.addRow(label, field)
 
@@ -260,6 +284,7 @@ class SlashInputWidget(QWidget):
         """Initialize the input bar with empty palette and hidden form."""
         super().__init__(parent)
         self._active_template: Template | None = None
+        self._llm_ready = False
         self._setup_ui()
 
     # -- Public API ----------------------------------------------------------
@@ -278,6 +303,7 @@ class SlashInputWidget(QWidget):
         Args:
             ready: True when the LLM server is running and ready.
         """
+        self._llm_ready = ready
         self._send_btn.setEnabled(ready)
         if not ready:
             self._send_btn.setToolTip("Start the LLM server to send messages")
@@ -302,7 +328,7 @@ class SlashInputWidget(QWidget):
             generating: True to disable input (generation in progress).
         """
         self._text_input.setEnabled(not generating)
-        self._send_btn.setEnabled(not generating)
+        self._send_btn.setEnabled(not generating and self._llm_ready)
         if generating:
             self._status_label.setText("Generating…")
         else:
@@ -402,9 +428,10 @@ class SlashInputWidget(QWidget):
         """
         from PyQt6.QtCore import QEvent
 
-        if event.type() == QEvent.Type.KeyPress and self._palette.isVisible():
+        if event.type() == QEvent.Type.KeyPress:
             key = event.key()
-            if key in (
+            # Forward nav keys to palette when visible
+            if self._palette.isVisible() and key in (
                 Qt.Key.Key_Up,
                 Qt.Key.Key_Down,
                 Qt.Key.Key_Return,
@@ -413,6 +440,11 @@ class SlashInputWidget(QWidget):
             ):
                 self._palette.keyPressEvent(event)
                 return True
+            # Enter without Shift → send; Shift+Enter → newline (default)
+            if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                if not (event.modifiers() & Qt.KeyboardModifier.ShiftModifier):
+                    self._on_send_clicked()
+                    return True
         return False
 
     def resizeEvent(self, event) -> None:  # noqa: N802
@@ -448,7 +480,7 @@ class SlashInputWidget(QWidget):
         # Text input area
         self._text_input = QPlainTextEdit()
         self._text_input.setPlaceholderText(
-            "Type a message or / to select a template…"
+            "Type a message or / to select a template… (Enter to send, Shift+Enter for newline)"
         )
         self._text_input.setMaximumHeight(80)
         self._text_input.setSizePolicy(

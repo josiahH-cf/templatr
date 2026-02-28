@@ -246,3 +246,63 @@ def test_set_waiting_message_updates_status(qtbot):
     widget.set_waiting_message(1, 3)
     # Status label should contain attempt info — not empty
     assert widget._status_label.text() != ""
+
+
+# -- Keyboard UX tests -------------------------------------------------------
+
+
+def test_enter_key_sends_plain_text(qtbot):
+    """Pressing Enter (without Shift) sends the message via plain_submitted."""
+    widget = SlashInputWidget()
+    qtbot.addWidget(widget)
+    widget.set_llm_ready(True)
+    widget._text_input.setPlainText("Hello world")
+
+    with qtbot.waitSignal(widget.plain_submitted, timeout=1000) as sig:
+        QTest.keyClick(widget._text_input, Qt.Key.Key_Return)
+
+    assert sig.args[0] == "Hello world"
+
+
+def test_shift_enter_adds_newline_not_send(qtbot):
+    """Pressing Shift+Enter adds a newline without sending."""
+    widget = SlashInputWidget()
+    qtbot.addWidget(widget)
+    widget.set_llm_ready(True)
+    widget._text_input.setPlainText("Line one")
+
+    emitted = []
+    widget.plain_submitted.connect(emitted.append)
+    QTest.keyClick(
+        widget._text_input, Qt.Key.Key_Return, Qt.KeyboardModifier.ShiftModifier
+    )
+
+    assert len(emitted) == 0
+    assert "\n" in widget._text_input.toPlainText()
+
+
+def test_escape_in_inline_form_cancels(qtbot):
+    """Pressing Escape in an inline form field cancels the form and hides it."""
+    widget = SlashInputWidget()
+    qtbot.addWidget(widget)
+    widget.show()
+    with_vars = _make_template_with_vars()
+    widget.set_templates([with_vars])
+    widget._on_template_chosen(with_vars)
+    assert widget._inline_form.isVisible()
+
+    first_field = list(widget._inline_form._fields.values())[0]
+    QTest.keyClick(first_field, Qt.Key.Key_Escape)
+
+    assert not widget._inline_form.isVisible()
+
+
+def test_set_generating_false_respects_llm_ready_state(qtbot):
+    """set_generating(False) does not re-enable Send when LLM is not ready."""
+    widget = SlashInputWidget()
+    qtbot.addWidget(widget)
+    widget.set_llm_ready(False)
+    widget.set_generating(True)
+    widget.set_generating(False)
+    # LLM not ready, so Send must stay disabled
+    assert not widget._send_btn.isEnabled()
