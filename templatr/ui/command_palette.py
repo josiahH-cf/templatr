@@ -114,9 +114,11 @@ class _PaletteItemDelegate(QStyledItemDelegate):
             desc_font = QFont(option.font)
             desc_font.setPointSize(max(desc_font.pointSize() - 1, 7))
             painter.setFont(desc_font)
-            desc_color = QColor(140, 140, 140) if not (
-                option.state & option.State.State_Selected
-            ) else text_color
+            desc_color = (
+                QColor(140, 140, 140)
+                if not (option.state & option.State.State_Selected)
+                else text_color
+            )
             painter.setPen(desc_color)
             fm_desc = painter.fontMetrics()
             elided_desc = fm_desc.elidedText(

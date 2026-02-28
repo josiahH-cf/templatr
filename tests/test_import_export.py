@@ -11,8 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from templatr.core.templates import Template, TemplateManager, Variable
-
+from templatr.core.templates import TemplateManager
 
 # ---------------------------------------------------------------------------
 # export_template tests
@@ -134,9 +133,7 @@ class TestImportTemplate:
         with pytest.raises(ValueError, match="[Ii]nvalid|[Mm]alformed|JSON"):
             manager.import_template(bad_path)
 
-    def test_import_conflict_detected(
-        self, manager: TemplateManager, tmp_path: Path
-    ):
+    def test_import_conflict_detected(self, manager: TemplateManager, tmp_path: Path):
         """Importing a template with a name that already exists flags the conflict."""
         manager.create("Existing", "original content")
 
@@ -181,9 +178,7 @@ class TestImportTemplate:
         assert manager.get("Original") is not None
         assert manager.get("Renamed Copy") is not None
 
-    def test_import_preserves_variables(
-        self, manager: TemplateManager, tmp_path: Path
-    ):
+    def test_import_preserves_variables(self, manager: TemplateManager, tmp_path: Path):
         """Variables from the imported JSON are preserved."""
         json_path = self._write_json(
             tmp_path / "vars.json",

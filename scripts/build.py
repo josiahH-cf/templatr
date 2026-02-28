@@ -59,6 +59,7 @@ def _run(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
 # Step 1: download llama-server
 # ------------------------------------------------------------------
 
+
 def step_download(tag: str | None = None) -> None:
     """Download the llama-server binary if not present."""
     print("\n[1/3] Downloading llama-server binary...")
@@ -72,15 +73,20 @@ def step_download(tag: str | None = None) -> None:
 # Step 2: PyInstaller
 # ------------------------------------------------------------------
 
+
 def step_pyinstaller() -> None:
     """Run PyInstaller to produce the onedir bundle."""
     print("\n[2/3] Running PyInstaller...")
-    _run([
-        sys.executable, "-m", "PyInstaller",
-        "--noconfirm",
-        "--clean",
-        str(SPEC_FILE),
-    ])
+    _run(
+        [
+            sys.executable,
+            "-m",
+            "PyInstaller",
+            "--noconfirm",
+            "--clean",
+            str(SPEC_FILE),
+        ]
+    )
     bundle_dir = DIST_DIR / APP_NAME
     if not bundle_dir.exists():
         raise SystemExit(f"PyInstaller did not produce {bundle_dir}")
@@ -90,6 +96,7 @@ def step_pyinstaller() -> None:
 # ------------------------------------------------------------------
 # Step 3: Platform packaging
 # ------------------------------------------------------------------
+
 
 def _package_linux() -> Path:
     """Create an AppImage from the PyInstaller output.
@@ -115,7 +122,7 @@ def _package_linux() -> Path:
     apprun.write_text(
         "#!/bin/bash\n"
         'SELF=$(readlink -f "$0")\n'
-        'HERE=${SELF%/*}\n'
+        "HERE=${SELF%/*}\n"
         f'exec "$HERE/usr/bin/{APP_NAME}/{APP_NAME}" "$@"\n'
     )
     apprun.chmod(0o755)
@@ -136,6 +143,7 @@ def _package_linux() -> Path:
     if not icon_path.exists():
         # Minimal 1×1 transparent PNG
         import base64
+
         icon_bytes = base64.b64decode(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAB"
             "Nl7BcQAAAABJRU5ErkJggg=="
@@ -197,17 +205,17 @@ def _package_macos() -> Path:
         '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" '
         '"http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'
         '<plist version="1.0">\n'
-        '<dict>\n'
-        f'  <key>CFBundleName</key><string>Templatr</string>\n'
-        f'  <key>CFBundleDisplayName</key><string>Templatr</string>\n'
-        f'  <key>CFBundleIdentifier</key><string>com.templatr.app</string>\n'
-        f'  <key>CFBundleVersion</key><string>{version}</string>\n'
-        f'  <key>CFBundleShortVersionString</key><string>{version}</string>\n'
-        f'  <key>CFBundleExecutable</key><string>templatr-launcher</string>\n'
-        f'  <key>CFBundlePackageType</key><string>APPL</string>\n'
-        f'  <key>LSMinimumSystemVersion</key><string>12.0</string>\n'
-        '</dict>\n'
-        '</plist>\n'
+        "<dict>\n"
+        f"  <key>CFBundleName</key><string>Templatr</string>\n"
+        f"  <key>CFBundleDisplayName</key><string>Templatr</string>\n"
+        f"  <key>CFBundleIdentifier</key><string>com.templatr.app</string>\n"
+        f"  <key>CFBundleVersion</key><string>{version}</string>\n"
+        f"  <key>CFBundleShortVersionString</key><string>{version}</string>\n"
+        f"  <key>CFBundleExecutable</key><string>templatr-launcher</string>\n"
+        f"  <key>CFBundlePackageType</key><string>APPL</string>\n"
+        f"  <key>LSMinimumSystemVersion</key><string>12.0</string>\n"
+        "</dict>\n"
+        "</plist>\n"
     )
 
     # Create DMG
@@ -222,14 +230,20 @@ def _package_macos() -> Path:
         print("  ⚠ hdiutil not found — .app created but .dmg not produced.")
         return app_bundle
 
-    _run([
-        "hdiutil", "create",
-        "-volname", "Templatr",
-        "-srcfolder", str(app_bundle),
-        "-ov",
-        "-format", "UDZO",
-        str(dmg_path),
-    ])
+    _run(
+        [
+            "hdiutil",
+            "create",
+            "-volname",
+            "Templatr",
+            "-srcfolder",
+            str(app_bundle),
+            "-ov",
+            "-format",
+            "UDZO",
+            str(dmg_path),
+        ]
+    )
     print(f"  DMG: {dmg_path}")
     return dmg_path
 
@@ -269,6 +283,7 @@ def step_package() -> Path:
 # CLI
 # ------------------------------------------------------------------
 
+
 def main() -> int:
     """CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -291,7 +306,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    print(f"Building Templatr v{_get_version()} for {platform.system()} ({platform.machine()})")
+    print(
+        f"Building Templatr v{_get_version()} for {platform.system()} ({platform.machine()})"
+    )
 
     try:
         if not args.skip_download:

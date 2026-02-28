@@ -7,8 +7,7 @@ and saves the result through TemplateManager.
 
 from __future__ import annotations
 
-import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum, auto
 from typing import List, Optional
 
@@ -154,10 +153,7 @@ class NewTemplateFlow:
 
         if variables:
             var_names = ", ".join(v.name for v in variables)
-            message = (
-                f"Found variables: {var_names}. "
-                f"Saved as `/{self._name}`!"
-            )
+            message = f"Found variables: {var_names}. " f"Saved as `/{self._name}`!"
         else:
             message = f"Template saved as `/{self._name}`!"
 

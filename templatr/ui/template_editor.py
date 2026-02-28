@@ -84,7 +84,9 @@ class TemplateEditor(QDialog):
 
     template_saved = pyqtSignal(Template)
 
-    def __init__(self, template: Optional[Template] = None, parent=None, last_folder: str = ""):
+    def __init__(
+        self, template: Optional[Template] = None, parent=None, last_folder: str = ""
+    ):
         super().__init__(parent)
         self.template = template
         self.variables: list[Variable] = list(template.variables) if template else []
@@ -192,7 +194,9 @@ class TemplateEditor(QDialog):
 
         generate_btn = QPushButton("Generate with AI...")
         generate_btn.setObjectName("secondary")
-        generate_btn.setToolTip("Use AI to generate template content from a description")
+        generate_btn.setToolTip(
+            "Use AI to generate template content from a description"
+        )
         generate_btn.clicked.connect(self._generate_with_ai)
         content_header.addWidget(generate_btn)
 
@@ -207,7 +211,8 @@ class TemplateEditor(QDialog):
 
         # Dialog buttons
         buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel
+            QDialogButtonBox.StandardButton.Save
+            | QDialogButtonBox.StandardButton.Cancel
         )
         buttons.accepted.connect(self._save)
         buttons.rejected.connect(self.reject)
@@ -254,6 +259,7 @@ class TemplateEditor(QDialog):
             return
 
         from PyQt6.QtWidgets import QInputDialog
+
         text, ok = QInputDialog.getMultiLineText(
             self,
             "Edit Refinement",
@@ -380,12 +386,14 @@ class TemplateEditor(QDialog):
         existing_names = {v.name for v in self.variables}
         for var_name in found_variables:
             if var_name not in existing_names:
-                self.variables.append(Variable(
-                    name=var_name,
-                    label=var_name.replace("_", " ").title(),
-                    default="",
-                    multiline=False,
-                ))
+                self.variables.append(
+                    Variable(
+                        name=var_name,
+                        label=var_name.replace("_", " ").title(),
+                        default="",
+                        multiline=False,
+                    )
+                )
 
         self._refresh_var_list()
 

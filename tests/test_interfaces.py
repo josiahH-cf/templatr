@@ -16,9 +16,11 @@ class TestProtocolsExist:
     """Verify Protocol classes exist and are runtime_checkable."""
 
     def test_config_manager_protocol_exists(self):
-        assert hasattr(ConfigManagerProtocol, "__protocol_attrs__") or hasattr(
-            ConfigManagerProtocol, "__abstractmethods__"
-        ) or isinstance(ConfigManagerProtocol, type)
+        assert (
+            hasattr(ConfigManagerProtocol, "__protocol_attrs__")
+            or hasattr(ConfigManagerProtocol, "__abstractmethods__")
+            or isinstance(ConfigManagerProtocol, type)
+        )
 
     def test_template_manager_protocol_exists(self):
         assert isinstance(TemplateManagerProtocol, type)

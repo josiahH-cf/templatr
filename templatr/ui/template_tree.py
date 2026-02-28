@@ -51,9 +51,7 @@ class TemplateTreeWidget(QWidget):
         config = get_config()
         label_size = config.ui.font_size + 1
         self._label = QLabel("Templates")
-        self._label.setStyleSheet(
-            f"font-weight: bold; font-size: {label_size}pt;"
-        )
+        self._label.setStyleSheet(f"font-weight: bold; font-size: {label_size}pt;")
         header.addWidget(self._label)
 
         new_folder_btn = QPushButton("📁")
@@ -145,6 +143,7 @@ class TemplateTreeWidget(QWidget):
 
     def select_template_by_name(self, name: str):
         """Programmatically select a template in the tree by name."""
+
         def _find(item: QTreeWidgetItem) -> bool:
             data = item.data(0, Qt.ItemDataRole.UserRole)
             if data and data[0] == "template" and data[1].name == name:
@@ -155,6 +154,7 @@ class TemplateTreeWidget(QWidget):
                 if _find(item.child(i)):
                     return True
             return False
+
         for i in range(self.tree.topLevelItemCount()):
             if _find(self.tree.topLevelItem(i)):
                 break
@@ -195,10 +195,8 @@ class TemplateTreeWidget(QWidget):
         if data[0] == "template":
             template = data[1]
 
-            edit_action = menu.addAction("Edit Template")
-            edit_action.triggered.connect(
-                lambda: self.edit_requested.emit(template)
-            )
+            edit_action = menu.addAction("Advanced Edit")
+            edit_action.triggered.connect(lambda: self.edit_requested.emit(template))
 
             improve_action = menu.addAction("Improve Template...")
             improve_action.triggered.connect(
@@ -206,16 +204,12 @@ class TemplateTreeWidget(QWidget):
             )
 
             export_action = menu.addAction("Export...")
-            export_action.triggered.connect(
-                lambda: self._export_template(template)
-            )
+            export_action.triggered.connect(lambda: self._export_template(template))
 
             manager = get_template_manager()
             versions = manager.list_versions(template)
             if versions:
-                history_action = menu.addAction(
-                    f"Version History ({len(versions)})..."
-                )
+                history_action = menu.addAction(f"Version History ({len(versions)})...")
                 history_action.triggered.connect(
                     lambda: self.version_history_requested.emit(template)
                 )
@@ -270,9 +264,7 @@ class TemplateTreeWidget(QWidget):
             manager = get_template_manager()
             if manager.create_folder(name.strip()):
                 self.load_templates()
-                self.status_message.emit(
-                    f"Created folder '{name.strip()}'", 3000
-                )
+                self.status_message.emit(f"Created folder '{name.strip()}'", 3000)
             else:
                 QMessageBox.warning(
                     self,
@@ -326,9 +318,7 @@ class TemplateTreeWidget(QWidget):
         success, error_msg = manager.delete_folder(folder_name)
         if success:
             self.load_templates()
-            self.status_message.emit(
-                f"Deleted folder '{folder_name}'", 3000
-            )
+            self.status_message.emit(f"Deleted folder '{folder_name}'", 3000)
         else:
             QMessageBox.warning(self, "Cannot Delete Folder", error_msg)
 
@@ -353,9 +343,7 @@ class TemplateTreeWidget(QWidget):
         self.setFont(font)
 
         # Section header font (use stylesheet to override initial CSS)
-        self._label.setStyleSheet(
-            f"font-weight: bold; font-size: {header_font}pt;"
-        )
+        self._label.setStyleSheet(f"font-weight: bold; font-size: {header_font}pt;")
 
         # Margins
         self.layout().setContentsMargins(pad, pad, pad, pad)

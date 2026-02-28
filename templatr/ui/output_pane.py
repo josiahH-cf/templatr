@@ -43,9 +43,7 @@ class OutputPaneWidget(QWidget):
         config = get_config()
         label_size = config.ui.font_size + 1
         self._label = QLabel("Output")
-        self._label.setStyleSheet(
-            f"font-weight: bold; font-size: {label_size}pt;"
-        )
+        self._label.setStyleSheet(f"font-weight: bold; font-size: {label_size}pt;")
         header.addWidget(self._label)
         header.addStretch()
 
@@ -61,9 +59,7 @@ class OutputPaneWidget(QWidget):
         header.addWidget(self._stop_btn)
 
         self._generating_label = QLabel("Generating...")
-        self._generating_label.setStyleSheet(
-            "color: #808080; font-style: italic;"
-        )
+        self._generating_label.setStyleSheet("color: #808080; font-style: italic;")
         self._generating_label.setVisible(False)
         header.addWidget(self._generating_label)
 
@@ -129,7 +125,7 @@ class OutputPaneWidget(QWidget):
         """
         self._output_text.setHtml(
             f'<p style="color: #f48771; font-weight: bold;">'
-            f'⚠ Error</p>'
+            f"⚠ Error</p>"
             f'<p style="color: #f48771;">{message}</p>'
         )
         self._retry_btn.setVisible(True)
@@ -198,9 +194,7 @@ class OutputPaneWidget(QWidget):
         self.setFont(font)
 
         # Section header font (use stylesheet to override initial CSS)
-        self._label.setStyleSheet(
-            f"font-weight: bold; font-size: {header_font}pt;"
-        )
+        self._label.setStyleSheet(f"font-weight: bold; font-size: {header_font}pt;")
 
         # Margins
         self.layout().setContentsMargins(pad, pad, pad, pad)

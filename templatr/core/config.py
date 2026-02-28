@@ -159,7 +159,9 @@ class UIConfig:
     last_editor_folder: str = ""
 
     # Template versioning
-    max_template_versions: int = 10  # Max versions to keep per template (original always preserved)
+    max_template_versions: int = (
+        10  # Max versions to keep per template (original always preserved)
+    )
 
 
 @dataclass
@@ -188,8 +190,16 @@ class Config:
         ui_fields = {f.name for f in fields(UIConfig)}
 
         return cls(
-            llm=LLMConfig(**{k: v for k, v in llm_data.items() if k in llm_fields}) if llm_data else LLMConfig(),
-            ui=UIConfig(**{k: v for k, v in ui_data.items() if k in ui_fields}) if ui_data else UIConfig(),
+            llm=(
+                LLMConfig(**{k: v for k, v in llm_data.items() if k in llm_fields})
+                if llm_data
+                else LLMConfig()
+            ),
+            ui=(
+                UIConfig(**{k: v for k, v in ui_data.items() if k in ui_fields})
+                if ui_data
+                else UIConfig()
+            ),
         )
 
 

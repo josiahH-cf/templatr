@@ -35,14 +35,23 @@ def sample_template():
 def _make_templates():
     """Create two test templates."""
     return [
-        Template(name="Alpha", content="A: {{var1}}", description="Alpha",
-                 variables=[Variable(name="var1", label="V1")]),
-        Template(name="Beta", content="B: {{var1}}", description="Beta",
-                 variables=[Variable(name="var1", label="V1")]),
+        Template(
+            name="Alpha",
+            content="A: {{var1}}",
+            description="Alpha",
+            variables=[Variable(name="var1", label="V1")],
+        ),
+        Template(
+            name="Beta",
+            content="B: {{var1}}",
+            description="Beta",
+            variables=[Variable(name="var1", label="V1")],
+        ),
     ]
 
 
 # -- TemplateTreeWidget tests -----------------------------------------------
+
 
 def test_tree_populates_and_emits_template_selected(qtbot):
     """Tree widget loads templates and emits template_selected on click."""
@@ -69,8 +78,7 @@ def test_tree_populates_and_emits_template_selected(qtbot):
 
 def test_tree_emits_folder_selected(qtbot):
     """Tree widget emits folder_selected when a folder item is clicked."""
-    t = Template(name="InFolder", content="test", description="",
-                 variables=[])
+    t = Template(name="InFolder", content="test", description="", variables=[])
 
     with patch("templatr.ui.template_tree.get_template_manager") as mock_mgr:
         manager = MagicMock()
@@ -98,6 +106,7 @@ def test_tree_emits_folder_selected(qtbot):
 
 
 # -- VariableFormWidget tests ------------------------------------------------
+
 
 def test_form_generates_fields_and_get_values(qtbot, sample_template):
     """Form creates input fields for template variables and returns values."""
@@ -139,6 +148,7 @@ def test_form_clear_resets_values(qtbot, sample_template):
 
 # -- OutputPaneWidget tests --------------------------------------------------
 
+
 def test_output_pane_append_and_get_text(qtbot):
     """Output pane appends tokens and returns accumulated text."""
     widget = OutputPaneWidget()
@@ -163,6 +173,7 @@ def test_output_pane_emits_stop_requested(qtbot):
 
 
 # -- LLMToolbar tests -------------------------------------------------------
+
 
 def test_toolbar_emits_server_running_changed(qtbot):
     """LLMToolbar emits server_running_changed on check_status."""

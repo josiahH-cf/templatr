@@ -52,7 +52,9 @@ def test_find_server_binary_uses_configured_path(tmp_path: Path) -> None:
     assert result == binary
 
 
-def test_find_server_binary_skips_configured_path_when_not_executable(tmp_path: Path) -> None:
+def test_find_server_binary_skips_configured_path_when_not_executable(
+    tmp_path: Path,
+) -> None:
     """find_server_binary() skips the configured path if it is not executable."""
     binary = tmp_path / "llama-server"
     binary.write_text("#!/bin/sh\n")
@@ -79,7 +81,9 @@ def test_find_server_binary_finds_binary_in_templatr_data_dir(tmp_path: Path) ->
     """find_server_binary() finds the binary in ~/.local/share/templatr/llama.cpp/build/bin/."""
     # Build the expected templatr data dir path
     binary_name = "llama-server" if os.name != "nt" else "llama-server.exe"
-    data_dir = tmp_path / ".local" / "share" / "templatr" / "llama.cpp" / "build" / "bin"
+    data_dir = (
+        tmp_path / ".local" / "share" / "templatr" / "llama.cpp" / "build" / "bin"
+    )
     data_dir.mkdir(parents=True)
     binary = data_dir / binary_name
     binary.write_text("#!/bin/sh\n")
@@ -105,7 +109,9 @@ def test_find_server_binary_falls_back_to_path_environment(tmp_path: Path) -> No
     mgr = _manager_with_config(cfg)
 
     with patch("templatr.integrations.llm.Path.home", return_value=tmp_path):
-        with patch("templatr.integrations.llm.shutil.which", return_value=str(path_binary)):
+        with patch(
+            "templatr.integrations.llm.shutil.which", return_value=str(path_binary)
+        ):
             result = mgr.find_server_binary()
 
     assert result == path_binary

@@ -100,7 +100,9 @@ class TemplateManagerProtocol(Protocol):
 
     def get_version(self, template, version_num: int): ...
 
-    def restore_version(self, template, version_num: int, create_backup: bool = True): ...
+    def restore_version(
+        self, template, version_num: int, create_backup: bool = True
+    ): ...
 
 
 @runtime_checkable

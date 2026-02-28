@@ -60,9 +60,7 @@ class TestCircularImportEliminated:
                 in_function = stripped.startswith("def ")
                 continue
             if in_function and "from templatr.core.templates import" in stripped:
-                pytest.fail(
-                    f"Found deferred import in feedback.py: {stripped}"
-                )
+                pytest.fail(f"Found deferred import in feedback.py: {stripped}")
 
     def test_load_meta_template_in_meta_templates_module(self):
         """load_meta_template should live in meta_templates module."""
@@ -179,8 +177,13 @@ class TestMixinDocstrings:
         doc = TemplateActionsMixin.__doc__
         assert doc is not None
         assert "Expects self to provide" in doc
-        for attr in ["current_template", "variable_form", "template_tree_widget",
-                      "status_bar", "llm_toolbar"]:
+        for attr in [
+            "current_template",
+            "variable_form",
+            "template_tree_widget",
+            "status_bar",
+            "llm_toolbar",
+        ]:
             assert attr in doc, f"Missing {attr} in TemplateActionsMixin docstring"
 
     def test_generation_mixin_docstring(self):
@@ -189,9 +192,17 @@ class TestMixinDocstrings:
         doc = GenerationMixin.__doc__
         assert doc is not None
         assert "Expects self to provide" in doc
-        for attr in ["current_template", "chat_widget", "slash_input",
-                      "status_bar", "llm_toolbar", "worker",
-                      "_last_prompt", "_last_output", "_active_ai_bubble"]:
+        for attr in [
+            "current_template",
+            "chat_widget",
+            "slash_input",
+            "status_bar",
+            "llm_toolbar",
+            "worker",
+            "_last_prompt",
+            "_last_output",
+            "_active_ai_bubble",
+        ]:
             assert attr in doc, f"Missing {attr} in GenerationMixin docstring"
 
     def test_window_state_mixin_docstring(self):
@@ -200,6 +211,10 @@ class TestMixinDocstrings:
         doc = WindowStateMixin.__doc__
         assert doc is not None
         assert "Expects self to provide" in doc
-        for attr in ["current_template", "template_tree",
-                      "template_tree_widget", "splitter"]:
+        for attr in [
+            "current_template",
+            "template_tree",
+            "template_tree_widget",
+            "splitter",
+        ]:
             assert attr in doc, f"Missing {attr} in WindowStateMixin docstring"

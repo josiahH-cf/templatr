@@ -410,7 +410,9 @@ def test_slash_help_emits_system_command(qtbot):
     # Directly invoke the help system command handler
     from templatr.ui.command_palette import PaletteItem
 
-    help_item = PaletteItem(name="/help", description="Show available commands", payload="cmd:help")
+    help_item = PaletteItem(
+        name="/help", description="Show available commands", payload="cmd:help"
+    )
     with qtbot.waitSignal(widget.system_command, timeout=1000) as sig:
         widget._on_palette_item_chosen(help_item)
 
@@ -454,7 +456,9 @@ def test_system_command_settings(qtbot):
 
     from templatr.ui.command_palette import PaletteItem
 
-    settings_item = PaletteItem(name="/settings", description="LLM settings", payload="cmd:settings")
+    settings_item = PaletteItem(
+        name="/settings", description="LLM settings", payload="cmd:settings"
+    )
     with qtbot.waitSignal(widget.system_command, timeout=1000) as sig:
         widget._on_palette_item_chosen(settings_item)
 
@@ -471,7 +475,9 @@ def test_variable_fill_flow_after_palette_selection(qtbot):
 
     from templatr.ui.command_palette import PaletteItem
 
-    item = PaletteItem(name=with_vars.name, description=with_vars.description, payload=with_vars)
+    item = PaletteItem(
+        name=with_vars.name, description=with_vars.description, payload=with_vars
+    )
     widget._on_palette_item_chosen(item)
 
     assert widget._inline_form.isVisible()

@@ -150,7 +150,9 @@ def reset() -> None:
     _feedback_manager = None
 
 
-def build_improvement_prompt(template_content: str, refinements: List[str], additional_notes: str = "") -> str:
+def build_improvement_prompt(
+    template_content: str, refinements: List[str], additional_notes: str = ""
+) -> str:
     """Build a prompt asking the LLM to improve a template using the meta-template.
 
     Loads the template_improver meta-template and renders it with the provided values.
@@ -218,10 +220,14 @@ def build_generation_prompt(description: str, expected_variables: List[str]) -> 
             variables_lines.append(f"- {{{{  {var}  }}}} ")
         variables_text = "\n".join(variables_lines)
     else:
-        variables_text = "(No specific variables required - use appropriate placeholders)"
+        variables_text = (
+            "(No specific variables required - use appropriate placeholders)"
+        )
 
     # Render the meta-template with values
-    return meta_template.render({
-        "description": description,
-        "variables": variables_text,
-    })
+    return meta_template.render(
+        {
+            "description": description,
+            "variables": variables_text,
+        }
+    )

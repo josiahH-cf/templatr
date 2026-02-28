@@ -16,9 +16,7 @@ def _exception_hook(exc_type, exc_value, exc_tb):
     Logs at CRITICAL level with full traceback, then falls through to the
     default hook so the interpreter still prints to stderr.
     """
-    logger.critical(
-        "Unhandled exception", exc_info=(exc_type, exc_value, exc_tb)
-    )
+    logger.critical("Unhandled exception", exc_info=(exc_type, exc_value, exc_tb))
 
 
 def _threading_exception_hook(args):

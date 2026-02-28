@@ -159,9 +159,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         tree.folder_selected.connect(self._on_folder_selected)
         tree.edit_requested.connect(lambda t: self._edit_template(t))
         tree.improve_requested.connect(lambda t: self._improve_template(t))
-        tree.version_history_requested.connect(
-            lambda t: self._show_version_history(t)
-        )
+        tree.version_history_requested.connect(lambda t: self._show_version_history(t))
         tree.new_template_requested.connect(self._new_template)
         tree.template_deleted.connect(self._on_template_deleted)
         tree.status_message.connect(
@@ -323,7 +321,8 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
     def _show_about(self):
         """Show the about dialog."""
         QMessageBox.about(
-            self, "About Templatr",
+            self,
+            "About Templatr",
             f"<h2>Templatr v{__version__}</h2>"
             "<p>Local prompt optimizer with reusable templates.</p>"
             "<p><b>Features:</b></p><ul>"
@@ -345,7 +344,9 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
 
         # Left: template tree (hidden by default)
         self.template_tree_widget = TemplateTreeWidget()
-        self.template_tree = self.template_tree_widget.tree  # alias for state save/restore
+        self.template_tree = (
+            self.template_tree_widget.tree
+        )  # alias for state save/restore
         self.template_tree_widget.setVisible(False)
         self.splitter.addWidget(self.template_tree_widget)
 
@@ -394,9 +395,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         self.llm_toolbar.status_message.connect(
             lambda msg, ms: self.status_bar.showMessage(msg, ms)
         )
-        self.llm_toolbar.server_running_changed.connect(
-            self._on_server_running_changed
-        )
+        self.llm_toolbar.server_running_changed.connect(self._on_server_running_changed)
         self.status_bar.addWidget(self.llm_toolbar)
         self.llm_toolbar.set_model_menu(self.model_menu)
 
@@ -404,9 +403,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         actions = self._llm_menu_actions
         actions["start"].triggered.connect(self.llm_toolbar.start_server)
         actions["stop"].triggered.connect(self.llm_toolbar.stop_server)
-        actions["download"].triggered.connect(
-            self.llm_toolbar.open_hugging_face
-        )
+        actions["download"].triggered.connect(self.llm_toolbar.open_hugging_face)
         actions["refresh"].triggered.connect(self.llm_toolbar.check_status)
 
     def _show_llm_settings(self):
@@ -461,7 +458,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
     # Drag-and-drop import
     # ------------------------------------------------------------------
 
-    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802
         """Accept drag events that contain at least one ``.json`` file URL.
 
         Args:
@@ -474,7 +471,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
                     return
         super().dragEnterEvent(event)
 
-    def dropEvent(self, event: QDropEvent) -> None:
+    def dropEvent(self, event: QDropEvent) -> None:  # noqa: N802
         """Import each dropped ``.json`` file as a template.
 
         Args:

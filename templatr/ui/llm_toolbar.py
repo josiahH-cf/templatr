@@ -109,9 +109,7 @@ class LLMToolbar(QWidget):
             if success:
                 self.status_message.emit("Server started", 3000)
             else:
-                self.status_message.emit(
-                    f"Failed to start server: {message}", 5000
-                )
+                self.status_message.emit(f"Failed to start server: {message}", 5000)
 
             self.check_status()
 
@@ -121,9 +119,7 @@ class LLMToolbar(QWidget):
         port = config.llm.server_port
         url = QUrl(f"http://127.0.0.1:{port}")
         QDesktopServices.openUrl(url)
-        self.status_message.emit(
-            f"Opened http://127.0.0.1:{port} in browser", 3000
-        )
+        self.status_message.emit(f"Opened http://127.0.0.1:{port} in browser", 3000)
 
     def check_status(self):
         """Check if the LLM server is running and update UI."""
@@ -151,13 +147,13 @@ class LLMToolbar(QWidget):
         if is_running:
             # Server is alive — check /health endpoint for detailed status
             from templatr.integrations.llm import LLMClient, get_config
+
             config = get_config().llm
             client = LLMClient(f"http://localhost:{config.server_port}")
             try:
                 import requests
-                resp = requests.get(
-                    f"{client.base_url}/health", timeout=5
-                )
+
+                resp = requests.get(f"{client.base_url}/health", timeout=5)
                 if resp.status_code == 200:
                     self._update_health_status("healthy")
                 else:
@@ -190,9 +186,7 @@ class LLMToolbar(QWidget):
             self.llm_status_label.setText("LLM: Healthy")
             self.llm_status_label.setStyleSheet("color: #4ec9b0;")
             self.server_btn.setText("Open Server")
-            self.server_btn.setStyleSheet(
-                "background-color: #4ec9b0; color: #1e1e1e;"
-            )
+            self.server_btn.setStyleSheet("background-color: #4ec9b0; color: #1e1e1e;")
             self.stop_server_btn.setEnabled(True)
             self.stop_server_btn.setStyleSheet(
                 "background-color: #c42b1c; color: #ffffff;"
@@ -242,15 +236,11 @@ class LLMToolbar(QWidget):
         current_model = config.llm.model_path
 
         for model in models:
-            action = QAction(
-                f"{model.name} ({model.size_gb:.1f} GB)", self
-            )
+            action = QAction(f"{model.name} ({model.size_gb:.1f} GB)", self)
             action.setCheckable(True)
             action.setChecked(str(model.path) == current_model)
             action.setData(str(model.path))
-            action.triggered.connect(
-                lambda checked, m=model: self.select_model(m)
-            )
+            action.triggered.connect(lambda checked, m=model: self.select_model(m))
             self._model_menu.addAction(action)
 
         self._model_menu.addSeparator()
@@ -309,7 +299,10 @@ class LLMToolbar(QWidget):
 
         self._progress_dialog = QProgressDialog(
             f"Copying {source.name} ({size_gb:.1f} GB)...",
-            "Cancel", 0, 100, self.window(),
+            "Cancel",
+            0,
+            100,
+            self.window(),
         )
         self._progress_dialog.setWindowTitle("Adding Model")
         self._progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)

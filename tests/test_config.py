@@ -61,7 +61,7 @@ def test_load_with_partial_config_fills_defaults(tmp_path: Path) -> None:
     config = mgr.load()
 
     assert config.llm.server_port == 9090
-    assert config.ui.theme == "dark"   # default filled in
+    assert config.ui.theme == "dark"  # default filled in
 
 
 def test_load_corrupted_json_returns_defaults(tmp_path: Path) -> None:
@@ -120,7 +120,7 @@ def test_update_dotted_key_llm(tmp_path: Path) -> None:
     """update('llm.model_path', ...) correctly sets the nested llm attribute."""
     config_path = tmp_path / "update_test.json"
     mgr = ConfigManager(config_path=config_path)
-    mgr.save(Config())   # create the file
+    mgr.save(Config())  # create the file
 
     result = mgr.update(**{"llm.model_path": "/models/my.gguf"})
     assert result is True
@@ -146,7 +146,7 @@ def test_update_unknown_dotted_key_is_silently_ignored(tmp_path: Path) -> None:
 
     # Should not raise — unknown keys are silently skipped
     result = mgr.update(**{"llm.nonexistent_field": "value"})
-    assert result is True   # save still succeeds; unknown key is skipped
+    assert result is True  # save still succeeds; unknown key is skipped
 
 
 # ---------------------------------------------------------------------------

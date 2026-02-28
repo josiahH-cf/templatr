@@ -60,9 +60,7 @@ class VariableFormWidget(QWidget):
         config = get_config()
         label_size = config.ui.font_size + 1
         self._label = QLabel("Variables")
-        self._label.setStyleSheet(
-            f"font-weight: bold; font-size: {label_size}pt;"
-        )
+        self._label.setStyleSheet(f"font-weight: bold; font-size: {label_size}pt;")
         layout.addWidget(self._label)
 
         self._scroll = _VariableScrollArea()
@@ -77,9 +75,7 @@ class VariableFormWidget(QWidget):
         self.render_template_btn = QPushButton("Copy Template (Ctrl+Shift+G)")
         self.render_template_btn.setEnabled(False)
         self.render_template_btn.setShortcut(QKeySequence("Ctrl+Shift+G"))
-        self.render_template_btn.clicked.connect(
-            self.render_template_requested.emit
-        )
+        self.render_template_btn.clicked.connect(self.render_template_requested.emit)
         layout.addWidget(self.render_template_btn)
 
     # ------------------------------------------------------------------
@@ -162,9 +158,7 @@ class VariableFormWidget(QWidget):
         if ready:
             self.generate_btn.setToolTip("")
         else:
-            self.generate_btn.setToolTip(
-                "Start the LLM server and load a model first"
-            )
+            self.generate_btn.setToolTip("Start the LLM server and load a model first")
 
     def set_buttons_enabled(self, enabled: bool):
         """Enable or disable the generate and render buttons."""
@@ -188,9 +182,7 @@ class VariableFormWidget(QWidget):
         self.setFont(font)
 
         # Section header font (use stylesheet to override initial CSS)
-        self._label.setStyleSheet(
-            f"font-weight: bold; font-size: {header_font}pt;"
-        )
+        self._label.setStyleSheet(f"font-weight: bold; font-size: {header_font}pt;")
 
         # Margins
         self.layout().setContentsMargins(pad, pad, pad, pad)

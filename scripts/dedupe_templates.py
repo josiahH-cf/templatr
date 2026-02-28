@@ -17,13 +17,16 @@ from pathlib import Path
 
 def get_templates_dir() -> Path:
     """Get the templates directory path."""
-    if os.name == 'nt':  # Windows
-        config_dir = Path(os.environ.get('APPDATA', '')) / 'templatr'
-    elif os.uname().sysname == 'Darwin':  # macOS
-        config_dir = Path.home() / 'Library' / 'Application Support' / 'templatr'
+    if os.name == "nt":  # Windows
+        config_dir = Path(os.environ.get("APPDATA", "")) / "templatr"
+    elif os.uname().sysname == "Darwin":  # macOS
+        config_dir = Path.home() / "Library" / "Application Support" / "templatr"
     else:  # Linux/WSL
-        config_dir = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'templatr'
-    return config_dir / 'templates'
+        config_dir = (
+            Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+            / "templatr"
+        )
+    return config_dir / "templates"
 
 
 def find_duplicates(templates_dir: Path) -> dict[str, list[Path]]:
@@ -37,7 +40,9 @@ def find_duplicates(templates_dir: Path) -> dict[str, list[Path]]:
     return {name: paths for name, paths in by_name.items() if len(paths) > 1}
 
 
-def deduplicate(templates_dir: Path, dry_run: bool = True) -> list[tuple[str, Path, Path]]:
+def deduplicate(
+    templates_dir: Path, dry_run: bool = True
+) -> list[tuple[str, Path, Path]]:
     """
     Remove root-level duplicates when folder version exists.
 
@@ -74,9 +79,9 @@ def main():
         description="Remove duplicate templates (folder versions take precedence)"
     )
     parser.add_argument(
-        '--apply',
-        action='store_true',
-        help='Actually remove duplicates (default is dry-run)'
+        "--apply",
+        action="store_true",
+        help="Actually remove duplicates (default is dry-run)",
     )
     args = parser.parse_args()
 
@@ -120,5 +125,5 @@ def main():
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     exit(main())

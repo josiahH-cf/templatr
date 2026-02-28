@@ -94,7 +94,9 @@ def test_find_server_binary_prefers_bundled_binary(tmp_path: Path) -> None:
     mgr = _manager_with_config(cfg)
 
     with patch.object(sys, "_MEIPASS", str(tmp_path), create=True):
-        with patch("templatr.integrations.llm.Path.home", return_value=tmp_path / "home"):
+        with patch(
+            "templatr.integrations.llm.Path.home", return_value=tmp_path / "home"
+        ):
             with patch("templatr.integrations.llm.shutil.which", return_value=None):
                 result = mgr.find_server_binary()
 
@@ -113,7 +115,9 @@ def test_find_server_binary_falls_through_when_no_bundled(tmp_path: Path) -> Non
 
     # No _MEIPASS, no vendor dir
     with patch("templatr.integrations.llm.Path.home", return_value=tmp_path / "home"):
-        with patch("templatr.integrations.llm.shutil.which", return_value=str(system_bin)):
+        with patch(
+            "templatr.integrations.llm.shutil.which", return_value=str(system_bin)
+        ):
             result = mgr.find_server_binary()
 
     assert result == system_bin
@@ -142,7 +146,13 @@ def test_bundled_meta_templates_dir_uses_bundle_dir(tmp_path: Path) -> None:
 def test_detect_platform_key_returns_valid_key() -> None:
     """_detect_platform_key() returns a recognized platform key for the host."""
     key = dl_mod._detect_platform_key()
-    valid_keys = {"ubuntu-x64", "macos-arm64", "macos-x64", "win-cpu-x64", "win-cpu-arm64"}
+    valid_keys = {
+        "ubuntu-x64",
+        "macos-arm64",
+        "macos-x64",
+        "win-cpu-x64",
+        "win-cpu-arm64",
+    }
     assert key in valid_keys
 
 
@@ -223,5 +233,7 @@ def test_no_new_runtime_dependencies() -> None:
         data = tomllib.load(f)
 
     deps = data["project"]["dependencies"]
-    dep_names = sorted(d.split(">")[0].split("=")[0].split("<")[0].strip() for d in deps)
+    dep_names = sorted(
+        d.split(">")[0].split("=")[0].split("<")[0].strip() for d in deps
+    )
     assert dep_names == ["PyQt6", "mistune", "requests"]

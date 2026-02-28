@@ -32,11 +32,15 @@ if TYPE_CHECKING:
 
 # System commands available via /command syntax
 SYSTEM_COMMANDS: list[PaletteItem] = [
-    PaletteItem(name="/help", description="Show available commands", payload="cmd:help"),
+    PaletteItem(
+        name="/help", description="Show available commands", payload="cmd:help"
+    ),
     PaletteItem(name="/new", description="Create a new template", payload="cmd:new"),
     PaletteItem(name="/import", description="Import a template", payload="cmd:import"),
     PaletteItem(name="/export", description="Export a template", payload="cmd:export"),
-    PaletteItem(name="/settings", description="Open LLM settings", payload="cmd:settings"),
+    PaletteItem(
+        name="/settings", description="Open LLM settings", payload="cmd:settings"
+    ),
 ]
 
 

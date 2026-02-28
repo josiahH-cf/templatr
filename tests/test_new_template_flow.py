@@ -6,19 +6,16 @@ Covers:
 - Integration: created template appears in TemplateManager.list_all()
 """
 
-import json
 from pathlib import Path
 
 import pytest
 
 from templatr.core.templates import (
-    Template,
     TemplateManager,
     Variable,
     auto_detect_variables,
 )
 from templatr.ui.new_template_flow import NewTemplateFlow
-
 
 # ---------------------------------------------------------------------------
 # auto_detect_variables unit tests
@@ -127,9 +124,7 @@ class TestNewTemplateFlow:
         assert "content" in result.message.lower() or "paste" in result.message.lower()
 
         # Step 2: provide content with variables
-        result = flow.handle_input(
-            "Summarize {{topic}} in {{num_sentences}} sentences"
-        )
+        result = flow.handle_input("Summarize {{topic}} in {{num_sentences}} sentences")
         assert result.done is True
         assert result.template is not None
         assert result.template.name == "My Test Template"
@@ -159,7 +154,10 @@ class TestNewTemplateFlow:
         flow.start()
         result = flow.handle_input("Existing")
         assert result.done is False
-        assert "already exists" in result.message.lower() or "taken" in result.message.lower()
+        assert (
+            "already exists" in result.message.lower()
+            or "taken" in result.message.lower()
+        )
 
         # Should still accept a different name
         result = flow.handle_input("Unique Name")

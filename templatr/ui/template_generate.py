@@ -74,7 +74,9 @@ class GenerationWorker(QThread):
         import re
 
         # Try to extract from <generated_template> tags
-        match = re.search(r"<generated_template>(.*?)</generated_template>", text, re.DOTALL)
+        match = re.search(
+            r"<generated_template>(.*?)</generated_template>", text, re.DOTALL
+        )
         if match:
             return match.group(1).strip()
 
@@ -91,6 +93,7 @@ class GenerationWorker(QThread):
 
     def run(self):
         import time
+
         client = get_llm_client()
         last_error = None
 
@@ -316,7 +319,11 @@ class TemplateGenerateDialog(QDialog):
         """Generate template using AI."""
         description = self.description_edit.toPlainText().strip()
         if not description:
-            QMessageBox.warning(self, "Missing Description", "Please describe what the template should do.")
+            QMessageBox.warning(
+                self,
+                "Missing Description",
+                "Please describe what the template should do.",
+            )
             return
 
         # Check LLM status first
@@ -376,7 +383,9 @@ class TemplateGenerateDialog(QDialog):
 
     def _on_waiting_for_server(self, attempt: int, max_attempts: int):
         """Handle waiting for server to become ready."""
-        self.status_label.setText(f"Model starting... (attempt {attempt}/{max_attempts})")
+        self.status_label.setText(
+            f"Model starting... (attempt {attempt}/{max_attempts})"
+        )
 
     def _on_preview_changed(self):
         """Handle changes to the preview text."""
@@ -400,7 +409,9 @@ class TemplateGenerateDialog(QDialog):
         warnings = []
         if missing:
             warnings.append(f"Missing: {', '.join(sorted(missing))}")
-        if extra and self.expected_variables:  # Only warn about extras if user defined some
+        if (
+            extra and self.expected_variables
+        ):  # Only warn about extras if user defined some
             warnings.append(f"Extra: {', '.join(sorted(extra))}")
 
         if warnings:
@@ -475,7 +486,9 @@ class GenerationPromptEditor(QDialog):
         reset_btn.setObjectName("secondary")
         reset_btn.setToolTip("Restore the default generation instructions")
         default_content = get_bundled_meta_template_content("template_generator") or ""
-        reset_btn.clicked.connect(lambda: self.prompt_edit.setPlainText(default_content))
+        reset_btn.clicked.connect(
+            lambda: self.prompt_edit.setPlainText(default_content)
+        )
         button_layout.addWidget(reset_btn)
 
         button_layout.addStretch()
@@ -499,7 +512,9 @@ class GenerationPromptEditor(QDialog):
 
         # Validate required placeholder
         if "{{description}}" not in prompt:
-            self.warning_label.setText("Warning: Prompt must contain {{description}} placeholder")
+            self.warning_label.setText(
+                "Warning: Prompt must contain {{description}} placeholder"
+            )
             self.warning_label.setVisible(True)
             reply = QMessageBox.warning(
                 self,
@@ -567,7 +582,9 @@ class ImprovementPromptEditor(QDialog):
         reset_btn.setObjectName("secondary")
         reset_btn.setToolTip("Restore the default improvement instructions")
         default_content = get_bundled_meta_template_content("template_improver") or ""
-        reset_btn.clicked.connect(lambda: self.prompt_edit.setPlainText(default_content))
+        reset_btn.clicked.connect(
+            lambda: self.prompt_edit.setPlainText(default_content)
+        )
         button_layout.addWidget(reset_btn)
 
         button_layout.addStretch()
@@ -591,7 +608,9 @@ class ImprovementPromptEditor(QDialog):
 
         # Validate required placeholder
         if "{{template_content}}" not in prompt:
-            self.warning_label.setText("Warning: Prompt must contain {{template_content}} placeholder")
+            self.warning_label.setText(
+                "Warning: Prompt must contain {{template_content}} placeholder"
+            )
             self.warning_label.setVisible(True)
             reply = QMessageBox.warning(
                 self,

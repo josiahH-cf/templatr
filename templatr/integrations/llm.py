@@ -32,7 +32,7 @@ class ModelInfo:
     def from_path(cls, path: Path) -> "ModelInfo":
         """Create ModelInfo from a file path."""
         size_bytes = path.stat().st_size
-        size_gb = size_bytes / (1024 ** 3)
+        size_gb = size_bytes / (1024**3)
         return cls(
             path=path,
             name=path.stem,
@@ -153,7 +153,9 @@ class LLMClient:
         payload = {
             "prompt": prompt,
             "n_predict": max_tokens if max_tokens is not None else config.max_tokens,
-            "temperature": temperature if temperature is not None else config.temperature,
+            "temperature": (
+                temperature if temperature is not None else config.temperature
+            ),
             "top_p": config.top_p,
             "top_k": config.top_k,
             "repeat_penalty": config.repeat_penalty,
@@ -208,7 +210,9 @@ class LLMClient:
         payload = {
             "prompt": prompt,
             "n_predict": max_tokens if max_tokens is not None else config.max_tokens,
-            "temperature": temperature if temperature is not None else config.temperature,
+            "temperature": (
+                temperature if temperature is not None else config.temperature
+            ),
             "top_p": config.top_p,
             "top_k": config.top_k,
             "repeat_penalty": config.repeat_penalty,
@@ -230,6 +234,7 @@ class LLMClient:
                         line_str = line.decode("utf-8")
                         if line_str.startswith("data: "):
                             import json
+
                             try:
                                 data = json.loads(line_str[6:])
                                 content = data.get("content", "")
@@ -281,14 +286,28 @@ class LLMServerManager:
 
         # 3. Check Templatr standard data directory (Linux/WSL)
         templatr_llama = (
-            Path.home() / ".local" / "share" / "templatr" / "llama.cpp" / "build" / "bin" / binary_name
+            Path.home()
+            / ".local"
+            / "share"
+            / "templatr"
+            / "llama.cpp"
+            / "build"
+            / "bin"
+            / binary_name
         )
         if templatr_llama.exists() and os.access(templatr_llama, os.X_OK):
             return templatr_llama
 
         # 3b. Check macOS data directory
         templatr_llama_macos = (
-            Path.home() / "Library" / "Application Support" / "templatr" / "llama.cpp" / "build" / "bin" / binary_name
+            Path.home()
+            / "Library"
+            / "Application Support"
+            / "templatr"
+            / "llama.cpp"
+            / "build"
+            / "bin"
+            / binary_name
         )
         if templatr_llama_macos.exists() and os.access(templatr_llama_macos, os.X_OK):
             return templatr_llama_macos
@@ -446,9 +465,12 @@ class LLMServerManager:
         # Build command
         cmd = [
             str(binary),
-            "--model", str(model_file),
-            "--port", str(self.config.server_port),
-            "--ctx-size", str(self.config.context_size),
+            "--model",
+            str(model_file),
+            "--port",
+            str(self.config.server_port),
+            "--ctx-size",
+            str(self.config.context_size),
         ]
 
         if self.config.gpu_layers > 0:
@@ -509,6 +531,7 @@ class LLMServerManager:
         # Try to find and kill by port or process name
         try:
             import psutil
+
             for proc in psutil.process_iter(["pid", "name", "cmdline"]):
                 try:
                     # Check process name first (most reliable)
@@ -534,7 +557,9 @@ class LLMServerManager:
                     continue
         except ImportError:
             # Fallback: try pkill
-            result = subprocess.run(["pkill", "-f", "llama-server"], capture_output=True)
+            result = subprocess.run(
+                ["pkill", "-f", "llama-server"], capture_output=True
+            )
             if result.returncode == 0:
                 return True, "Server stopped"
 

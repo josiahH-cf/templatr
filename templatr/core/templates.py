@@ -61,7 +61,9 @@ class Variable:
         elif not isinstance(label, str):
             label = str(label)
         default = data.get("default", "")
-        if default is None or isinstance(default, (dict, list)):  # keep UI inputs from crashing
+        if default is None or isinstance(
+            default, (dict, list)
+        ):  # keep UI inputs from crashing
             default = str(default) if default not in (None, {}) else ""
         elif not isinstance(default, str):
             default = str(default)
@@ -84,7 +86,9 @@ class Template:
     description: str = ""
     trigger: str = ""  # External trigger alias (e.g., ":review")
     variables: List[Variable] = field(default_factory=list)
-    refinements: List[str] = field(default_factory=list)  # User feedback for template improvement
+    refinements: List[str] = field(
+        default_factory=list
+    )  # User feedback for template improvement
 
     # Internal: path to the JSON file (set when loaded from disk)
     _path: Optional[Path] = field(default=None, repr=False)
@@ -117,9 +121,7 @@ class Template:
     @classmethod
     def from_dict(cls, data: Dict[str, Any], path: Optional[Path] = None) -> "Template":
         """Create from dictionary."""
-        variables = [
-            Variable.from_dict(v) for v in data.get("variables", [])
-        ]
+        variables = [Variable.from_dict(v) for v in data.get("variables", [])]
         return cls(
             name=data.get("name", "Untitled"),
             content=data.get("content", ""),
@@ -164,6 +166,7 @@ class TemplateVersion:
         note: Optional user note describing what changed
         template_data: Full template data as dict (for restoration)
     """
+
     version: int
     timestamp: str
     note: str
@@ -209,9 +212,7 @@ def auto_detect_variables(content: str) -> List[Variable]:
         name = match.group(1)
         if name not in seen:
             seen.add(name)
-            variables.append(
-                Variable(name=name, default="", multiline=False)
-            )
+            variables.append(Variable(name=name, default="", multiline=False))
     return variables
 
 
@@ -257,7 +258,9 @@ class TemplateManager:
         config = get_config()
         return config.ui.max_template_versions
 
-    def create_version(self, template: Template, note: str = "") -> Optional[TemplateVersion]:
+    def create_version(
+        self, template: Template, note: str = ""
+    ) -> Optional[TemplateVersion]:
         """Create a new version snapshot of a template.
 
         Args:
@@ -317,7 +320,9 @@ class TemplateManager:
 
         return sorted(versions, key=lambda v: v.version)
 
-    def get_version(self, template: Template, version_num: int) -> Optional[TemplateVersion]:
+    def get_version(
+        self, template: Template, version_num: int
+    ) -> Optional[TemplateVersion]:
         """Get a specific version of a template.
 
         Args:
@@ -341,7 +346,9 @@ class TemplateManager:
             print(f"Error loading version {version_num}: {e}")
             return None
 
-    def restore_version(self, template: Template, version_num: int, create_backup: bool = True) -> Optional[Template]:
+    def restore_version(
+        self, template: Template, version_num: int, create_backup: bool = True
+    ) -> Optional[Template]:
         """Restore a template to a previous version.
 
         Args:
@@ -358,7 +365,9 @@ class TemplateManager:
 
         # Create backup of current state before restoring
         if create_backup:
-            self.create_version(template, note=f"Backup before revert to v{version_num}")
+            self.create_version(
+                template, note=f"Backup before revert to v{version_num}"
+            )
 
         # Restore template data
         restored = Template.from_dict(version.template_data, path=template._path)
@@ -416,6 +425,7 @@ class TemplateManager:
         version_dir = self._get_version_dir(template)
         try:
             import shutil
+
             if version_dir.exists():
                 shutil.rmtree(version_dir)
             return True
@@ -675,13 +685,9 @@ class TemplateManager:
             raise ValueError(f"Invalid JSON structure in {path.name}: expected object")
 
         if "name" not in data or not data["name"]:
-            raise ValueError(
-                f"Missing required field 'name' in {path.name}"
-            )
+            raise ValueError(f"Missing required field 'name' in {path.name}")
         if "content" not in data or not data["content"]:
-            raise ValueError(
-                f"Missing required field 'content' in {path.name}"
-            )
+            raise ValueError(f"Missing required field 'content' in {path.name}")
 
         template = Template.from_dict(data)
         conflict = self.get(template.name) is not None
@@ -740,7 +746,10 @@ class TemplateManager:
         # Check if folder has templates
         templates_in_folder = list(folder_path.glob("*.json"))
         if templates_in_folder:
-            return False, f"Cannot delete folder '{name}' because it contains {len(templates_in_folder)} template(s). Move or delete them first."
+            return (
+                False,
+                f"Cannot delete folder '{name}' because it contains {len(templates_in_folder)} template(s). Move or delete them first.",
+            )
 
         try:
             folder_path.rmdir()

@@ -210,8 +210,8 @@ def test_render_substitutes_variables(sample_template: Template) -> None:
 def test_render_uses_defaults_for_missing_values(sample_template: Template) -> None:
     """Template.render() falls back to Variable.default when a value is missing."""
     result = sample_template.render({})
-    assert "World" in result   # default for 'recipient'
-    assert "test" in result    # default for 'message_type'
+    assert "World" in result  # default for 'recipient'
+    assert "test" in result  # default for 'message_type'
 
 
 def test_render_removes_unreplaced_placeholders(tmp_path: Path) -> None:

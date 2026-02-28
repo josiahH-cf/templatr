@@ -52,10 +52,7 @@ def format_error_message(error: Exception) -> str:
         return str(error)
 
     # Generic fallback
-    return (
-        f"An unexpected error occurred: {type(error).__name__}\n\n"
-        f"{error}"
-    )
+    return f"An unexpected error occurred: {type(error).__name__}\n\n" f"{error}"
 
 
 class GenerationWorker(QThread):

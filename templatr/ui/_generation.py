@@ -1,6 +1,5 @@
 """Mixin providing LLM generation orchestration for MainWindow."""
 
-
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from templatr.integrations.llm import get_llm_server
@@ -38,7 +37,8 @@ class GenerationMixin:
         server = get_llm_server()
         if not server.is_running():
             reply = QMessageBox.question(
-                self, "LLM Not Running",
+                self,
+                "LLM Not Running",
                 "The LLM server is not running. Would you like to start it?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )

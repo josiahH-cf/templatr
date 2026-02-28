@@ -46,6 +46,7 @@ BINARY_NAME = "llama-server.exe" if sys.platform == "win32" else "llama-server"
 # Platform detection
 # ---------------------------------------------------------------------------
 
+
 def _detect_platform_key() -> str:
     """Return the llama.cpp release asset suffix for this platform.
 
@@ -86,6 +87,7 @@ def _archive_ext(platform_key: str) -> str:
 # GitHub helpers
 # ---------------------------------------------------------------------------
 
+
 def _github_get(url: str) -> dict:
     """Fetch JSON from the GitHub API (unauthenticated)."""
     token = os.environ.get("GITHUB_TOKEN", "")
@@ -112,6 +114,7 @@ def get_latest_tag() -> str:
 # Download & extract
 # ---------------------------------------------------------------------------
 
+
 def _download(url: str) -> bytes:
     """Download a URL and return raw bytes, printing progress."""
     print(f"  Downloading {url}")
@@ -130,7 +133,11 @@ def _download(url: str) -> bytes:
             data.extend(chunk)
             if total:
                 pct = len(data) * 100 // int(total)
-                print(f"\r  {len(data) // 1024:,} KB / {int(total) // 1024:,} KB ({pct}%)", end="", flush=True)
+                print(
+                    f"\r  {len(data) // 1024:,} KB / {int(total) // 1024:,} KB ({pct}%)",
+                    end="",
+                    flush=True,
+                )
         if total:
             print()
     return bytes(data)
@@ -183,7 +190,9 @@ def _extract_binary(archive_bytes: bytes, platform_key: str, dest_dir: Path) -> 
 
     # Ensure executable on Unix
     if sys.platform != "win32":
-        dest_path.chmod(dest_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        dest_path.chmod(
+            dest_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+        )
 
     return dest_path
 
@@ -191,6 +200,7 @@ def _extract_binary(archive_bytes: bytes, platform_key: str, dest_dir: Path) -> 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def download_llama_server(tag: str | None = None, dest_dir: Path | None = None) -> Path:
     """Download and extract the llama-server binary.

@@ -20,9 +20,10 @@ from templatr.ui.variable_form import VariableFormWidget
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _header_font_size(label):
     """Extract font-size from a QLabel's stylesheet (e.g. 'font-size: 14pt;')."""
-    match = re.search(r'font-size:\s*(\d+)pt', label.styleSheet())
+    match = re.search(r"font-size:\s*(\d+)pt", label.styleSheet())
     return int(match.group(1)) if match else label.font().pointSize()
 
 
@@ -57,7 +58,9 @@ class TestProportionalSplitter:
             mock_cfg.return_value = cfg
 
             with patch("templatr.ui.main_window.save_config"):
-                with patch("templatr.ui.template_tree.get_template_manager") as mock_mgr:
+                with patch(
+                    "templatr.ui.template_tree.get_template_manager"
+                ) as mock_mgr:
                     mgr = MagicMock()
                     mgr.list_all.return_value = []
                     mgr.list_folders.return_value = []
@@ -77,6 +80,7 @@ class TestProportionalSplitter:
                         qtbot.waitExposed(win)
 
                         from PyQt6.QtCore import QCoreApplication
+
                         QCoreApplication.processEvents()
                         return win
 
@@ -88,7 +92,9 @@ class TestProportionalSplitter:
             mock_cfg.return_value = cfg
 
             with patch("templatr.ui.main_window.save_config"):
-                with patch("templatr.ui.template_tree.get_template_manager") as mock_mgr:
+                with patch(
+                    "templatr.ui.template_tree.get_template_manager"
+                ) as mock_mgr:
                     mgr = MagicMock()
                     mgr.list_all.return_value = []
                     mgr.list_folders.return_value = []
@@ -108,13 +114,16 @@ class TestProportionalSplitter:
                         qtbot.waitExposed(win)
 
                         from PyQt6.QtCore import QCoreApplication
+
                         QCoreApplication.processEvents()
 
                         # Sidebar defaults to hidden
                         assert not win.template_tree_widget.isVisible()
                         # Chat column has all available width
                         sizes = win.splitter.sizes()
-                        assert sizes[0] == 0, "Tree pane should be collapsed (0 width) by default"
+                        assert (
+                            sizes[0] == 0
+                        ), "Tree pane should be collapsed (0 width) by default"
                         assert sizes[1] > 0, "Chat column must have positive width"
 
     def test_splitter_preserved_when_user_customized(self, qtbot):
@@ -125,7 +134,9 @@ class TestProportionalSplitter:
             mock_cfg.return_value = cfg
 
             with patch("templatr.ui.main_window.save_config"):
-                with patch("templatr.ui.template_tree.get_template_manager") as mock_mgr:
+                with patch(
+                    "templatr.ui.template_tree.get_template_manager"
+                ) as mock_mgr:
                     mgr = MagicMock()
                     mgr.list_all.return_value = []
                     mgr.list_folders.return_value = []
@@ -145,6 +156,7 @@ class TestProportionalSplitter:
                         qtbot.waitExposed(win)
 
                         from PyQt6.QtCore import QCoreApplication
+
                         QCoreApplication.processEvents()
 
                         # Toggle sidebar open
@@ -153,8 +165,12 @@ class TestProportionalSplitter:
 
                         assert win.template_tree_widget.isVisible()
                         sizes = win.splitter.sizes()
-                        assert sizes[0] >= 200, "Open sidebar should have at least 200px width"
-                        assert sizes[1] > 0, "Chat column should still have positive width"
+                        assert (
+                            sizes[0] >= 200
+                        ), "Open sidebar should have at least 200px width"
+                        assert (
+                            sizes[1] > 0
+                        ), "Chat column should still have positive width"
 
     def test_usable_at_minimum_size(self, qtbot):
         """App is usable at 600×400: chat column has positive width."""
@@ -164,7 +180,9 @@ class TestProportionalSplitter:
             mock_cfg.return_value = cfg
 
             with patch("templatr.ui.main_window.save_config"):
-                with patch("templatr.ui.template_tree.get_template_manager") as mock_mgr:
+                with patch(
+                    "templatr.ui.template_tree.get_template_manager"
+                ) as mock_mgr:
                     mgr = MagicMock()
                     mgr.list_all.return_value = []
                     mgr.list_folders.return_value = []
@@ -184,11 +202,14 @@ class TestProportionalSplitter:
                         qtbot.waitExposed(win)
 
                         from PyQt6.QtCore import QCoreApplication
+
                         QCoreApplication.processEvents()
 
                         # Chat column (index 1) must be usable
                         sizes = win.splitter.sizes()
-                        assert sizes[1] > 0, f"Chat column has non-positive width {sizes[1]} at 600×400"
+                        assert (
+                            sizes[1] > 0
+                        ), f"Chat column has non-positive width {sizes[1]} at 600×400"
 
     def test_manual_splitter_drag_stops_auto_resize(self, qtbot):
         """Dragging the splitter updates sidebar button state to reflect visibility."""
@@ -198,7 +219,9 @@ class TestProportionalSplitter:
             mock_cfg.return_value = cfg
 
             with patch("templatr.ui.main_window.save_config"):
-                with patch("templatr.ui.template_tree.get_template_manager") as mock_mgr:
+                with patch(
+                    "templatr.ui.template_tree.get_template_manager"
+                ) as mock_mgr:
                     mgr = MagicMock()
                     mgr.list_all.return_value = []
                     mgr.list_folders.return_value = []
@@ -218,6 +241,7 @@ class TestProportionalSplitter:
                         qtbot.waitExposed(win)
 
                         from PyQt6.QtCore import QCoreApplication
+
                         QCoreApplication.processEvents()
 
                         # Show template tree via toggle, then drag splitter
@@ -266,9 +290,9 @@ class TestFontAndPaddingScaling:
         widget.scale_to(1920, 1080)
         header_font = _header_font_size(widget._label)
         body_font = widget.font().pointSize()
-        assert header_font >= int(body_font * 1.3), (
-            f"Header {header_font}pt < 1.3× body {body_font}pt"
-        )
+        assert header_font >= int(
+            body_font * 1.3
+        ), f"Header {header_font}pt < 1.3× body {body_font}pt"
 
     def test_header_scaling_output_pane(self, qtbot):
         """Output pane header scales the same way."""
@@ -346,7 +370,9 @@ class TestStretchAndFill:
             item = layout.itemAt(i)
             if item and item.widget() and isinstance(item.widget(), QTextEdit):
                 stretch = layout.stretch(i)
-                assert stretch > 0, f"QTextEdit stretch factor is {stretch}, expected > 0"
+                assert (
+                    stretch > 0
+                ), f"QTextEdit stretch factor is {stretch}, expected > 0"
                 found_stretch = True
                 break
         assert found_stretch, "QTextEdit not found in output pane layout"
@@ -366,9 +392,9 @@ class TestStretchAndFill:
             if isinstance(input_widget, QPlainTextEdit):
                 min_h = input_widget.minimumHeight()
                 expected_min = int(pane_height * 0.15)
-                assert min_h >= expected_min, (
-                    f"Multi-line input min height {min_h} < 15% of {pane_height} = {expected_min}"
-                )
+                assert (
+                    min_h >= expected_min
+                ), f"Multi-line input min height {min_h} < 15% of {pane_height} = {expected_min}"
 
     def test_no_new_dependencies(self):
         """Criterion 10: pyproject.toml dependencies section unchanged."""

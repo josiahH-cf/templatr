@@ -74,7 +74,9 @@ class ImprovementWorker(QThread):
         import re
 
         # Try to extract from <improved_template> tags
-        match = re.search(r"<improved_template>(.*?)</improved_template>", text, re.DOTALL)
+        match = re.search(
+            r"<improved_template>(.*?)</improved_template>", text, re.DOTALL
+        )
         if match:
             return match.group(1).strip()
 
@@ -93,6 +95,7 @@ class ImprovementWorker(QThread):
 
     def run(self):
         import time
+
         client = get_llm_client()
         last_error = None
 
@@ -159,7 +162,9 @@ class TemplateImproveDialog(QDialog):
 
         # Header with feedback info
         if self.initial_feedback:
-            feedback_label = QLabel(f"Improving based on: \"{self.initial_feedback[:100]}{'...' if len(self.initial_feedback) > 100 else ''}\"")
+            feedback_label = QLabel(
+                f"Improving based on: \"{self.initial_feedback[:100]}{'...' if len(self.initial_feedback) > 100 else ''}\""
+            )
             feedback_label.setStyleSheet("color: #888; font-style: italic;")
             feedback_label.setWordWrap(True)
             layout.addWidget(feedback_label)
@@ -316,7 +321,9 @@ class TemplateImproveDialog(QDialog):
 
     def _on_waiting_for_server(self, attempt: int, max_attempts: int):
         """Handle waiting for server to become ready."""
-        self.status_label.setText(f"Model starting... (attempt {attempt}/{max_attempts})")
+        self.status_label.setText(
+            f"Model starting... (attempt {attempt}/{max_attempts})"
+        )
 
     def _on_discard_clicked(self):
         """Handle discard/cancel button click."""
@@ -396,7 +403,9 @@ class ImprovementPromptEditor(QDialog):
         reset_btn.setObjectName("secondary")
         reset_btn.setToolTip("Restore the default improvement prompt")
         default_content = get_bundled_meta_template_content("template_improver") or ""
-        reset_btn.clicked.connect(lambda: self.prompt_edit.setPlainText(default_content))
+        reset_btn.clicked.connect(
+            lambda: self.prompt_edit.setPlainText(default_content)
+        )
         button_layout.addWidget(reset_btn)
 
         button_layout.addStretch()
@@ -420,7 +429,9 @@ class ImprovementPromptEditor(QDialog):
 
         # Validate required placeholder
         if "{{template_content}}" not in prompt:
-            self.warning_label.setText("Warning: Prompt must contain {{template_content}} placeholder")
+            self.warning_label.setText(
+                "Warning: Prompt must contain {{template_content}} placeholder"
+            )
             self.warning_label.setVisible(True)
             reply = QMessageBox.warning(
                 self,

@@ -71,9 +71,7 @@ class TemplateActionsMixin:
                 self.template_tree_widget.load_templates()
                 templates = self.template_manager.list_all()
                 self.slash_input.set_templates(templates)
-                self.template_tree_widget.select_template_by_name(
-                    result.template.name
-                )
+                self.template_tree_widget.select_template_by_name(result.template.name)
             self._active_flow = None
 
         return True
@@ -131,9 +129,7 @@ class TemplateActionsMixin:
         try:
             template, conflict = manager.import_template(path)
         except ValueError as exc:
-            QMessageBox.warning(
-                self, "Import Failed", str(exc)
-            )
+            QMessageBox.warning(self, "Import Failed", str(exc))
             return
 
         if conflict:
@@ -150,7 +146,8 @@ class TemplateActionsMixin:
                 return
             if reply == QMessageBox.StandardButton.No:
                 new_name, ok = QInputDialog.getText(
-                    self, "Rename Template",
+                    self,
+                    "Rename Template",
                     "Enter a new name for the imported template:",
                 )
                 if not ok or not new_name.strip():
@@ -162,9 +159,7 @@ class TemplateActionsMixin:
         templates = self.template_manager.list_all()
         self.slash_input.set_templates(templates)
         self.template_tree_widget.select_template_by_name(template.name)
-        self.status_bar.showMessage(
-            f"Imported '{template.name}'", 3000
-        )
+        self.status_bar.showMessage(f"Imported '{template.name}'", 3000)
 
     def _edit_template(self, template: Optional[Template] = None):
         """Edit the given or currently selected template."""
@@ -247,7 +242,8 @@ class TemplateActionsMixin:
 
         if not versions:
             QMessageBox.information(
-                self, "No Version History",
+                self,
+                "No Version History",
                 "This template has no version history to revert to.",
             )
             return
@@ -264,9 +260,12 @@ class TemplateActionsMixin:
             items.append(label)
 
         item, ok = QInputDialog.getItem(
-            self, "Revert Template",
+            self,
+            "Revert Template",
             f"Select a version to revert '{target.name}' to:",
-            items, 0, False,
+            items,
+            0,
+            False,
         )
         if not ok or not item:
             return
@@ -275,7 +274,8 @@ class TemplateActionsMixin:
         selected_version = versions[-(selected_idx + 1)]
 
         reply = QMessageBox.question(
-            self, "Confirm Revert",
+            self,
+            "Confirm Revert",
             f"Revert to version {selected_version.version}?\n\n"
             "This will replace the current template content with the "
             "selected version.\nA backup of the current state will be saved.",
@@ -285,7 +285,9 @@ class TemplateActionsMixin:
             return
 
         restored = manager.restore_version(
-            target, selected_version.version, create_backup=True,
+            target,
+            selected_version.version,
+            create_backup=True,
         )
         if restored:
             self.current_template = restored
@@ -293,7 +295,8 @@ class TemplateActionsMixin:
             if self.variable_form is not None:
                 self.variable_form.set_template(self.current_template)
             self.status_bar.showMessage(
-                f"Reverted to version {selected_version.version}", 3000,
+                f"Reverted to version {selected_version.version}",
+                3000,
             )
         else:
             QMessageBox.critical(self, "Error", "Failed to revert template")
@@ -306,7 +309,8 @@ class TemplateActionsMixin:
     def _edit_generate_instructions(self):
         """Edit the AI instructions for template generation."""
         reply = QMessageBox.question(
-            self, "Edit Generation Instructions?",
+            self,
+            "Edit Generation Instructions?",
             "Editing these instructions will affect how all future "
             "template generation works.\n\nAre you sure you want to continue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -317,7 +321,8 @@ class TemplateActionsMixin:
     def _edit_improve_instructions(self):
         """Edit the AI instructions for template improvement."""
         reply = QMessageBox.question(
-            self, "Edit Improvement Instructions?",
+            self,
+            "Edit Improvement Instructions?",
             "Editing these instructions will affect how all future template "
             "improvements are generated.\n\nAre you sure you want to continue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,

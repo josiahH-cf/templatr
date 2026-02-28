@@ -84,15 +84,23 @@ def test_generate_sends_correct_payload() -> None:
     mock_response.json.return_value = {"content": "result text"}
     mock_response.raise_for_status = MagicMock()
 
-    with patch("templatr.integrations.llm.requests.post", return_value=mock_response) as mock_post:
+    with patch(
+        "templatr.integrations.llm.requests.post", return_value=mock_response
+    ) as mock_post:
         client.generate(prompt="Hello world", max_tokens=100, temperature=0.5)
 
     call_kwargs = mock_post.call_args
-    posted_json = call_kwargs.kwargs.get("json") or call_kwargs.args[1] if len(call_kwargs.args) > 1 else call_kwargs.kwargs["json"]
+    posted_json = (
+        call_kwargs.kwargs.get("json") or call_kwargs.args[1]
+        if len(call_kwargs.args) > 1
+        else call_kwargs.kwargs["json"]
+    )
     assert posted_json["prompt"] == "Hello world"
     assert posted_json["n_predict"] == 100
     assert abs(posted_json["temperature"] - 0.5) < 1e-9
-    assert "http://localhost:8080/completion" in (call_kwargs.args[0] if call_kwargs.args else call_kwargs.kwargs.get("url", ""))
+    assert "http://localhost:8080/completion" in (
+        call_kwargs.args[0] if call_kwargs.args else call_kwargs.kwargs.get("url", "")
+    )
 
 
 # ---------------------------------------------------------------------------

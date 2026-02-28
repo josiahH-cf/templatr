@@ -70,13 +70,15 @@ class WindowStateMixin:
             for i in range(self.template_tree.topLevelItemCount()):
                 item = self.template_tree.topLevelItem(i)
                 data = item.data(0, Qt.ItemDataRole.UserRole)
-                if data and data[0] == "folder" and data[1] in config.ui.expanded_folders:
+                if (
+                    data
+                    and data[0] == "folder"
+                    and data[1] in config.ui.expanded_folders
+                ):
                     item.setExpanded(True)
 
         if config.ui.last_template:
-            self.template_tree_widget.select_template_by_name(
-                config.ui.last_template
-            )
+            self.template_tree_widget.select_template_by_name(config.ui.last_template)
 
     def closeEvent(self, event: QCloseEvent):  # noqa: N802
         """Save window and app state when closing."""

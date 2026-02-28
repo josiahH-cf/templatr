@@ -23,9 +23,7 @@ import pytest
 @pytest.fixture
 def log_dir(tmp_path, monkeypatch):
     """Provide an isolated log directory via a temp config dir."""
-    monkeypatch.setattr(
-        "templatr.core.config.get_config_dir", lambda: tmp_path
-    )
+    monkeypatch.setattr("templatr.core.config.get_config_dir", lambda: tmp_path)
     return tmp_path / "logs"
 
 
@@ -88,9 +86,7 @@ class TestSetupLogging:
 
         setup_logging()
         root = logging.getLogger()
-        rotating = [
-            h for h in root.handlers if isinstance(h, RotatingFileHandler)
-        ]
+        rotating = [h for h in root.handlers if isinstance(h, RotatingFileHandler)]
         assert len(rotating) == 1
         assert rotating[0].maxBytes == 5 * 1024 * 1024
 
@@ -100,9 +96,7 @@ class TestSetupLogging:
 
         setup_logging()
         root = logging.getLogger()
-        rotating = [
-            h for h in root.handlers if isinstance(h, RotatingFileHandler)
-        ]
+        rotating = [h for h in root.handlers if isinstance(h, RotatingFileHandler)]
         assert rotating[0].backupCount == 3
 
     def test_root_logger_level_info(self, log_dir):
@@ -143,9 +137,7 @@ class TestSetupLogging:
         setup_logging()
         setup_logging()
         root = logging.getLogger()
-        rotating = [
-            h for h in root.handlers if isinstance(h, RotatingFileHandler)
-        ]
+        rotating = [h for h in root.handlers if isinstance(h, RotatingFileHandler)]
         assert len(rotating) == 1
 
 

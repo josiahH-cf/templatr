@@ -127,9 +127,7 @@ class TestFormatErrorMessage:
         """ConnectionError → helpful message about starting server."""
         from templatr.ui.workers import format_error_message
 
-        msg = format_error_message(
-            ConnectionError("Cannot connect to LLM server")
-        )
+        msg = format_error_message(ConnectionError("Cannot connect to LLM server"))
         assert "server" in msg.lower()
 
     def test_timeout_error(self):
@@ -260,7 +258,10 @@ class TestHealthPoller:
         mock_get_server.return_value = mock_server
 
         toolbar._poll_health()
-        assert "Stopped" in toolbar.llm_status_label.text() or "Not Running" in toolbar.llm_status_label.text()
+        assert (
+            "Stopped" in toolbar.llm_status_label.text()
+            or "Not Running" in toolbar.llm_status_label.text()
+        )
 
 
 class TestRenderButtonDisabledState:
