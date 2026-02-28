@@ -5,8 +5,8 @@
 ## Status
 
 - Total: 4
-- Complete: 0
-- Remaining: 4
+- Complete: 4
+- Remaining: 0
 
 ## Task List
 
@@ -20,7 +20,7 @@
   the built-in dict when the key is absent), and
   `test_keyboard_shortcuts.py::test_shortcuts_defaults_in_config` passes.
 - **Criteria covered:** AC-6
-- **Status:** [ ] Not started
+- **Status:** [x] Complete
 
 ### Task 2: Implement generate, copy-output, and clear-chat shortcuts
 
@@ -33,7 +33,7 @@
   the generate shortcut is guarded against palette-visible and form-active
   states; all tests for AC-1, AC-2, AC-3, and AC-5 pass.
 - **Criteria covered:** AC-1, AC-2, AC-3, AC-5
-- **Status:** [ ] Not started
+- **Status:** [x] Complete
 
 ### Task 3: Implement next/previous template navigation shortcuts
 
@@ -45,7 +45,7 @@
   list from `template_manager.list_all()`; both navigation tests for AC-4
   pass.
 - **Criteria covered:** AC-4
-- **Status:** [ ] Not started
+- **Status:** [x] Complete
 
 ### Task 4: Update /help output to list shortcut actions
 
@@ -56,7 +56,7 @@
   actions with their default key strings; the test for AC-7 passes by
   asserting the help bubble text contains each key string.
 - **Criteria covered:** AC-7
-- **Status:** [ ] Not started
+- **Status:** [x] Complete
 
 ## Test Strategy
 
@@ -72,4 +72,5 @@
 
 ## Session Log
 
-<!-- Append after each session: date, completed, blockers -->
+- 2026-02-28: Task 1 complete. Added _DEFAULT_SHORTCUTS, UIConfig.shortcuts field, merge logic in Config.from_dict. 333 tests pass, 16 failing (Tasks 2–4 pending).
+- 2026-02-28: Tasks 2–4 complete. Added keyPressEvent fallback (QShortcut requires active window in offscreen tests). _on_generate_shortcut calls _handle_plain_input directly so monkeypatch intercepts. 349 tests pass, 0 failing.
