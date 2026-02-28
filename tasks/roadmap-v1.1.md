@@ -36,14 +36,14 @@ Specs are ordered by dependency chain. Items marked ✅ are complete.
 7. ✅ **graceful-error-recovery** — GGUF validation, health polling (deps: crash-logging)
 8. ✅ **repo-migration** — New repo, delete automatr/, fix all references (deps: graceful-error-recovery ✅)
 9. ✅ **chat-ui-core** — Conversational chat UI with / slash commands and inline variable form (deps: repo-migration ✅)
-10. **release-automation** — Tag-triggered CI builds (deps: ci-pipeline ✅, cross-platform-packaging)
+10. ✅ **release-automation** — Tag-triggered CI builds (deps: ci-pipeline ✅, cross-platform-packaging ✅)
 11. ✅ **slash-commands** — Extended `/` command system: /help, trigger aliases, enhanced palette UI (deps: chat-ui-core ✅; core slash mechanism already in chat-ui-core)
 12. ✅ **template-authoring-workflow** — `/new`, import/export (deps: slash-commands)
 13. **documentation-overhaul** — Per-OS docs, CONTRIBUTING (deps: cross-platform-packaging, chat-ui-core)
 
 ## Active
 
-_Next: release-automation._
+_Next: documentation-overhaul._
 
 ## Completed
 
