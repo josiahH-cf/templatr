@@ -549,7 +549,13 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
                 "- `/export` — Export a template\n"
                 "- `/settings` — Open LLM settings\n\n"
                 "Type `/` followed by a template name to search templates.\n"
-                "Type `:trigger` to invoke a template by its trigger shortcut."
+                "Type `:trigger` to invoke a template by its trigger shortcut.\n\n"
+                "**Keyboard shortcuts:**\n\n"
+                "- `Ctrl+Return` — Generate (submit plain text)\n"
+                "- `Ctrl+Shift+C` — Copy last AI output to clipboard\n"
+                "- `Ctrl+L` — Clear chat thread\n"
+                "- `Ctrl+]` — Next template\n"
+                "- `Ctrl+[` — Previous template"
             )
             bubble = self.chat_widget.add_ai_bubble()
             bubble.set_text(help_text)
