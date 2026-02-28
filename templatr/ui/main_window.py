@@ -86,6 +86,9 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         self.variable_form = None
         self.output_pane = None
 
+        # Active conversational flow (e.g., /new quick-create)
+        self._active_flow = None
+
         self._setup_menu_bar()
         self._setup_ui()
         self._setup_status_bar()
@@ -352,7 +355,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
 
         self.slash_input = SlashInputWidget()
         self.slash_input.template_submitted.connect(self._generate)
-        self.slash_input.plain_submitted.connect(self._generate)
+        self.slash_input.plain_submitted.connect(self._handle_plain_input)
         self.slash_input.system_command.connect(self._on_system_command)
         right_layout.addWidget(self.slash_input)
 
@@ -435,6 +438,19 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         elif command_id == "export":
             if hasattr(self, "_export_template"):
                 self._export_template()
+
+    def _handle_plain_input(self, text: str) -> None:
+        """Route plain text input, delegating to an active flow or generation.
+
+        If a conversational flow (e.g., /new quick-create) is active, the
+        input is routed there. Otherwise it falls through to _generate.
+
+        Args:
+            text: Plain text from the slash input bar.
+        """
+        if self._handle_flow_input(text):
+            return
+        self._generate(text)
 
 
 def run_gui() -> int:

@@ -104,6 +104,20 @@ class ChatWidget(QWidget):
             self._active_ai_bubble.set_text(full_text)
             self._active_ai_bubble = None
 
+    def add_system_message(self, text: str) -> None:
+        """Append a system-role bubble for flow prompts.
+
+        Used by conversational flows (e.g., /new quick-create) to display
+        non-user, non-AI instructions.
+
+        Args:
+            text: System message text.
+        """
+        bubble = MessageBubble(MessageRole.SYSTEM)
+        bubble.set_text(text)
+        self._add_bubble(bubble)
+        self._scroll_to_bottom()
+
     def show_error_bubble(self, message: str) -> None:
         """Append an AI-role bubble styled as an error.
 

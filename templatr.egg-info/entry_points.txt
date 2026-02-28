@@ -1,0 +1,2 @@
+[console_scripts]
+templatr = templatr.__main__:main

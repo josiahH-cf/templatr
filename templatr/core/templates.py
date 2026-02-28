@@ -189,6 +189,32 @@ class TemplateVersion:
         )
 
 
+def auto_detect_variables(content: str) -> List[Variable]:
+    """Detect ``{{placeholder}}`` patterns in template content.
+
+    Scans *content* for all ``{{word}}`` occurrences (regex ``\\{\\{(\\w+)\\}\\}``),
+    deduplicates by name preserving first-seen order, and returns a
+    :class:`Variable` for each unique match.
+
+    Args:
+        content: Raw template content string.
+
+    Returns:
+        List of Variable objects with name, auto-generated label,
+        empty default, and ``multiline=False``.
+    """
+    seen: set[str] = set()
+    variables: List[Variable] = []
+    for match in re.finditer(r"\{\{(\w+)\}\}", content):
+        name = match.group(1)
+        if name not in seen:
+            seen.add(name)
+            variables.append(
+                Variable(name=name, default="", multiline=False)
+            )
+    return variables
+
+
 class TemplateManager:
     """Manages template CRUD operations.
 

@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import QInputDialog, QMessageBox
 from templatr.core.config import get_config, save_config
 from templatr.core.templates import Template, get_template_manager
 from templatr.integrations.llm import get_llm_server
+from templatr.ui.new_template_flow import NewTemplateFlow
 from templatr.ui.template_editor import TemplateEditor
 from templatr.ui.template_generate import (
     GenerationPromptEditor,
@@ -30,13 +31,51 @@ class TemplateActionsMixin:
     """
 
     def _new_template(self):
-        """Create a new template."""
+        """Start the conversational /new template quick-create flow."""
+        manager = get_template_manager()
+        flow = NewTemplateFlow(manager)
+        self._active_flow = flow
+
+        for msg in flow.start():
+            self.chat_widget.add_system_message(msg)
+
+    def _new_template_dialog(self):
+        """Open the full template editor dialog (Advanced Edit)."""
         config = get_config()
         dialog = TemplateEditor(parent=self, last_folder=config.ui.last_editor_folder)
         dialog.template_saved.connect(self._on_template_saved)
         dialog.exec()
         config.ui.last_editor_folder = dialog.folder_combo.currentData() or ""
         save_config(config)
+
+    def _handle_flow_input(self, text: str) -> bool:
+        """Route input to the active flow, if any.
+
+        Args:
+            text: User input from the chat bar.
+
+        Returns:
+            True if input was consumed by a flow, False otherwise.
+        """
+        if not hasattr(self, "_active_flow") or self._active_flow is None:
+            return False
+
+        self.chat_widget.add_user_message(text)
+        result = self._active_flow.handle_input(text)
+        self.chat_widget.add_system_message(result.message)
+
+        if result.done:
+            if result.template is not None:
+                # Refresh tree and palette
+                self.template_tree_widget.load_templates()
+                templates = self.template_manager.list_all()
+                self.slash_input.set_templates(templates)
+                self.template_tree_widget.select_template_by_name(
+                    result.template.name
+                )
+            self._active_flow = None
+
+        return True
 
     def _edit_template(self, template: Optional[Template] = None):
         """Edit the given or currently selected template."""

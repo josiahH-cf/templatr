@@ -248,6 +248,13 @@ QFrame#ai_bubble {
     margin: 4px 4px 4px 60px;
 }
 
+QWidget#system_bubble {
+    background-color: #1e3a2f;
+    border-radius: 8px;
+    border: 1px solid #2e5e4a;
+    margin: 4px 30px;
+}
+
 QFrame#error_bubble {
     background-color: #3c1f1f;
     border: 1px solid #c42b1c;

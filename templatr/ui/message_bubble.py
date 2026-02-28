@@ -32,6 +32,7 @@ class MessageRole(str, Enum):
 
     USER = "user"
     AI = "ai"
+    SYSTEM = "system"
 
 
 class MessageBubble(QWidget):
@@ -74,7 +75,7 @@ class MessageBubble(QWidget):
             text: Plain text for user bubbles; Markdown for AI bubbles.
         """
         self._raw_text = text
-        if self.role == MessageRole.USER:
+        if self.role in (MessageRole.USER, MessageRole.SYSTEM):
             self._label.setText(text)
         else:
             self._browser.setHtml(self._render_markdown(text))
@@ -144,6 +145,8 @@ class MessageBubble(QWidget):
 
         if self.role == MessageRole.USER:
             self._setup_user_bubble(outer)
+        elif self.role == MessageRole.SYSTEM:
+            self._setup_system_bubble(outer)
         else:
             self._setup_ai_bubble(outer)
 
@@ -153,6 +156,22 @@ class MessageBubble(QWidget):
 
         container = QWidget()
         container.setObjectName("user_bubble")
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(10, 6, 10, 6)
+
+        self._label = QLabel()
+        self._label.setWordWrap(True)
+        self._label.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        layout.addWidget(self._label)
+
+        outer.addWidget(container)
+
+    def _setup_system_bubble(self, outer: QHBoxLayout) -> None:
+        """Center-aligned system prompt bubble (no avatar, neutral style)."""
+        container = QWidget()
+        container.setObjectName("system_bubble")
         layout = QVBoxLayout(container)
         layout.setContentsMargins(10, 6, 10, 6)
 
