@@ -282,6 +282,12 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         QShortcut(QKeySequence(sc["clear_chat"]), self).activated.connect(
             self._clear_chat
         )
+        QShortcut(QKeySequence(sc["next_template"]), self).activated.connect(
+            self._select_next_template
+        )
+        QShortcut(QKeySequence(sc["prev_template"]), self).activated.connect(
+            self._select_prev_template
+        )
 
     def _on_generate_shortcut(self) -> None:
         """Handle the generate keyboard shortcut (default Ctrl+Return).
@@ -314,6 +320,42 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         if self.worker and self.worker.isRunning():
             return
         self.chat_widget.clear_history()
+
+    def _select_next_template(self) -> None:
+        """Select the next template in list order, wrapping around to the first.
+
+        No-op when the template list is empty.
+        """
+        templates = self.template_manager.list_all()
+        if not templates:
+            return
+        if self.current_template is None:
+            self.current_template = templates[0]
+            return
+        try:
+            idx = next(i for i, t in enumerate(templates) if t is self.current_template)
+        except StopIteration:
+            self.current_template = templates[0]
+            return
+        self.current_template = templates[(idx + 1) % len(templates)]
+
+    def _select_prev_template(self) -> None:
+        """Select the previous template in list order, wrapping around to the last.
+
+        No-op when the template list is empty.
+        """
+        templates = self.template_manager.list_all()
+        if not templates:
+            return
+        if self.current_template is None:
+            self.current_template = templates[-1]
+            return
+        try:
+            idx = next(i for i, t in enumerate(templates) if t is self.current_template)
+        except StopIteration:
+            self.current_template = templates[-1]
+            return
+        self.current_template = templates[(idx - 1) % len(templates)]
 
     def keyPressEvent(self, event) -> None:  # noqa: N802
         """Dispatch shortcut actions from key events sent directly to the window.
