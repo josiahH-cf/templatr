@@ -54,3 +54,4 @@
 - Version-tag consistency check: fails if tag doesn't match `pyproject.toml` version
 - Auto-generated changelog via `softprops/action-gh-release` with `generate_release_notes: true`
 - All 3 tasks complete
+- **Validation:** `.venv/bin/ruff check .` and `.venv/bin/pytest -q` both pass

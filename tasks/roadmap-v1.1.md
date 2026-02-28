@@ -69,3 +69,4 @@ _All v1.1 specs complete. See Backlog for future work._
 - ✅ CI pipeline (pytest + ruff on push/PR, Python 3.10–3.12)
 - ✅ Project rename: automatr → templatr (all imports, config, docs, migration)
 - ✅ Responsive layout: proportional splitter, dynamic font/padding/header scaling, stretch fill
+- ✅ Release automation: tag-triggered matrix builds + GitHub Release publishing

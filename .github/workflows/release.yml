@@ -3,12 +3,6 @@
 # Triggered by pushing a version tag (e.g. v1.1.0).
 # Builds platform artifacts for Linux, macOS (Intel + ARM), and Windows,
 # then publishes them as a GitHub Release with auto-generated changelog.
-#
-# Release process:
-#   1. Bump version in pyproject.toml and templatr/__init__.py
-#   2. Commit: "Bump version to X.Y.Z"
-#   3. Tag:    git tag vX.Y.Z
-#   4. Push:   git push && git push --tags
 
 name: Release
 
@@ -16,137 +10,139 @@ on:
   push:
     tags: ["v*"]
 
-# Prevent concurrent releases for the same tag.
+permissions:
+  contents: write
+
 concurrency:
   group: release-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  # ── Gate: CI must pass before any build runs ──────────────────────
   ci:
     uses: ./.github/workflows/ci.yml
+    timeout-minutes: 15
 
-  # ── Version check: tag must match pyproject.toml ──────────────────
-  version-check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Verify tag matches package version
-        run: |
-          TAG="${GITHUB_REF#refs/tags/v}"
-          PKG_VERSION=$(python3 -c "
-          import re, pathlib
-          text = pathlib.Path('pyproject.toml').read_text()
-          m = re.search(r'^version\s*=\s*\"(.+?)\"', text, re.MULTILINE)
-          print(m.group(1))
-          ")
-          echo "Tag version:     $TAG"
-          echo "Package version: $PKG_VERSION"
-          if [ "$TAG" != "$PKG_VERSION" ]; then
-            echo "::error::Tag v$TAG does not match pyproject.toml version $PKG_VERSION"
-            exit 1
-          fi
-
-  # ── Build: platform matrix ────────────────────────────────────────
   build:
-    needs: [ci, version-check]
+    name: Build ${{ matrix.label }}
+    needs: ci
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
-            artifact-pattern: "*.AppImage"
-            artifact-fallback: "templatr.AppDir"
-          - os: macos-latest          # ARM (Apple Silicon)
-            artifact-pattern: "*.dmg"
-            artifact-fallback: "Templatr.app"
-          - os: macos-13              # Intel
-            artifact-pattern: "*.dmg"
-            artifact-fallback: "Templatr.app"
+            label: linux-x64
+            artifact_glob: dist/*.AppImage
+            artifact_fallback: dist/templatr.AppDir
+          - os: macos-latest
+            label: macos-arm64
+            artifact_glob: dist/*.dmg
+            artifact_fallback: dist/Templatr.app
+          - os: macos-13
+            label: macos-x64
+            artifact_glob: dist/*.dmg
+            artifact_fallback: dist/Templatr.app
           - os: windows-latest
-            artifact-pattern: "*.zip"
-            artifact-fallback: ""
-
-    runs-on: ${{ matrix.os }}
+            label: windows-x64
+            artifact_glob: dist/*.zip
+            artifact_fallback: dist/templatr
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-          cache: pip
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .
-          pip install pyinstaller
-
-      # ── Linux-only: system deps + appimagetool ───────────────────
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libegl1 libxkbcommon0 libxcb-cursor0 libfuse2
+          sudo apt-get install -y appimagetool || true
 
-      - name: Install appimagetool (Linux)
-        if: runner.os == 'Linux'
+      - name: Set up Python 3.10
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install build dependencies
         run: |
-          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage \
-            -O /usr/local/bin/appimagetool
-          chmod +x /usr/local/bin/appimagetool
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+          pip install pyinstaller
 
-      # ── Build ─────────────────────────────────────────────────────
-      - name: Build and package
+      - name: Build platform artifact
         run: python scripts/build.py
 
-      # ── Upload artifact ───────────────────────────────────────────
-      - name: Find built artifact
-        id: find-artifact
+      - name: Resolve artifact path
+        id: artifact
         shell: bash
         run: |
-          cd dist
-          # Prefer the packaged file (AppImage/dmg/zip) over raw bundle
-          ARTIFACT=$(ls ${{ matrix.artifact-pattern }} 2>/dev/null | head -1 || true)
-          if [ -z "$ARTIFACT" ] && [ -n "${{ matrix.artifact-fallback }}" ]; then
-            ARTIFACT="${{ matrix.artifact-fallback }}"
+          set -euo pipefail
+          pattern="${{ matrix.artifact_glob }}"
+          fallback="${{ matrix.artifact_fallback }}"
+          shopt -s nullglob
+          matches=( $pattern )
+          if [ ${#matches[@]} -gt 0 ]; then
+            echo "path=${matches[0]}" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
-          echo "artifact=$ARTIFACT" >> "$GITHUB_OUTPUT"
-          echo "Found artifact: $ARTIFACT"
+          if [ -e "$fallback" ]; then
+            echo "path=$fallback" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "No artifact found with pattern '$pattern' or fallback '$fallback'." >&2
+          find dist -mindepth 1 -maxdepth 3 -print || true
+          exit 1
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: build-${{ matrix.os }}
-          path: dist/${{ steps.find-artifact.outputs.artifact }}
-          if-no-files-found: error
+          name: templatr-${{ matrix.label }}
+          path: ${{ steps.artifact.outputs.path }}
 
-  # ── Release: publish GitHub Release with all artifacts ────────────
   release:
-    needs: build
+    name: Publish release
+    needs: [ci, build]
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
+    timeout-minutes: 10
     steps:
-      - name: Download all build artifacts
-        uses: actions/download-artifact@v4
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
-          path: artifacts
+          python-version: "3.10"
+
+      - name: Validate tag matches pyproject version
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYPROJECT_VERSION="$(python - <<'PY'
+          import tomllib
+          from pathlib import Path
+          data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          print(data["project"]["version"])
+          PY
+          )"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$PYPROJECT_VERSION" != "$TAG_VERSION" ]; then
+            echo "Version mismatch: tag '$TAG_VERSION' does not match pyproject.toml '$PYPROJECT_VERSION'." >&2
+            exit 1
+          fi
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+        with:
+          path: release-artifacts
+          pattern: templatr-*
           merge-multiple: true
 
-      - name: List artifacts
-        run: find artifacts -type f | head -20
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
         with:
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
           generate_release_notes: true
-          files: artifacts/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: release-artifacts/**
