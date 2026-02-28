@@ -2,6 +2,15 @@
 
 ## Backlog
 
+### Platform Config Consolidation
+- **Spec:** `/specs/platform-config-consolidation.md` | **Tasks:** `/tasks/platform-config-consolidation.md`
+- Consolidate 6 independent platform detection paths into a single `PlatformConfig` source of truth
+- Add `get_data_dir()`, fix `get_config_dir()` Windows path, move template seeding into the app
+- Add `templatr --doctor` diagnostic CLI command
+- Fix install.sh: remove redundant config.json, remove phantom PowerShell installer reference
+- Identified by cross-platform architecture audit (2026-02-28)
+- **Soft dependency of documentation-overhaul** — docs can be written with caveats now, updated after this lands
+
 ### Dialog Size Optimization
 - `template_generate.py` (604 lines) and `template_improve.py` (436 lines) exceed the 300-line widget target
 - Decompose into smaller, focused components
@@ -39,11 +48,11 @@ Specs are ordered by dependency chain. Items marked ✅ are complete.
 10. ✅ **release-automation** — Tag-triggered CI builds (deps: ci-pipeline ✅, cross-platform-packaging ✅)
 11. ✅ **slash-commands** — Extended `/` command system: /help, trigger aliases, enhanced palette UI (deps: chat-ui-core ✅; core slash mechanism already in chat-ui-core)
 12. ✅ **template-authoring-workflow** — `/new`, import/export (deps: slash-commands)
-13. **documentation-overhaul** — Per-OS docs, CONTRIBUTING (deps: cross-platform-packaging, chat-ui-core)
+13. ✅ **documentation-overhaul** — Per-OS docs, CONTRIBUTING (deps: cross-platform-packaging, chat-ui-core)
 
 ## Active
 
-_Next: documentation-overhaul._
+_All v1.1 specs complete. See Backlog for future work._
 
 ## Completed
 
