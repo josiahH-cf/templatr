@@ -19,7 +19,6 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from pathlib import Path
 
-from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QApplication
 

@@ -78,7 +78,6 @@ class TestCheckDocs:
 
         # Import and run with patched REPO_ROOT
         import importlib
-        import sys
 
         spec = importlib.util.spec_from_file_location(
             "check_docs",
