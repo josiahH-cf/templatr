@@ -21,8 +21,6 @@
 - Search history by content or date
 
 ### Multi-Model Comparison
-- Run the same prompt against multiple local models side-by-side
-- Compare output quality, speed, and token usage
 
 ### Keyboard Shortcuts
 - Add configurable keyboard shortcuts for common actions
@@ -49,6 +47,8 @@ Specs are ordered by dependency chain. Items marked ✅ are complete.
 11. ✅ **slash-commands** — Extended `/` command system: /help, trigger aliases, enhanced palette UI (deps: chat-ui-core ✅; core slash mechanism already in chat-ui-core)
 12. ✅ **template-authoring-workflow** — `/new`, import/export (deps: slash-commands)
 13. ✅ **documentation-overhaul** — Per-OS docs, CONTRIBUTING (deps: cross-platform-packaging, chat-ui-core)
+
+14. ✅ **multi-model-comparison** — Run prompt against multiple local models, compare output quality, speed, and token usage (deps: chat-ui-core, slash-commands)
 
 ## Active
 
