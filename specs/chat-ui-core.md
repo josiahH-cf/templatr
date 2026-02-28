@@ -15,6 +15,8 @@ Replace the 3-pane splitter layout with a single-pane conversational chat interf
 - [ ] The template sidebar is collapsible and defaults to hidden; toggled via a hamburger/panel button or `Ctrl+B` keyboard shortcut
 - [ ] Chat history persists for the current session and is cleared on app restart (no cross-session persistence)
 - [ ] A "Copy" button on each AI response copies the raw Markdown source, not the rendered HTML
+- [ ] Typing `/` in the chat input opens a filterable template palette (slash-commands pulled forward)
+- [ ] Selecting a template with variables shows a compact inline variable form above the text input (no popup)
 
 ## Affected Areas
 

@@ -233,6 +233,63 @@ QToolTip {
     border: 1px solid #3c3c3c;
     padding: 4px;
 }
+
+/* Chat UI — message bubbles */
+QFrame#user_bubble {
+    background-color: #264f78;
+    border-radius: 8px;
+    margin: 4px 60px 4px 4px;
+}
+
+QFrame#ai_bubble {
+    background-color: #2d2d2d;
+    border-radius: 8px;
+    border: 1px solid #3c3c3c;
+    margin: 4px 4px 4px 60px;
+}
+
+QFrame#error_bubble {
+    background-color: #3c1f1f;
+    border: 1px solid #c42b1c;
+    border-radius: 8px;
+    margin: 4px;
+}
+
+/* Chat UI — input bar */
+QFrame#slash_input_bar {
+    background-color: transparent;
+    border: none;
+    border-top: 1px solid #3c3c3c;
+}
+
+/* Chat UI — inline variable form */
+QFrame#inline_var_form {
+    background-color: #252526;
+    border-top: 1px solid #3c3c3c;
+    border-bottom: 1px solid #3c3c3c;
+}
+
+/* Chat UI — template palette */
+QFrame#template_palette {
+    background-color: #252526;
+    border: 1px solid #3c3c3c;
+    border-radius: 4px;
+}
+
+/* Chat UI — sender label and placeholder */
+QLabel#bubble_sender {
+    color: #888888;
+    font-size: 11pt;
+}
+
+QLabel#chat_placeholder {
+    color: #555555;
+}
+
+QLabel#status_label {
+    color: #888888;
+    font-size: 11pt;
+}
 """
 
 # Light theme (for future use)

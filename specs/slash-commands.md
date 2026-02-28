@@ -38,6 +38,16 @@ Add a `/` command system to the chat input so users can discover and invoke temp
 
 - Spec: `chat-ui-core` — slash commands operate within the chat input widget
 
+## Note: Partial implementation in chat-ui-core
+
+The core slash-command mechanism (typing `/` to open a filterable template palette,
+inline variable form, keyboard navigation) was implemented as part of `chat-ui-core`
+in `templatr/ui/slash_input.py`. The remaining work for this spec is:
+
+- `/help` system command showing available commands
+- Template `trigger` field shortcut (`:code_review` syntax)
+- Enhanced palette UI: description, folder badge, recently-used at top
+
 ## Notes
 
 - UX reference: VSCode's command palette (`Ctrl+Shift+P`) — compact, filterable, keyboard-driven.

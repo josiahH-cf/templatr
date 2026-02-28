@@ -4,45 +4,63 @@
 
 ## Status
 
-- Total: 3
-- Complete: 0
-- Remaining: 3
+- Total: 5
+- Complete: 5
+- Remaining: 0
 
 ## Task List
 
-### Task 1: Chat widget and message bubble components
+### Task 1: Pin mistune dependency and write test stubs
 
-- **Files:** `templatr/ui/chat_widget.py` (new), `templatr/ui/message_bubble.py` (new), `tests/test_chat_widget.py` (new)
-- **Done when:** `ChatWidget` displays a scrolling list of message bubbles. `MessageBubble` renders user messages (visually distinct style) and AI messages (separate style with sender label and "Copy" button). Bubbles accept raw text for user messages and HTML for AI messages. Widget is testable with pytest-qt.
-- **Criteria covered:** Criterion 1 (chat thread), Criterion 2 (visual distinction), Criterion 7 (copy button on AI messages)
-- **Status:** [ ] Not started
+- **Files:** `pyproject.toml`, `tests/test_chat_widget.py` (new), `tests/test_slash_input.py` (new)
+- **Done when:** `mistune>=3.0,<4.0` pinned; test stubs exist and pass ruff; import fails with expected ModuleNotFoundError.
+- **Status:** [x] Complete
 
-### Task 2: Markdown rendering and streaming integration
+### Task 2: Implement MessageBubble and ChatWidget
 
-- **Files:** `templatr/ui/chat_widget.py` (Markdown→HTML pipeline), `templatr/ui/_generation.py` (redirect output to chat widget), `pyproject.toml` (add `mistune` dependency)
-- **Done when:** AI responses convert Markdown to styled HTML via `mistune` and render in QTextBrowser. Streaming tokens append to the current AI bubble in real-time. Scrolling stays at bottom only when user was already at bottom (no scroll-jump when reading above). Copy button extracts raw Markdown source, not rendered HTML.
-- **Criteria covered:** Criterion 3 (Markdown rendering), Criterion 4 (streaming without scroll-jump), Criterion 7 (copy raw Markdown)
-- **Status:** [ ] Not started
+- **Files:** `templatr/ui/message_bubble.py` (new), `templatr/ui/chat_widget.py` (new)
+- **Done when:** `MessageBubble` renders user (right-aligned plain text) and AI (QTextBrowser Markdown→HTML via mistune) bubbles; Copy button emits raw Markdown; `ChatWidget` scroll-guard prevents jump when user has scrolled up; all 20 tests in `test_chat_widget.py` pass.
+- **Criteria covered:** 1 (chat thread), 2 (visual distinction), 3 (Markdown rendering), 4 (streaming without scroll-jump), 7 (copy raw Markdown)
+- **Status:** [x] Complete
 
-### Task 3: Layout swap, collapsible sidebar, and theme
+### Task 3: Implement SlashInputWidget
 
-- **Files:** `templatr/ui/main_window.py` (replace 3-pane with chat layout), `templatr/ui/theme.py` (chat-specific styles: bubble colors, code block backgrounds), `templatr/ui/template_tree.py` (make collapsible)
-- **Done when:** Main window shows chat widget as the central area. Template tree sidebar is collapsible, defaults to hidden, toggles via button or `Ctrl+B`. Theme includes chat bubble styles for dark and light modes. The old 3-pane widgets (`output_pane.py`, `variable_form.py`) remain in the codebase but are no longer instantiated by default.
-- **Criteria covered:** Criterion 5 (collapsible sidebar), Criterion 6 (session-only history, cleared on restart)
-- **Status:** [ ] Not started
+- **Files:** `templatr/ui/slash_input.py` (new), `tests/test_slash_input.py` (updated for widget.show())
+- **Done when:** `_TemplatePalette` filters and navigates with keyboard; `_InlineVariableForm` appears inline when template has variables; `SlashInputWidget` emits `template_submitted` or `plain_submitted`; all 16 tests pass.
+- **Criteria covered:** 8 (/ palette), 9 (inline variable form)
+- **Status:** [x] Complete
+
+### Task 4: Wire generation flow and layout swap
+
+- **Files:** `templatr/ui/_generation.py`, `templatr/ui/main_window.py`, `templatr/ui/_template_actions.py`, `tests/test_smoke.py`, `tests/test_decoupling.py`, `tests/test_responsive_layout.py`, `tests/test_cross_platform_packaging.py`
+- **Done when:** `_generate(prompt: str)` streams to `ChatWidget`; 2-pane layout replaces 3-pane; sidebar defaults hidden with Ctrl+B toggle; `self.variable_form = None`; all 208 tests pass.
+- **Criteria covered:** 5 (collapsible sidebar), 6 (session-only history)
+- **Status:** [x] Complete
+
+### Task 5: Theme CSS and spec/task doc updates
+
+- **Files:** `templatr/ui/theme.py`, `specs/chat-ui-core.md`, `specs/slash-commands.md`, `tasks/chat-ui-core.md`, `tasks/roadmap-v1.1.md`
+- **Done when:** Chat bubble CSS added to dark theme; spec/task docs updated; all acceptance criteria marked; ruff + pytest clean.
+- **Criteria covered:** All (styling and documentation)
+- **Status:** [x] Complete
 
 ## Test Strategy
 
 | Criterion | Tested in Task |
 |-----------|---------------|
-| 1. Chat thread displays | Task 1 (test: add messages, verify widget count and layout) |
-| 2. Visual distinction | Task 1 (test: verify user vs AI bubble have different style properties) |
-| 3. Markdown rendering | Task 2 (test: send Markdown text, verify HTML output contains `<h1>`, `<code>`, `<strong>`) |
-| 4. Streaming without scroll-jump | Task 2 (test: scroll up, append tokens, verify scroll position unchanged) |
-| 5. Collapsible sidebar | Task 3 (test: toggle sidebar, verify visibility state and Ctrl+B shortcut) |
-| 6. Session-only history | Task 3 (test: add messages, no persistence file created, widget starts empty) |
-| 7. Copy raw Markdown | Task 1 + Task 2 (test: click copy, verify clipboard contains Markdown not HTML) |
+| 1. Chat thread displays | Task 2 |
+| 2. Visual distinction | Task 2 |
+| 3. Markdown rendering | Task 2 |
+| 4. Streaming without scroll-jump | Task 2 |
+| 5. Collapsible sidebar | Task 4 |
+| 6. Session-only history | Task 4 (no persistence file created) |
+| 7. Copy raw Markdown | Task 2 |
+| 8. / palette | Task 3 |
+| 9. Inline variable form | Task 3 |
 
 ## Session Log
 
-<!-- Append after each session: date, completed, blockers -->
+- 2026-02-28: Implemented all 5 tasks. 208 tests passing, zero lint errors.
+  Layout replaced: 3-pane (tree/form/output) → 2-pane (sidebar toggle + chat+input).
+  Slash-commands core pulled forward into slash_input.py.
+  mistune 3.2.0 added for Markdown→HTML rendering in QTextBrowser.
