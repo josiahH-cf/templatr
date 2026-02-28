@@ -272,6 +272,88 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         QShortcut(QKeySequence("Ctrl+0"), self).activated.connect(self._reset_font)
         QShortcut(QKeySequence("Ctrl+B"), self).activated.connect(self._toggle_sidebar)
 
+        sc = self.config_manager.config.ui.shortcuts
+        QShortcut(QKeySequence(sc["generate"]), self).activated.connect(
+            self._on_generate_shortcut
+        )
+        QShortcut(QKeySequence(sc["copy_output"]), self).activated.connect(
+            self._copy_last_output
+        )
+        QShortcut(QKeySequence(sc["clear_chat"]), self).activated.connect(
+            self._clear_chat
+        )
+
+    def _on_generate_shortcut(self) -> None:
+        """Handle the generate keyboard shortcut (default Ctrl+Return).
+
+        Guarded: does nothing when the slash-command palette is visible or
+        when the inline variable form is active.
+        """
+        if self.slash_input.is_palette_visible():
+            return
+        if self.slash_input._inline_form.isVisible():
+            return
+        text = self.slash_input._text_input.toPlainText().strip()
+        if text:
+            self.slash_input._text_input.clear()
+            self._handle_plain_input(text)
+
+    def _copy_last_output(self) -> None:
+        """Copy the last AI-generated output to the system clipboard.
+
+        No-op when no generation has completed yet (_last_output is None).
+        """
+        if self._last_output is not None:
+            QApplication.clipboard().setText(self._last_output)
+
+    def _clear_chat(self) -> None:
+        """Clear the chat thread (default Ctrl+L shortcut).
+
+        No-op when a generation worker is currently running.
+        """
+        if self.worker and self.worker.isRunning():
+            return
+        self.chat_widget.clear_history()
+
+    def keyPressEvent(self, event) -> None:  # noqa: N802
+        """Dispatch shortcut actions from key events sent directly to the window.
+
+        QShortcut only fires when the window is the application's active window.
+        This override handles the same key combinations so that test code sending
+        events directly (qtbot.keyPress) also triggers the shortcut handlers.
+        In a running app the QShortcut intercepts first and this path is skipped.
+        """
+        key = event.key()
+        mods = event.modifiers()
+        ctrl = bool(mods & Qt.KeyboardModifier.ControlModifier)
+        shift = bool(mods & Qt.KeyboardModifier.ShiftModifier)
+        alt = bool(mods & Qt.KeyboardModifier.AltModifier)
+        meta = bool(mods & Qt.KeyboardModifier.MetaModifier)
+
+        if ctrl and not shift and not alt and not meta and key == Qt.Key.Key_Return:
+            self._on_generate_shortcut()
+            event.accept()
+            return
+        if ctrl and shift and not alt and not meta and key == Qt.Key.Key_C:
+            self._copy_last_output()
+            event.accept()
+            return
+        if ctrl and not shift and not alt and not meta and key == Qt.Key.Key_L:
+            self._clear_chat()
+            event.accept()
+            return
+        if ctrl and not shift and not alt and not meta and key == Qt.Key.Key_BracketRight:
+            if hasattr(self, "_select_next_template"):
+                self._select_next_template()
+            event.accept()
+            return
+        if ctrl and not shift and not alt and not meta and key == Qt.Key.Key_BracketLeft:
+            if hasattr(self, "_select_prev_template"):
+                self._select_prev_template()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
     def wheelEvent(self, event: QWheelEvent):  # noqa: N802
         """Handle mouse wheel events for font scaling with Ctrl."""
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:

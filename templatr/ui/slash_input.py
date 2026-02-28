@@ -250,6 +250,17 @@ class SlashInputWidget(QWidget):
         else:
             self._status_label.setText("")
 
+    def is_palette_visible(self) -> bool:
+        """Return True if the command palette is currently visible.
+
+        Used by MainWindow to guard keyboard shortcuts that must not fire
+        while the user is navigating the template palette.
+
+        Returns:
+            True if the palette is open.
+        """
+        return self._palette.isVisible()
+
     # -- Internal slots ------------------------------------------------------
 
     def _on_text_changed(self) -> None:
