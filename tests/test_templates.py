@@ -249,3 +249,69 @@ def test_load_template_with_unknown_fields(tmp_path: Path) -> None:
     assert template.name == "Legacy Template"
     # The trigger field is preserved as a passthrough
     assert template.trigger == ":legacy"
+
+
+# ---------------------------------------------------------------------------
+# 10. search_templates — ranked prefix/substring matching
+# ---------------------------------------------------------------------------
+
+
+def test_search_templates_empty_query_returns_all(tmp_templates_dir: Path) -> None:
+    """search_templates('') returns all templates, sorted by name."""
+    mgr = TemplateManager(templates_dir=tmp_templates_dir)
+    results = mgr.search_templates("")
+    assert len(results) == 3
+    # Should be sorted alphabetically
+    assert results[0].name == "Code Review"
+    assert results[1].name == "Simple Greeting"
+    assert results[2].name == "Summarize Text"
+
+
+def test_search_templates_prefix_match_ranked_first(tmp_templates_dir: Path) -> None:
+    """Templates whose name starts with the query rank before substring matches."""
+    mgr = TemplateManager(templates_dir=tmp_templates_dir)
+    results = mgr.search_templates("sim")
+    # "Simple Greeting" starts with "sim", so it should be first (or only)
+    assert len(results) >= 1
+    assert results[0].name == "Simple Greeting"
+
+
+def test_search_templates_substring_match(tmp_templates_dir: Path) -> None:
+    """Templates containing query as a substring are included."""
+    mgr = TemplateManager(templates_dir=tmp_templates_dir)
+    results = mgr.search_templates("text")
+    names = [t.name for t in results]
+    assert "Summarize Text" in names
+
+
+def test_search_templates_case_insensitive(tmp_templates_dir: Path) -> None:
+    """Search is case-insensitive."""
+    mgr = TemplateManager(templates_dir=tmp_templates_dir)
+    results_lower = mgr.search_templates("code")
+    results_upper = mgr.search_templates("CODE")
+    assert len(results_lower) == len(results_upper)
+    assert {t.name for t in results_lower} == {t.name for t in results_upper}
+
+
+def test_search_templates_no_match(tmp_templates_dir: Path) -> None:
+    """search_templates returns empty list when nothing matches."""
+    mgr = TemplateManager(templates_dir=tmp_templates_dir)
+    results = mgr.search_templates("zzzznonexistent")
+    assert results == []
+
+
+def test_search_templates_matches_trigger(tmp_templates_dir: Path) -> None:
+    """search_templates also matches against the template trigger field."""
+    mgr = TemplateManager(templates_dir=tmp_templates_dir)
+    # "Code Review" has trigger ":review" in the fixture
+    results = mgr.search_templates("review")
+    names = [t.name for t in results]
+    assert "Code Review" in names
+
+
+def test_search_templates_matches_description(tmp_templates_dir: Path) -> None:
+    """search_templates matches against description as a fallback."""
+    mgr = TemplateManager(templates_dir=tmp_templates_dir)
+    results = mgr.search_templates("quality")
+    names = [t.name for t in results]
+    assert "Code Review" in names

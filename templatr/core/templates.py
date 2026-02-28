@@ -420,6 +420,67 @@ class TemplateManager:
 
         return sorted(templates, key=lambda t: t.name.lower())
 
+    def search_templates(self, query: str) -> List[Template]:
+        """Search templates by name, trigger, or description.
+
+        Returns templates ranked by relevance:
+        1. Exact name prefix match (case-insensitive)
+        2. Name substring match
+        3. Trigger match (without ':' prefix)
+        4. Description substring match
+
+        An empty query returns all templates sorted by name (same as list_all).
+
+        Args:
+            query: Search string to match against templates.
+
+        Returns:
+            List of matching Template objects, ordered by relevance.
+        """
+        all_templates = self.list_all()
+        if not query:
+            return all_templates
+
+        query_lower = query.lower()
+        # Strip leading ':' from query for trigger matching
+        trigger_query = query_lower.lstrip(":")
+
+        prefix_matches: List[Template] = []
+        name_substring: List[Template] = []
+        trigger_matches: List[Template] = []
+        desc_matches: List[Template] = []
+        seen: set = set()
+
+        for t in all_templates:
+            name_lower = t.name.lower()
+            trig_lower = t.trigger.lower().lstrip(":") if t.trigger else ""
+            desc_lower = t.description.lower() if t.description else ""
+
+            if name_lower.startswith(query_lower):
+                prefix_matches.append(t)
+                seen.add(id(t))
+            elif query_lower in name_lower:
+                name_substring.append(t)
+                seen.add(id(t))
+
+        for t in all_templates:
+            if id(t) in seen:
+                continue
+            trig_lower = t.trigger.lower().lstrip(":") if t.trigger else ""
+            if trig_lower and trigger_query in trig_lower:
+                trigger_matches.append(t)
+                seen.add(id(t))
+
+        for t in all_templates:
+            if id(t) in seen:
+                continue
+            desc_lower = t.description.lower() if t.description else ""
+            if query_lower in desc_lower:
+                desc_matches.append(t)
+                seen.add(id(t))
+
+        return prefix_matches + name_substring + trigger_matches + desc_matches
+
     def load(self, path: Path) -> Optional[Template]:
         """Load a template from a JSON file.
 
