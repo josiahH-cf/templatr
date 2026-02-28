@@ -1,8 +1,9 @@
 """Mixin providing template CRUD orchestration for MainWindow."""
 
+from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtWidgets import QInputDialog, QMessageBox
+from PyQt6.QtWidgets import QFileDialog, QInputDialog, QMessageBox
 
 from templatr.core.config import get_config, save_config
 from templatr.core.templates import Template, get_template_manager
@@ -76,6 +77,94 @@ class TemplateActionsMixin:
             self._active_flow = None
 
         return True
+
+    def _export_template(self):
+        """Export the currently selected template as a JSON file."""
+        if not self.current_template:
+            self.chat_widget.add_system_message(
+                "Select a template first, then use `/export`."
+            )
+            return
+
+        suggested = self.current_template.filename
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Template",
+            suggested,
+            "JSON files (*.json)",
+        )
+        if not path:
+            return
+
+        manager = get_template_manager()
+        try:
+            manager.export_template(self.current_template, Path(path))
+            self.status_bar.showMessage(
+                f"Exported '{self.current_template.name}'", 3000
+            )
+        except OSError as exc:
+            QMessageBox.critical(
+                self, "Export Failed", f"Could not export template: {exc}"
+            )
+
+    def _import_template(self):
+        """Open a file picker and import a template from a JSON file."""
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Import Template",
+            "",
+            "JSON files (*.json)",
+        )
+        if not path:
+            return
+        self._handle_import_file(Path(path))
+
+    def _handle_import_file(self, path: Path) -> None:
+        """Import a template from *path*, handling conflicts.
+
+        Shared by ``/import`` and drag-and-drop.
+
+        Args:
+            path: Path to the ``.json`` file to import.
+        """
+        manager = get_template_manager()
+        try:
+            template, conflict = manager.import_template(path)
+        except ValueError as exc:
+            QMessageBox.warning(
+                self, "Import Failed", str(exc)
+            )
+            return
+
+        if conflict:
+            reply = QMessageBox.question(
+                self,
+                "Name Conflict",
+                f"A template named '{template.name}' already exists.\n\n"
+                "Would you like to overwrite it?",
+                QMessageBox.StandardButton.Yes
+                | QMessageBox.StandardButton.No
+                | QMessageBox.StandardButton.Cancel,
+            )
+            if reply == QMessageBox.StandardButton.Cancel:
+                return
+            if reply == QMessageBox.StandardButton.No:
+                new_name, ok = QInputDialog.getText(
+                    self, "Rename Template",
+                    "Enter a new name for the imported template:",
+                )
+                if not ok or not new_name.strip():
+                    return
+                template.name = new_name.strip()
+
+        manager.save(template)
+        self.template_tree_widget.load_templates()
+        templates = self.template_manager.list_all()
+        self.slash_input.set_templates(templates)
+        self.template_tree_widget.select_template_by_name(template.name)
+        self.status_bar.showMessage(
+            f"Imported '{template.name}'", 3000
+        )
 
     def _edit_template(self, template: Optional[Template] = None):
         """Edit the given or currently selected template."""

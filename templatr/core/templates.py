@@ -626,6 +626,67 @@ class TemplateManager:
         self.save(template)
         return template
 
+    def export_template(self, template: Template, path: Path) -> Path:
+        """Export a template to a standalone JSON file.
+
+        Writes the template data without the internal ``_path`` field so the
+        file is portable across installations.
+
+        Args:
+            template: Template to export.
+            path: Destination file path.
+
+        Returns:
+            The path written to.
+
+        Raises:
+            OSError: If the file cannot be written.
+        """
+        data = template.to_dict()
+        data.pop("_path", None)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        return path
+
+    def import_template(self, path: Path) -> tuple:
+        """Import a template from a JSON file without saving.
+
+        Reads and validates the file, checks for name conflicts, and returns
+        the parsed template along with a conflict flag.  The caller is
+        responsible for resolving conflicts and calling :meth:`save`.
+
+        Args:
+            path: Path to the JSON file to import.
+
+        Returns:
+            A ``(template, conflict_exists)`` tuple.
+
+        Raises:
+            ValueError: If the file is not valid JSON or is missing required
+                fields (``name`` and ``content``).
+        """
+        try:
+            raw = path.read_text(encoding="utf-8")
+            data = json.loads(raw)
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise ValueError(f"Invalid JSON in {path.name}: {exc}") from exc
+
+        if not isinstance(data, dict):
+            raise ValueError(f"Invalid JSON structure in {path.name}: expected object")
+
+        if "name" not in data or not data["name"]:
+            raise ValueError(
+                f"Missing required field 'name' in {path.name}"
+            )
+        if "content" not in data or not data["content"]:
+            raise ValueError(
+                f"Missing required field 'content' in {path.name}"
+            )
+
+        template = Template.from_dict(data)
+        conflict = self.get(template.name) is not None
+        return template, conflict
+
     def list_folders(self) -> List[str]:
         """List all category folders.
 

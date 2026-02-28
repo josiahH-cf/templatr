@@ -1,12 +1,15 @@
 """Main window for Templatr GUI."""
 
 import sys
+from pathlib import Path
 from typing import Optional
 
 from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import (
     QAction,
     QDesktopServices,
+    QDragEnterEvent,
+    QDropEvent,
     QFont,
     QKeySequence,
     QResizeEvent,
@@ -88,6 +91,8 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
 
         # Active conversational flow (e.g., /new quick-create)
         self._active_flow = None
+
+        self.setAcceptDrops(True)
 
         self._setup_menu_bar()
         self._setup_ui()
@@ -451,6 +456,38 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         if self._handle_flow_input(text):
             return
         self._generate(text)
+
+    # ------------------------------------------------------------------
+    # Drag-and-drop import
+    # ------------------------------------------------------------------
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+        """Accept drag events that contain at least one ``.json`` file URL.
+
+        Args:
+            event: The drag-enter event.
+        """
+        if event.mimeData() and event.mimeData().hasUrls():
+            for url in event.mimeData().urls():
+                if url.toLocalFile().endswith(".json"):
+                    event.acceptProposedAction()
+                    return
+        super().dragEnterEvent(event)
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        """Import each dropped ``.json`` file as a template.
+
+        Args:
+            event: The drop event.
+        """
+        if event.mimeData() and event.mimeData().hasUrls():
+            for url in event.mimeData().urls():
+                local = url.toLocalFile()
+                if local.endswith(".json"):
+                    self._handle_import_file(Path(local))
+            event.acceptProposedAction()
+            return
+        super().dropEvent(event)
 
 
 def run_gui() -> int:

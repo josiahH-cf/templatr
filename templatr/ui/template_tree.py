@@ -4,6 +4,7 @@ from typing import Optional
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
+    QFileDialog,
     QHBoxLayout,
     QInputDialog,
     QLabel,
@@ -29,6 +30,7 @@ class TemplateTreeWidget(QWidget):
     template_selected = pyqtSignal(object)
     folder_selected = pyqtSignal()
     edit_requested = pyqtSignal(object)
+    export_requested = pyqtSignal(object)
     improve_requested = pyqtSignal(object)
     version_history_requested = pyqtSignal(object)
     template_deleted = pyqtSignal(str)
@@ -203,6 +205,11 @@ class TemplateTreeWidget(QWidget):
                 lambda: self.improve_requested.emit(template)
             )
 
+            export_action = menu.addAction("Export...")
+            export_action.triggered.connect(
+                lambda: self._export_template(template)
+            )
+
             manager = get_template_manager()
             versions = manager.list_versions(template)
             if versions:
@@ -228,6 +235,33 @@ class TemplateTreeWidget(QWidget):
         """Emit edit_requested for the currently selected template."""
         if self._current_template:
             self.edit_requested.emit(self._current_template)
+
+    def _export_template(self, template: Template) -> None:
+        """Open a save dialog and export the template as JSON.
+
+        Args:
+            template: The template to export.
+        """
+        suggested = f"{template.filename}"
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Template",
+            suggested,
+            "JSON files (*.json)",
+        )
+        if not path:
+            return
+
+        from pathlib import Path as _Path
+
+        manager = get_template_manager()
+        try:
+            manager.export_template(template, _Path(path))
+            self.status_message.emit(f"Exported '{template.name}'", 3000)
+        except OSError as exc:
+            QMessageBox.critical(
+                self, "Export Failed", f"Could not export template: {exc}"
+            )
 
     def _new_folder(self):
         """Prompt user to create a new template folder."""
