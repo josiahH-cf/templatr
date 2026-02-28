@@ -78,11 +78,8 @@ def test_filter_narrows_results(qtbot):
 
     # Palette should be visible and filtered
     assert widget._palette.isVisible()
-    visible_names = [
-        widget._palette._list.item(i).text()
-        for i in range(widget._palette._list.count())
-        if widget._palette._list.item(i).isHidden() is False
-    ]
+    visible = widget._palette.visible_items()
+    visible_names = [item.name for item in visible]
     assert any("code" in name.lower() for name in visible_names)
     assert not any("quick note" in name.lower() for name in visible_names)
 
@@ -306,3 +303,175 @@ def test_set_generating_false_respects_llm_ready_state(qtbot):
     widget.set_generating(False)
     # LLM not ready, so Send must stay disabled
     assert not widget._send_btn.isEnabled()
+
+
+# -- Trigger shortcut tests --------------------------------------------------
+
+
+def _make_template_with_trigger():
+    """Template with a :trigger alias."""
+    return Template(
+        name="Code Review",
+        content="Review this code:\n\n{{code}}\n\nFocus on: {{focus}}",
+        description="Code review template",
+        trigger=":review",
+        variables=[
+            Variable(name="code", label="Code", multiline=True),
+            Variable(name="focus", label="Focus Area", default="correctness"),
+        ],
+    )
+
+
+def test_typing_colon_trigger_shows_palette(qtbot):
+    """Typing ':review' shows the palette with matching trigger templates."""
+    widget = SlashInputWidget()
+    qtbot.addWidget(widget)
+    widget.show()
+    widget.set_templates([_make_template_with_trigger(), _make_template_no_vars()])
+
+    qtbot.keyClicks(widget._text_input, ":review")
+
+    assert widget._palette.isVisible()
+
+
+def test_colon_trigger_filters_to_matching_templates(qtbot):
+    """Typing ':review' shows only templates whose trigger matches."""
+    widget = SlashInputWidget()
+    qtbot.addWidget(widget)
+    widget.show()
+    widget.set_templates([_make_template_with_trigger(), _make_template_no_vars()])
+
+    qtbot.keyClicks(widget._text_input, ":review")
+
+    visible = widget._palette.visible_items()
+    names = {item.name for item in visible}
+    assert "Code Review" in names
+
+
+def test_colon_trigger_selection_follows_same_flow(qtbot):
+    """Selecting from :trigger palette follows the same variable form flow as /."""
+    widget = SlashInputWidget()
+    qtbot.addWidget(widget)
+    widget.show()
+    tpl = _make_template_with_trigger()
+    widget.set_templates([tpl])
+
+    # Simulate choosing template from palette
+    widget._on_template_chosen(tpl)
+
+    assert widget._inline_form.isVisible()
+
+
+# -- Recently-used tests -----------------------------------------------------
+
+
+def test_recently_used_tracked_on_submit(qtbot):
+    """After submitting a template, its name is added to recent templates."""
+    widget = SlashInputWidget()
+    qtbot.addWidget(widget)
+    tpl = _make_template_no_vars()
+    widget.set_templates([tpl])
+
+    widget._on_template_chosen(tpl)
+
+    assert tpl.name in widget._recent_templates
+
+
+def test_recently_used_shown_first_in_palette(qtbot):
+    """Recently-used templates appear first when palette is shown unfiltered."""
+    widget = SlashInputWidget()
+    qtbot.addWidget(widget)
+    widget.show()
+    quick = _make_template_no_vars()
+    review = _make_template_with_vars()
+    widget.set_templates([quick, review])
+
+    # Submit quick note so it becomes recently used
+    widget._on_template_chosen(quick)
+
+    # Now open palette with /
+    qtbot.keyClicks(widget._text_input, "/")
+
+    visible = widget._palette.visible_items()
+    assert len(visible) >= 2
+    assert visible[0].name == quick.name
+
+
+# -- System command tests (slash-commands Task 3) ----------------------------
+
+
+def test_slash_help_emits_system_command(qtbot):
+    """Typing '/help' and selecting shows system command, emitting system_command signal."""
+    widget = SlashInputWidget()
+    qtbot.addWidget(widget)
+    widget.show()
+    widget.set_templates([_make_template_no_vars()])
+
+    # Directly invoke the help system command handler
+    from templatr.ui.command_palette import PaletteItem
+
+    help_item = PaletteItem(name="/help", description="Show available commands", payload="cmd:help")
+    with qtbot.waitSignal(widget.system_command, timeout=1000) as sig:
+        widget._on_palette_item_chosen(help_item)
+
+    assert sig.args[0] == "help"
+
+
+def test_system_commands_appear_in_palette(qtbot):
+    """System commands appear in the palette when typing '/'."""
+    widget = SlashInputWidget()
+    qtbot.addWidget(widget)
+    widget.show()
+    widget.set_templates([_make_template_no_vars()])
+
+    qtbot.keyClicks(widget._text_input, "/")
+
+    visible = widget._palette.visible_items()
+    names = {item.name for item in visible}
+    assert "/help" in names
+
+
+def test_slash_help_filter(qtbot):
+    """Typing '/he' filters palette to show /help system command."""
+    widget = SlashInputWidget()
+    qtbot.addWidget(widget)
+    widget.show()
+    widget.set_templates([_make_template_no_vars()])
+
+    qtbot.keyClicks(widget._text_input, "/he")
+
+    visible = widget._palette.visible_items()
+    names = {item.name for item in visible}
+    assert "/help" in names
+
+
+def test_system_command_settings(qtbot):
+    """Selecting /settings emits system_command('settings')."""
+    widget = SlashInputWidget()
+    qtbot.addWidget(widget)
+    widget.show()
+    widget.set_templates([])
+
+    from templatr.ui.command_palette import PaletteItem
+
+    settings_item = PaletteItem(name="/settings", description="LLM settings", payload="cmd:settings")
+    with qtbot.waitSignal(widget.system_command, timeout=1000) as sig:
+        widget._on_palette_item_chosen(settings_item)
+
+    assert sig.args[0] == "settings"
+
+
+def test_variable_fill_flow_after_palette_selection(qtbot):
+    """Selecting a template with vars from palette shows variable form (regression test)."""
+    widget = SlashInputWidget()
+    qtbot.addWidget(widget)
+    widget.show()
+    with_vars = _make_template_with_vars()
+    widget.set_templates([with_vars])
+
+    from templatr.ui.command_palette import PaletteItem
+
+    item = PaletteItem(name=with_vars.name, description=with_vars.description, payload=with_vars)
+    widget._on_palette_item_chosen(item)
+
+    assert widget._inline_form.isVisible()

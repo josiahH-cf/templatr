@@ -1,9 +1,11 @@
-"""Slash input bar with template command palette and inline variable form.
+"""Slash input bar with command palette and inline variable form.
 
 Provides SlashInputWidget, a compound input area that:
-- Intercepts '/' to show a filterable template palette
+- Intercepts '/' to show a filterable command palette with templates and system commands
+- Intercepts ':' to match template trigger shortcuts
 - Shows a compact inline variable form when a template with variables is selected
 - Emits rendered prompts for LLM generation or plain text for pass-through
+- Tracks recently-used templates for quick re-access
 """
 
 from __future__ import annotations
@@ -16,8 +18,6 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QListWidget,
-    QListWidgetItem,
     QPlainTextEdit,
     QPushButton,
     QSizePolicy,
@@ -25,112 +25,19 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from templatr.ui.command_palette import CommandPalette, PaletteItem
+
 if TYPE_CHECKING:
     from templatr.core.templates import Template
 
-
-class _TemplatePalette(QFrame):
-    """Filterable template list anchored above the input bar.
-
-    Positioned as a child of SlashInputWidget, not a floating dialog,
-    to avoid z-order issues. Keyboard navigation: Up/Down to move,
-    Enter to confirm, Escape to dismiss.
-
-    Attributes:
-        template_chosen: Signal emitted with the selected Template.
-        dismissed: Signal emitted when the palette is closed without selection.
-    """
-
-    template_chosen = pyqtSignal(object)  # emits Template
-    dismissed = pyqtSignal()
-
-    def __init__(self, parent: QWidget) -> None:
-        """Initialize the palette as a hidden child of parent."""
-        super().__init__(parent)
-        self.setObjectName("template_palette")
-        self._templates: list[Template] = []
-        self._setup_ui()
-        self.hide()
-
-    def populate(self, templates: list[Template]) -> None:
-        """Set the full template list (called once at startup).
-
-        Args:
-            templates: All known templates.
-        """
-        self._templates = templates
-        self._list.clear()
-        for t in templates:
-            item = QListWidgetItem(t.name)
-            item.setData(Qt.ItemDataRole.UserRole, t)
-            self._list.addItem(item)
-
-    def filter(self, query: str) -> None:
-        """Filter displayed templates to those matching query (case-insensitive).
-
-        Args:
-            query: Substring to match against template names.
-        """
-        query_lower = query.lower()
-        for i in range(self._list.count()):
-            item = self._list.item(i)
-            item.setHidden(query_lower not in item.text().lower())
-
-        # Auto-select first visible item.
-        for i in range(self._list.count()):
-            item = self._list.item(i)
-            if not item.isHidden():
-                self._list.setCurrentItem(item)
-                break
-
-    def keyPressEvent(self, event) -> None:  # noqa: N802
-        """Forward arrow/enter/escape keys for palette navigation.
-
-        Args:
-            event: QKeyEvent from the parent input field.
-        """
-        key = event.key()
-        if key == Qt.Key.Key_Escape:
-            self.dismissed.emit()
-        elif key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-            self._confirm_selection()
-        elif key == Qt.Key.Key_Up:
-            current = self._list.currentRow()
-            if current > 0:
-                self._list.setCurrentRow(current - 1)
-        elif key == Qt.Key.Key_Down:
-            current = self._list.currentRow()
-            if current < self._list.count() - 1:
-                self._list.setCurrentRow(current + 1)
-        else:
-            super().keyPressEvent(event)
-
-    def _confirm_selection(self) -> None:
-        """Emit template_chosen for the currently highlighted item."""
-        item = self._list.currentItem()
-        if item and not item.isHidden():
-            template = item.data(Qt.ItemDataRole.UserRole)
-            self.template_chosen.emit(template)
-
-    def _on_item_activated(self, item: QListWidgetItem) -> None:
-        """Handle double-click or Enter on a list item.
-
-        Args:
-            item: The activated QListWidgetItem.
-        """
-        template = item.data(Qt.ItemDataRole.UserRole)
-        if template:
-            self.template_chosen.emit(template)
-
-    def _setup_ui(self) -> None:
-        """Build the palette layout."""
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(4, 4, 4, 4)
-        layout.setSpacing(0)
-
-        self._list = QListWidget()
-        self._list.itemActivated.connect(self._on_item_activated)
-        layout.addWidget(self._list)
+# System commands available via /command syntax
+SYSTEM_COMMANDS: list[PaletteItem] = [
+    PaletteItem(name="/help", description="Show available commands", payload="cmd:help"),
+    PaletteItem(name="/new", description="Create a new template", payload="cmd:new"),
+    PaletteItem(name="/import", description="Import a template", payload="cmd:import"),
+    PaletteItem(name="/export", description="Export a template", payload="cmd:export"),
+    PaletteItem(name="/settings", description="Open LLM settings", payload="cmd:settings"),
+]
 
 
 class _InlineVariableForm(QFrame):
@@ -279,23 +186,28 @@ class SlashInputWidget(QWidget):
 
     template_submitted = pyqtSignal(str)
     plain_submitted = pyqtSignal(str)
+    system_command = pyqtSignal(str)  # emits command id (e.g. "help", "settings")
+
+    MAX_RECENT = 5
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize the input bar with empty palette and hidden form."""
         super().__init__(parent)
         self._active_template: Template | None = None
         self._llm_ready = False
+        self._templates: list[Template] = []
+        self._recent_templates: list[str] = []
         self._setup_ui()
 
     # -- Public API ----------------------------------------------------------
 
     def set_templates(self, templates: list[Template]) -> None:
-        """Populate the palette with all known templates.
+        """Store templates for palette population on demand.
 
         Args:
             templates: All templates available for '/' selection.
         """
-        self._palette.populate(templates)
+        self._templates = list(templates)
 
     def set_llm_ready(self, ready: bool) -> None:
         """Enable or disable the Send button based on LLM server status.
@@ -337,12 +249,22 @@ class SlashInputWidget(QWidget):
     # -- Internal slots ------------------------------------------------------
 
     def _on_text_changed(self) -> None:
-        """Intercept text changes to show/update the palette on '/' prefix."""
+        """Intercept text changes to show/update the palette on '/' or ':' prefix."""
         text = self._text_input.toPlainText()
         if text.startswith("/"):
             query = text[1:]  # strip leading slash
             if not self._palette.isVisible():
                 self._show_palette()
+            items = self._build_palette_items(query, include_system=True)
+            self._palette.set_recent(self._recent_templates)
+            self._palette.populate(items)
+            self._palette.filter(query)
+        elif text.startswith(":"):
+            query = text[1:]  # strip leading colon
+            if not self._palette.isVisible():
+                self._show_palette()
+            items = self._build_trigger_items(query)
+            self._palette.populate(items)
             self._palette.filter(query)
         else:
             if self._palette.isVisible():
@@ -358,6 +280,7 @@ class SlashInputWidget(QWidget):
             template: The chosen Template.
         """
         self._active_template = template
+        self._track_recent(template.name)
         self._dismiss_palette()
 
         if not template.variables:
@@ -368,6 +291,24 @@ class SlashInputWidget(QWidget):
         else:
             self._text_input.setEnabled(False)
             self._inline_form.set_template(template)
+
+    def _on_palette_item_chosen(self, palette_item: PaletteItem) -> None:
+        """Handle selection of any item from the CommandPalette.
+
+        Routes to either template handling or system command dispatch.
+
+        Args:
+            palette_item: The chosen PaletteItem (template or system command).
+        """
+        payload = palette_item.payload
+        if isinstance(payload, str) and payload.startswith("cmd:"):
+            cmd_id = payload[4:]  # strip "cmd:" prefix
+            self._dismiss_palette()
+            self._text_input.clear()
+            self.system_command.emit(cmd_id)
+        else:
+            # payload is a Template object
+            self._on_template_chosen(payload)
 
     def _on_form_submitted(self, values: dict) -> None:
         """Render the active template with form values and emit template_submitted.
@@ -398,19 +339,96 @@ class SlashInputWidget(QWidget):
             self.plain_submitted.emit(text)
 
     def _show_palette(self) -> None:
-        """Position and show the template palette above the input field."""
-        self._palette.raise_()
-        # Size: up to 5 rows visible, fixed width matches parent
-        row_height = 26
-        visible_rows = min(5, self._palette._list.count() or 1)
-        palette_height = visible_rows * row_height + 10
-        self._palette.setGeometry(
-            0,
-            self.height() - palette_height - self._text_input.height() - 36,
-            self.width(),
-            palette_height,
-        )
-        self._palette.show()
+        """Position and show the command palette above the input field."""
+        self._palette.show_anchored(self._text_input)
+
+    def _build_palette_items(
+        self, query: str, *, include_system: bool = False
+    ) -> list[PaletteItem]:
+        """Build PaletteItem list from templates and optionally system commands.
+
+        Args:
+            query: Search query for filtering.
+            include_system: Whether to include system commands.
+
+        Returns:
+            Combined list of PaletteItems.
+        """
+        items: list[PaletteItem] = []
+
+        # Add system commands first
+        if include_system:
+            items.extend(SYSTEM_COMMANDS)
+
+        # Add templates
+        for t in self._templates:
+            items.append(
+                PaletteItem(
+                    name=t.name,
+                    description=t.description or "",
+                    folder=self._get_template_folder(t),
+                    payload=t,
+                )
+            )
+
+        return items
+
+    def _build_trigger_items(self, query: str) -> list[PaletteItem]:
+        """Build PaletteItem list by matching template trigger fields.
+
+        Args:
+            query: Trigger query (without leading ':').
+
+        Returns:
+            List of PaletteItems matching the trigger.
+        """
+        items: list[PaletteItem] = []
+        query_lower = query.lower()
+        for t in self._templates:
+            if t.trigger:
+                trigger_clean = t.trigger.lstrip(":")
+                if query_lower in trigger_clean.lower():
+                    items.append(
+                        PaletteItem(
+                            name=t.name,
+                            description=t.description or "",
+                            folder=self._get_template_folder(t),
+                            payload=t,
+                        )
+                    )
+        return items
+
+    def _get_template_folder(self, template: Template) -> str:
+        """Get the folder name for a template, if available.
+
+        Args:
+            template: The template to check.
+
+        Returns:
+            Folder name string, or empty string if in root/unknown.
+        """
+        if template._path:
+            from templatr.core.templates import get_templates_dir
+
+            try:
+                templates_dir = get_templates_dir()
+                parent = template._path.parent
+                if parent != templates_dir:
+                    return parent.name
+            except Exception:
+                pass
+        return ""
+
+    def _track_recent(self, name: str) -> None:
+        """Add a template name to the recently-used list.
+
+        Args:
+            name: Template name to track.
+        """
+        if name in self._recent_templates:
+            self._recent_templates.remove(name)
+        self._recent_templates.insert(0, name)
+        self._recent_templates = self._recent_templates[: self.MAX_RECENT]
 
     def _dismiss_palette(self) -> None:
         """Hide the palette and clear the slash-command state."""
@@ -507,9 +525,9 @@ class SlashInputWidget(QWidget):
         bottom_row.addWidget(self._send_btn)
         outer.addLayout(bottom_row)
 
-        # Template palette (child widget, positioned absolutely)
-        self._palette = _TemplatePalette(self)
-        self._palette.template_chosen.connect(self._on_template_chosen)
+        # Command palette (child widget, positioned absolutely)
+        self._palette = CommandPalette(self)
+        self._palette.item_chosen.connect(self._on_palette_item_chosen)
         self._palette.dismissed.connect(self._on_palette_dismissed)
 
     def _on_palette_dismissed(self) -> None:
