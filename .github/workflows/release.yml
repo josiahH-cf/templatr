@@ -18,13 +18,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  ci:
+  ci_gate:
     uses: ./.github/workflows/ci.yml
     timeout-minutes: 15
 
   build:
     name: Build ${{ matrix.label }}
-    needs: ci
+    needs: ci_gate
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
@@ -103,7 +103,7 @@ jobs:
 
   release:
     name: Publish release
-    needs: [ci, build]
+    needs: [ci_gate, build]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
