@@ -2,64 +2,42 @@
 
 ## Description
 
-Run the same prompt multiple times (against the same model or across models) and display the outputs side-by-side for comparison, scoring, and ranking. The existing `/compare` command compares *different models* on a single run each. This feature extends that with same-model variance analysis: run N iterations, view outputs together, star the best one, and optionally record the winner to history. This helps users evaluate prompt quality and model consistency.
+Users currently have no way to evaluate how *consistent* a model's output is for a given prompt. Running the same prompt once tells you what the model *can* produce, but not whether it produces it reliably. This feature lets users run a prompt multiple times, view all outputs together, and pick the best one — giving them a practical tool for evaluating prompt quality and model reliability before committing to a template.
 
 ## Acceptance Criteria
 
-- [ ] AC-1: A `/test` slash command accepts an optional iteration count and model selector: `/test [N] [model]`. Default N is 3, default model is the currently loaded model.
-- [ ] AC-2: The command runs the current prompt (or the last generated prompt if the input is just `/test`) N times sequentially against the target model, collecting each output.
-- [ ] AC-3: While the test is running, a progress message updates in the status bar ("Running iteration 2/3…") and the input bar shows the generating state.
-- [ ] AC-4: On completion, the results are displayed in the chat thread as a numbered list with output previews, latency per run, and estimated token counts — following the same summary format as `/compare`.
-- [ ] AC-5: An `ABTestResultsDialog` opens automatically (or via a "View Details" link in the summary) showing all N outputs side-by-side in scrollable panes with a "Pick Winner" button for each.
-- [ ] AC-6: Clicking "Pick Winner" marks that output as a favorite in `PromptHistoryStore` and closes the dialog. A system message confirms the selection.
-- [ ] AC-7: All N outputs are recorded in `PromptHistoryStore` as individual entries (same prompt, different outputs), so they appear in history.
-- [ ] AC-8: If the model is not running or N < 2, the command shows an appropriate error message in the chat thread.
-- [ ] AC-9: The test run can be cancelled mid-flight via the stop button (same as generation cancel), stopping after the current iteration completes.
-- [ ] AC-10: The `ABTestResultsDialog` is ≤ 300 lines.
-
-## Affected Areas
-
-### Source files modified
-- `templatr/ui/main_window.py` — Add `_handle_test_command()` to parse `/test` syntax, wire to worker, handle results. Register `/test` in `_on_system_command`.
-- `templatr/ui/slash_input.py` — Register `/test` in the command palette entries.
-- `templatr/ui/workers.py` — Add `ABTestWorker(QThread)` that runs the same prompt N times, collecting output + latency + token estimates per iteration. Reuses the existing `LLMClient.generate()` call.
-
-### New files
-- `templatr/ui/ab_test_results.py` — `ABTestResultsDialog` (QDialog): side-by-side output panes, "Pick Winner" buttons, latency/token display. ≤ 300 lines.
-- `tests/test_ab_testing.py` — Unit tests covering AC-1 through AC-10 with mocked LLM client.
-
-### Test files requiring updates
-- None expected — `/compare` tests are independent.
+- [ ] AC-1: A `/test` slash command runs the current prompt (or the last generated prompt) multiple times against the active model. It accepts an optional iteration count (default: 3) and optional model name.
+- [ ] AC-2: Iterations run sequentially, not in parallel. A progress indicator shows which iteration is running.
+- [ ] AC-3: On completion, results appear in the chat thread as a summary with output previews, latency per iteration, and estimated token counts.
+- [ ] AC-4: The user can open a detail view showing all outputs in full, with the ability to pick a winner.
+- [ ] AC-5: Picking a winner marks that output as a favorite in history. A system message confirms the selection.
+- [ ] AC-6: All iteration outputs are individually recorded in history (same prompt, different outputs).
+- [ ] AC-7: Appropriate errors are shown when no model is running, no prompt is available, or N < 2.
+- [ ] AC-8: The test run is cancellable via the existing stop mechanism.
+- [ ] AC-9: `/help` output is updated to document the `/test` command.
+- [ ] AC-10: README is updated to describe the A/B testing workflow.
 
 ## Constraints
 
-- Iterations run sequentially (not parallel) to avoid overloading the llama-server with concurrent requests.
 - No new dependencies.
-- The token count is estimated (word-split heuristic), same as `/compare` — not actual tokenizer output.
-- The worker must respect the existing `_stopped` flag pattern for cancellation.
-- The dialog reuses the project's dark/light theme stylesheet — no custom styling.
+- Sequential execution only — llama-server handles one request at a time.
+- Token counts are estimates (word-split heuristic, same approach used elsewhere in the app).
+- Must respect the existing cancellation and generating-state patterns.
+- **UI principle:** The `/test` command is the only entry point — no new menu items, buttons, or toolbar additions. The detail/results view opens on demand (not automatically), keeping the default chat flow uncluttered.
 
 ## Out of Scope
 
-- Statistical analysis (mean, std dev, confidence intervals) across runs — future work.
+- Statistical analysis (mean, std dev, confidence intervals) — future work.
 - Automated quality scoring or LLM-as-judge evaluation.
 - Running A/B tests across multiple models simultaneously (use `/compare` for that).
-- Persisting A/B test sessions as a group (individual outputs go to history, but the grouping is ephemeral).
-- Configurable temperature/parameter sweeps per iteration (future: parameter grid search).
+- Persisting test sessions as a group (individual outputs go to history; grouping is ephemeral).
+- Temperature or parameter sweeps per iteration (future: parameter grid search).
 
 ## Dependencies
 
-- `chat-ui-core` (complete) — Chat thread display.
-- `slash-commands` (complete) — Command palette and `/` command infrastructure.
-- `multi-model-comparison` (complete) — `MultiModelCompareWorker` pattern and result rendering format. The `ABTestWorker` follows the same structure.
-- `prompt-history` (complete) — `PromptHistoryStore` for recording each iteration.
+- All v1.1 features (complete).
 
 ## Notes
 
-- `/test` syntax examples:
-  - `/test` — 3 iterations, current model, last prompt
-  - `/test 5` — 5 iterations, current model, last prompt
-  - `/test 3 mistral-7b` — 3 iterations, specific model, last prompt
-  - The prompt is always the last generated prompt (same pattern as `/compare` without a `|` argument). If no prompt is available, the command errors with guidance.
-- The `ABTestWorker` is simpler than `MultiModelCompareWorker` because it doesn't need to swap models between iterations. It just calls `client.generate()` N times and collects results.
-- The results dialog uses a `QTabWidget` with one tab per iteration, each containing a read-only `QPlainTextEdit` showing the full output, plus a stats label (latency, tokens) and a "Pick Winner" button.
+- This feature follows the same pattern as `/compare` — a slash command triggers a background worker, results render in the chat thread. Implementers should study the existing compare flow for conventions.
+- The detail view should reuse the app's existing theme and dialog patterns.
