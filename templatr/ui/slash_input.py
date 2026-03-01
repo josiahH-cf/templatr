@@ -48,6 +48,11 @@ SYSTEM_COMMANDS: list[PaletteItem] = [
         description="Favorite the last output",
         payload="cmd:favorite",
     ),
+    PaletteItem(
+        name="/compare",
+        description="Compare one prompt across multiple models",
+        payload="cmd:compare",
+    ),
     PaletteItem(name="/new", description="Create a new template", payload="cmd:new"),
     PaletteItem(name="/import", description="Import a template", payload="cmd:import"),
     PaletteItem(name="/export", description="Export a template", payload="cmd:export"),

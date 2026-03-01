@@ -4,6 +4,7 @@ import logging
 import shutil
 import time
 from pathlib import Path
+from typing import Optional
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
@@ -195,3 +196,94 @@ class ModelCopyWorker(QThread):
             if self.dest.exists():
                 self.dest.unlink()
             self.finished.emit(False, f"Failed to copy file: {e}")
+
+
+class MultiModelCompareWorker(QThread):
+    """Background worker that compares one prompt across multiple models."""
+
+    finished = pyqtSignal(object)
+    error = pyqtSignal(str)
+    progress = pyqtSignal(str)
+
+    def __init__(self, prompt: str, model_paths: list[Path]):
+        """Initialize a multi-model comparison run.
+
+        Args:
+            prompt: Prompt text to send to each model.
+            model_paths: Ordered list of model file paths to compare.
+        """
+        super().__init__()
+        self.prompt = prompt
+        self.model_paths = model_paths
+        self._stopped = False
+
+    def stop(self) -> None:
+        """Request cancellation of the comparison run."""
+        self._stopped = True
+
+    def run(self) -> None:
+        """Run each model sequentially and emit collected comparison results."""
+        from templatr.core.config import get_config
+        from templatr.integrations.llm import get_llm_server
+
+        if len(self.model_paths) < 2:
+            self.error.emit("At least two models are required for comparison.")
+            return
+
+        server = get_llm_server()
+        client = get_llm_client()
+        original_model = get_config().llm.model_path
+        was_running = server.is_running()
+        results = []
+
+        try:
+            for idx, model_path in enumerate(self.model_paths, start=1):
+                if self._stopped:
+                    return
+
+                self.progress.emit(
+                    f"Comparing model {idx}/{len(self.model_paths)}: {model_path.stem}"
+                )
+
+                if server.is_running():
+                    server.stop()
+
+                started, start_msg = server.start(model_path=str(model_path))
+                if not started:
+                    raise RuntimeError(
+                        f"Could not start server for {model_path.name}: {start_msg}"
+                    )
+
+                started_at = time.perf_counter()
+                output = client.generate(self.prompt, stream=False)
+                elapsed = time.perf_counter() - started_at
+
+                prompt_tokens_est = len(self.prompt.split())
+                output_tokens_est = len(output.split())
+
+                results.append(
+                    {
+                        "model_name": model_path.stem,
+                        "model_path": str(model_path),
+                        "output": output,
+                        "latency_seconds": elapsed,
+                        "prompt_tokens_est": prompt_tokens_est,
+                        "output_tokens_est": output_tokens_est,
+                    }
+                )
+        except Exception as e:
+            logger.error("Multi-model comparison failed", exc_info=True)
+            self.error.emit(str(e))
+            return
+        finally:
+            if server.is_running():
+                server.stop()
+
+            if was_running:
+                restore_model: Optional[str] = original_model or None
+                ok, msg = server.start(model_path=restore_model)
+                if not ok:
+                    logger.warning("Failed restoring original model after compare: %s", msg)
+
+        if not self._stopped:
+            self.finished.emit(results)

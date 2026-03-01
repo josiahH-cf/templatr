@@ -465,6 +465,24 @@ def test_system_command_settings(qtbot):
     assert sig.args[0] == "settings"
 
 
+def test_system_command_compare(qtbot):
+    """Selecting /compare emits system_command('compare')."""
+    widget = SlashInputWidget()
+    qtbot.addWidget(widget)
+    widget.show()
+    widget.set_templates([])
+
+    from templatr.ui.command_palette import PaletteItem
+
+    compare_item = PaletteItem(
+        name="/compare", description="Compare models", payload="cmd:compare"
+    )
+    with qtbot.waitSignal(widget.system_command, timeout=1000) as sig:
+        widget._on_palette_item_chosen(compare_item)
+
+    assert sig.args[0] == "compare"
+
+
 def test_variable_fill_flow_after_palette_selection(qtbot):
     """Selecting a template with vars from palette shows variable form (regression test)."""
     widget = SlashInputWidget()
