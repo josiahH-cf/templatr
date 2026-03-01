@@ -18,7 +18,7 @@ but can land standalone.
 
 1. ~~**multi-turn-chat**~~ — ✅ Complete. See [specs/multi-turn-chat.md](../specs/multi-turn-chat.md).
 2. ~~**prompt-ab-testing**~~ — ✅ Complete. See [specs/prompt-ab-testing.md](../specs/prompt-ab-testing.md).
-3. **performance-dashboard** — Generation metrics from history via `/performance` (soft dep on #1 and #2 for richer data)
+3. ~~**performance-dashboard**~~ — ✅ Complete. See [specs/performance-dashboard.md](../specs/performance-dashboard.md).
 4. ~~**template-marketplace**~~ — ✅ Complete. See [tasks/template-marketplace.md](template-marketplace.md).
 
 ## Spec Index
@@ -42,10 +42,11 @@ Each spec includes acceptance criteria for updating:
 - **template-marketplace** — `/browse` catalog browser, fully implemented and merged. Catalog seeding is a separate deferred content task; see [tasks/seed-catalog-meta-prompt.md](seed-catalog-meta-prompt.md) — **do not treat as a code feature**.
 - **multi-turn-chat** — Conversation memory with ChatML formatting, configurable turn count and char limit, `/compare` integration. All 21 tests pass.
 - **prompt-ab-testing** — `/test [N] [| prompt]` runs prompt N times, summary in chat thread, `/test view` detail dialog, pick-as-winner favouriting, stop cancellation. All 21 tests pass.
+- **performance-dashboard** — `/performance` generation metrics dashboard with per-model and per-template breakdowns, date-range filter, sortable columns. All 24 tests pass.
 
 ## Active
 
-_No active work yet. Begin with performance-dashboard._
+_All v1.2 features complete._
 
 ## Archive
 
