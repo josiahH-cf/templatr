@@ -329,3 +329,38 @@ class TemplateActionsMixin:
         )
         if reply == QMessageBox.StandardButton.Yes:
             ImprovementPromptEditor(self).exec()
+
+    def _open_catalog_browser(self) -> None:
+        """Open the catalog browser dialog.
+
+        Fetches the catalog from the configured URL, then presents a
+        searchable, tag-filtered list of community templates the user can
+        preview and install.  Connected to the ``/browse`` slash command.
+        """
+        from templatr.core.config import get_config
+        from templatr.ui.catalog_browser import CatalogBrowserDialog
+
+        config = get_config()
+        manager = get_template_manager()
+        dialog = CatalogBrowserDialog(
+            catalog_url=config.catalog_url,
+            manager=manager,
+            parent=self,
+        )
+        dialog.template_installed.connect(self._on_catalog_template_installed)
+        dialog.exec()
+
+    def _on_catalog_template_installed(self, template_name: str) -> None:
+        """Handle a template successfully installed from the catalog.
+
+        Refreshes the template tree and shows a status-bar confirmation.
+
+        Args:
+            template_name: Name of the newly installed template.
+        """
+        self.template_tree_widget.refresh()
+        templates = self.template_manager.list_all()
+        self.slash_input.set_templates(templates)
+        self.status_bar.showMessage(
+            f"Installed '{template_name}' from catalog", 4000
+        )

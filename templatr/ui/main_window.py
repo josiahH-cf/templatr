@@ -579,7 +579,8 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
                 "- `/new` — Create a new template\n"
                 "- `/import` — Import a template\n"
                 "- `/export` — Export a template\n"
-                "- `/settings` — Open LLM settings\n\n"
+                "- `/settings` — Open LLM settings\n"
+                "- `/browse` — Browse and install community templates\n\n"
                 "Type `/` followed by a template name to search templates.\n"
                 "Type `:trigger` to invoke a template by its trigger shortcut.\n\n"
                 "**Keyboard shortcuts:**\n\n"
@@ -610,6 +611,9 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
             self._handle_history_command("/favorite")
         elif command_id == "compare":
             self._handle_compare_command("/compare")
+        elif command_id == "browse":
+            if hasattr(self, "_open_catalog_browser"):
+                self._open_catalog_browser()
 
     def _handle_plain_input(self, text: str) -> None:
         """Route plain text input, delegating to an active flow or generation.

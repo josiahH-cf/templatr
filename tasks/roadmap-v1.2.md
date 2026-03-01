@@ -19,7 +19,7 @@ but can land standalone.
 1. **multi-turn-chat** — Conversation memory (no deps beyond v1.1)
 2. **prompt-ab-testing** — Same-prompt variance testing via `/test` (no deps beyond v1.1)
 3. **performance-dashboard** — Generation metrics from history via `/performance` (soft dep on #1 and #2 for richer data)
-4. **template-marketplace** — Community template catalog via `/browse` (no deps beyond v1.1; requires external catalog repo setup)
+4. ~~**template-marketplace**~~ — ✅ Complete. See [tasks/template-marketplace.md](template-marketplace.md).
 
 ## Spec Index
 
@@ -36,6 +36,10 @@ Each spec includes acceptance criteria for updating:
 - **README** — new feature descriptions and usage examples.
 - **`/help` output** — new command documentation visible in-app.
 - **Troubleshooting docs** — updated if the feature introduces new error paths (e.g., network errors in marketplace).
+
+## Completed
+
+- **template-marketplace** — `/browse` catalog browser, fully implemented and merged. Catalog seeding is a separate deferred content task; see [tasks/seed-catalog-meta-prompt.md](seed-catalog-meta-prompt.md) — **do not treat as a code feature**.
 
 ## Active
 

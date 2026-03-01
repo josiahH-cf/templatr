@@ -12,18 +12,18 @@ Users can create excellent templates locally but have no way to discover what ot
 
 ## Acceptance Criteria
 
-- [ ] AC-1: A `/browse` slash command opens a catalog browsing dialog.
-- [ ] AC-2: The dialog fetches a catalog index from a configurable URL. The fetch runs in the background; a loading state is shown until complete.
-- [ ] AC-3: The catalog is a JSON array where each entry has at minimum: `name`, `description`, `author`, `tags`, `download_url`, and `version`.
-- [ ] AC-4: A search field filters catalog entries in real-time by name, description, author, or tags (case-insensitive).
-- [ ] AC-5: A tag filter narrows entries to a selected tag or shows all.
-- [ ] AC-6: Selecting an entry shows its details in a preview pane.
-- [ ] AC-7: An install action downloads the template, validates it using the existing template import logic, saves it to the user's template directory, and handles name conflicts using the existing conflict-resolution flow.
-- [ ] AC-8: After install, the template tree refreshes and a confirmation message appears.
-- [ ] AC-9: Network errors and invalid catalog data produce human-readable error messages, not crashes.
-- [ ] AC-10: The catalog URL is user-configurable so users can point to their own catalog (e.g., a fork, a company-internal repo, or a personal collection).
-- [ ] AC-11: `/help` output is updated to document the `/browse` command.
-- [ ] AC-12: README is updated with: what the catalog is, how to browse, how to contribute a template, and how to host a private catalog.
+- [x] AC-1: A `/browse` slash command opens a catalog browsing dialog.
+- [x] AC-2: The dialog fetches a catalog index from a configurable URL. The fetch runs in the background; a loading state is shown until complete.
+- [x] AC-3: The catalog is a JSON array where each entry has at minimum: `name`, `description`, `author`, `tags`, `download_url`, and `version`.
+- [x] AC-4: A search field filters catalog entries in real-time by name, description, author, or tags (case-insensitive).
+- [x] AC-5: A tag filter narrows entries to a selected tag or shows all.
+- [x] AC-6: Selecting an entry shows its details in a preview pane.
+- [x] AC-7: An install action downloads the template, validates it using the existing template import logic, saves it to the user's template directory, and handles name conflicts using the existing conflict-resolution flow.
+- [x] AC-8: After install, the template tree refreshes and a confirmation message appears.
+- [x] AC-9: Network errors and invalid catalog data produce human-readable error messages, not crashes.
+- [x] AC-10: The catalog URL is user-configurable so users can point to their own catalog (e.g., a fork, a company-internal repo, or a personal collection).
+- [x] AC-11: `/help` output is updated to document the `/browse` command.
+- [x] AC-12: README is updated with: what the catalog is, how to browse, how to contribute a template, and how to host a private catalog.
 
 ## Prerequisite: Catalog Repository Setup
 

@@ -1,8 +1,11 @@
 """Background worker threads for long-running operations."""
 
+import json
 import logging
 import shutil
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Optional
 
@@ -12,6 +15,15 @@ from templatr.integrations.llm import get_llm_client, validate_gguf
 
 logger = logging.getLogger(__name__)
 
+# Required fields for a catalog entry to be accepted.
+_CATALOG_REQUIRED_FIELDS = {
+    "name",
+    "description",
+    "author",
+    "tags",
+    "download_url",
+    "version",
+}
 
 # Map common exception types to user-friendly messages
 _ERROR_MESSAGES = {
@@ -287,3 +299,195 @@ class MultiModelCompareWorker(QThread):
 
         if not self._stopped:
             self.finished.emit(results)
+
+
+class CatalogFetchWorker(QThread):
+    """Background worker that fetches and parses the catalog index from a URL.
+
+    Emits ``catalog_ready`` with the list of valid entries on success, or
+    ``error`` with a human-readable message on any failure.  Entries that are
+    missing required fields are skipped with a logged warning rather than
+    causing the whole catalog fetch to fail.
+    """
+
+    catalog_ready = pyqtSignal(object)  # list[dict]
+    error = pyqtSignal(str)
+
+    _TIMEOUT_SECONDS = 15
+
+    def __init__(self, url: str):
+        """Initialise the worker.
+
+        Args:
+            url: Raw URL of the catalog JSON index file.
+        """
+        super().__init__()
+        self.url = url
+
+    def run(self) -> None:
+        """Fetch, parse, and validate the catalog index."""
+        try:
+            req = urllib.request.Request(
+                self.url,
+                headers={"User-Agent": "templatr-catalog-browser/1.0"},
+            )
+            with urllib.request.urlopen(req, timeout=self._TIMEOUT_SECONDS) as resp:
+                if resp.status != 200:
+                    self.error.emit(
+                        f"Catalog server returned status {resp.status}.\n"
+                        "Check the catalog URL in Settings."
+                    )
+                    return
+                raw = resp.read()
+        except urllib.error.HTTPError as exc:
+            self.error.emit(
+                f"Could not reach the catalog (HTTP {exc.code}).\n"
+                "Check your internet connection or the catalog URL in Settings."
+            )
+            return
+        except urllib.error.URLError as exc:
+            self.error.emit(
+                f"Could not reach the catalog.\n\n"
+                f"Reason: {exc.reason}\n\n"
+                "Check your internet connection or the catalog URL in Settings."
+            )
+            return
+        except TimeoutError:
+            self.error.emit(
+                "The catalog request timed out.\n"
+                "Check your internet connection and try again."
+            )
+            return
+        except Exception as exc:  # noqa: BLE001
+            self.error.emit(f"Unexpected error fetching catalog: {exc}")
+            return
+
+        if not raw:
+            self.error.emit(
+                "The catalog response was empty.\n"
+                "The catalog URL may not be set up yet — see the README for setup instructions."
+            )
+            return
+
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            self.error.emit(f"Catalog data is not valid JSON: {exc}")
+            return
+
+        if not isinstance(data, list):
+            self.error.emit(
+                "Unexpected catalog format: expected a JSON array of template entries."
+            )
+            return
+
+        entries: list[dict] = []
+        for i, entry in enumerate(data):
+            if not isinstance(entry, dict):
+                logger.warning("Catalog entry %d is not an object — skipping", i)
+                continue
+            missing = _CATALOG_REQUIRED_FIELDS - entry.keys()
+            if missing:
+                logger.warning(
+                    "Catalog entry %d (%r) missing required fields %s — skipping",
+                    i,
+                    entry.get("name", "?"),
+                    missing,
+                )
+                continue
+            entries.append(entry)
+
+        self.catalog_ready.emit(entries)
+
+
+class CatalogInstallWorker(QThread):
+    """Background worker that downloads and installs a template from the catalog.
+
+    Downloads the template JSON from ``download_url``, validates it via
+    ``TemplateManager.import_template``, and either saves it directly (no
+    conflict) or emits ``conflict`` with the parsed :class:`Template` so the
+    caller can display a resolution UI.
+    """
+
+    #: Emitted when the template was saved successfully.  Carries the template name.
+    installed = pyqtSignal(str)
+    #: Emitted when a name conflict is detected.  Carries the Template object
+    #: so the caller can resolve the conflict and call manager.save() itself.
+    conflict = pyqtSignal(object)  # Template
+    #: Emitted on any download or validation error.
+    error = pyqtSignal(str)
+
+    _TIMEOUT_SECONDS = 15
+
+    def __init__(self, download_url: str, manager) -> None:
+        """Initialise the worker.
+
+        Args:
+            download_url: Raw URL of the template ``.json`` file.
+            manager: The application :class:`~templatr.core.templates.TemplateManager`.
+        """
+        super().__init__()
+        self.download_url = download_url
+        self.manager = manager
+
+    def run(self) -> None:
+        """Download, validate, and install the template."""
+        try:
+            req = urllib.request.Request(
+                self.download_url,
+                headers={"User-Agent": "templatr-catalog-browser/1.0"},
+            )
+            with urllib.request.urlopen(req, timeout=self._TIMEOUT_SECONDS) as resp:
+                if resp.status != 200:
+                    self.error.emit(
+                        f"Download failed: server returned status {resp.status}."
+                    )
+                    return
+                raw = resp.read()
+        except urllib.error.HTTPError as exc:
+            self.error.emit(f"Download failed (HTTP {exc.code}).")
+            return
+        except urllib.error.URLError as exc:
+            self.error.emit(
+                f"Download failed.\n\nReason: {exc.reason}\n\n"
+                "Check your internet connection."
+            )
+            return
+        except TimeoutError:
+            self.error.emit("Download timed out. Check your internet connection.")
+            return
+        except Exception as exc:  # noqa: BLE001
+            self.error.emit(f"Unexpected error during download: {exc}")
+            return
+
+        # Write to a temporary Path so we can reuse import_template's validation.
+        import tempfile
+
+        try:
+            with tempfile.NamedTemporaryFile(
+                suffix=".json", delete=False
+            ) as tmp:
+                tmp.write(raw)
+                tmp_path = Path(tmp.name)
+        except OSError as exc:
+            self.error.emit(f"Could not write temporary file: {exc}")
+            return
+
+        try:
+            template, has_conflict = self.manager.import_template(tmp_path)
+        except ValueError as exc:
+            tmp_path.unlink(missing_ok=True)
+            self.error.emit(f"Template validation failed: {exc}")
+            return
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
+        if has_conflict:
+            self.conflict.emit(template)
+            return
+
+        if self.manager.save(template):
+            self.installed.emit(template.name)
+        else:
+            self.error.emit(f"Could not save template '{template.name}' to disk.")
+
