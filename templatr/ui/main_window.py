@@ -51,7 +51,7 @@ from templatr.ui.llm_toolbar import LLMToolbar
 from templatr.ui.slash_input import SlashInputWidget
 from templatr.ui.template_tree import TemplateTreeWidget
 from templatr.ui.theme import get_theme_stylesheet
-from templatr.ui.workers import GenerationWorker, MultiModelCompareWorker
+from templatr.ui.workers import ABTestWorker, GenerationWorker, MultiModelCompareWorker
 
 
 class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainWindow):
@@ -90,6 +90,9 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         self.current_template: Optional[Template] = None
         self.worker: Optional[GenerationWorker] = None
         self.compare_worker: Optional[MultiModelCompareWorker] = None
+        self.ab_test_worker: Optional[ABTestWorker] = None
+        self._last_test_results: Optional[list] = None
+        self._last_test_history_ids: Optional[list] = None
 
         # Active streaming bubble (set by GenerationMixin)
         self._active_ai_bubble = None
@@ -600,6 +603,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
                 "- `/favorites` — Show favorite outputs\n"
                 "- `/favorite` — Favorite the last output\n"
                 "- `/compare` — Compare output across multiple models\n"
+                "- `/test [N] [| prompt]` — Run prompt N times and compare outputs\n"
                 "- `/new` — Create a new template\n"
                 "- `/import` — Import a template\n"
                 "- `/export` — Export a template\n"
@@ -640,6 +644,8 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
             self._handle_history_command("/favorite")
         elif command_id == "compare":
             self._handle_compare_command("/compare")
+        elif command_id == "test":
+            self._handle_test_command("/test")
         elif command_id == "browse":
             if hasattr(self, "_open_catalog_browser"):
                 self._open_catalog_browser()
@@ -656,6 +662,8 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         if self._handle_flow_input(text):
             return
         if self._handle_compare_command(text):
+            return
+        if self._handle_test_command(text):
             return
         if self._handle_history_command(text):
             return
@@ -860,6 +868,289 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
 
         return "\n".join(lines)
 
+    # ------------------------------------------------------------------
+    # Prompt A/B testing (/test)
+    # ------------------------------------------------------------------
+
+    def _handle_test_command(self, text: str) -> bool:
+        """Handle the `/test` slash command for A/B iteration testing.
+
+        Syntax::
+
+            /test                     → 3 iterations, last prompt
+            /test 5                   → 5 iterations, last prompt
+            /test 5 | custom prompt   → 5 iterations, custom prompt
+            /test | custom prompt     → 3 iterations, custom prompt
+            /test view                → open detail dialog
+
+        Args:
+            text: Raw input text.
+
+        Returns:
+            True if handled as a /test command, else False.
+        """
+        stripped = text.strip()
+        if not stripped.startswith("/test"):
+            return False
+
+        # Must be /test (not /testfoo)
+        remainder = stripped[len("/test"):]
+        if remainder and not remainder[0].isspace():
+            return False
+
+        remainder = remainder.strip()
+
+        # "/test view" — open detail dialog
+        if remainder.lower() == "view":
+            self._open_ab_test_detail()
+            return True
+
+        # Parse optional N and optional | prompt
+        iterations = 3
+        explicit_prompt = ""
+
+        if "|" in remainder:
+            n_part, explicit_prompt = [p.strip() for p in remainder.split("|", 1)]
+            if n_part:
+                try:
+                    iterations = int(n_part)
+                except ValueError:
+                    self.chat_widget.add_system_message(
+                        "Invalid iteration count. Usage: `/test [N] [| prompt]`"
+                    )
+                    return True
+        elif remainder:
+            try:
+                iterations = int(remainder)
+            except ValueError:
+                self.chat_widget.add_system_message(
+                    "Invalid argument. Usage: `/test [N] [| prompt]`"
+                )
+                return True
+
+        if iterations < 2:
+            self.chat_widget.add_system_message(
+                "Iteration count must be at least 2. Usage: `/test [N] [| prompt]`"
+            )
+            return True
+
+        # Resolve prompt
+        if explicit_prompt:
+            memory = getattr(self, "conversation_memory", None)
+            if memory is not None:
+                prompt, _ = memory.assemble_prompt(explicit_prompt)
+            else:
+                prompt = explicit_prompt
+        else:
+            prompt = self._last_prompt or ""
+
+        if not prompt:
+            self.chat_widget.add_system_message(
+                "No prompt available. Generate once first, or use `/test [N] | your prompt`."
+            )
+            return True
+
+        server = get_llm_server()
+        if not server.is_running():
+            self.chat_widget.add_system_message(
+                "The LLM server is not running. Start it from the toolbar first."
+            )
+            return True
+
+        if self.worker and self.worker.isRunning():
+            self.chat_widget.add_system_message(
+                "Generation is in progress. Wait for it to finish before running a test."
+            )
+            return True
+
+        if self.ab_test_worker and self.ab_test_worker.isRunning():
+            self.chat_widget.add_system_message("An A/B test is already running.")
+            return True
+
+        self._last_test_results = None
+        self._last_test_history_ids = None
+
+        self.chat_widget.add_system_message(
+            f"Running {iterations} iterations\u2026"
+        )
+        self.slash_input.set_generating(True)
+
+        self.ab_test_worker = ABTestWorker(prompt, iterations)
+        self.ab_test_worker.progress.connect(self._on_ab_test_progress)
+        self.ab_test_worker.error.connect(self._on_ab_test_error)
+        self.ab_test_worker.finished.connect(
+            lambda results, p=prompt: self._on_ab_test_finished(p, results)
+        )
+        self.ab_test_worker.start()
+        return True
+
+    def _on_ab_test_progress(self, current: int, total: int) -> None:
+        """Update status bar with iteration progress.
+
+        Args:
+            current: The iteration number just starting (1-based).
+            total: Total number of iterations planned.
+        """
+        self.status_bar.showMessage(
+            f"A/B test: running iteration {current}/{total}\u2026", 5000
+        )
+
+    def _on_ab_test_finished(self, prompt: str, results: list[dict]) -> None:
+        """Handle A/B test completion: record history, render summary, store results.
+
+        Args:
+            prompt: The prompt that was tested.
+            results: List of per-iteration result dicts from ABTestWorker.
+        """
+        self.slash_input.set_generating(False)
+        self.ab_test_worker = None
+
+        if not results:
+            self.chat_widget.add_system_message("Test completed with no results.")
+            self.status_bar.showMessage("A/B test complete", 3000)
+            return
+
+        # Record each output individually in history (AC-6)
+        history_ids: list[str] = []
+        for r in results:
+            entry = self._record_generation_history_with_id(prompt, r.get("output", ""))
+            history_ids.append(entry.id if entry else "")
+
+        self._last_test_results = results
+        self._last_test_history_ids = history_ids
+        self._last_output = results[-1].get("output", "")
+
+        self.chat_widget.add_system_message(self._render_ab_test_summary(prompt, results))
+        self.status_bar.showMessage("A/B test complete", 3000)
+
+    def _on_ab_test_error(self, error: str) -> None:
+        """Handle A/B test worker error.
+
+        Args:
+            error: Human-readable error message from the worker.
+        """
+        self.slash_input.set_generating(False)
+        self.ab_test_worker = None
+        self.chat_widget.show_error_bubble(error)
+        self.status_bar.showMessage("A/B test failed", 5000)
+
+    def _open_ab_test_detail(self) -> None:
+        """Open the ABTestResultsDialog if test results are available (AC-4)."""
+        if not self._last_test_results:
+            self.chat_widget.add_system_message(
+                "No test results available. Run `/test [N]` first."
+            )
+            return
+
+        from templatr.ui.ab_test_dialog import ABTestResultsDialog
+
+        dlg = ABTestResultsDialog(
+            results=self._last_test_results,
+            history_ids=self._last_test_history_ids or [],
+            parent=self,
+        )
+        dlg.winner_selected.connect(self._on_ab_test_winner_selected)
+        dlg.exec()
+
+    def _on_ab_test_winner_selected(self, index: int) -> None:
+        """Mark the chosen iteration output as a favourite in history (AC-5).
+
+        Args:
+            index: 0-based index into the last test results list.
+        """
+        if not self._last_test_history_ids or index >= len(self._last_test_history_ids):
+            return
+
+        history_id = self._last_test_history_ids[index]
+        if history_id:
+            marked = self.prompt_history.mark_favorite(history_id, favorite=True)
+            if marked:
+                iteration = (
+                    self._last_test_results[index]["iteration"]
+                    if self._last_test_results
+                    else index + 1
+                )
+                self.chat_widget.add_system_message(
+                    f"Marked Iteration {iteration} as a favourite."
+                )
+                return
+
+        self.chat_widget.add_system_message("Could not mark output as favourite.")
+
+    def _render_ab_test_summary(self, prompt: str, results: list[dict]) -> str:
+        """Render a markdown summary of A/B test results for the chat thread (AC-3).
+
+        Args:
+            prompt: The prompt that was tested.
+            results: List of per-iteration result dicts.
+
+        Returns:
+            Markdown string ready for display in a MessageBubble.
+        """
+        prompt_preview = prompt.strip().replace("\n", " ")
+        if len(prompt_preview) > 90:
+            prompt_preview = f"{prompt_preview[:87]}..."
+
+        lines = [
+            "**A/B Test Results**",
+            "",
+            f"Prompt: {prompt_preview}",
+            "",
+            "| Iteration | Speed (s) | Prompt Tokens (est.) | Output Tokens (est.) |",
+            "|---:|---:|---:|---:|",
+        ]
+        for r in results:
+            lines.append(
+                f"| {r['iteration']} "
+                f"| {r['latency_seconds']:.2f} "
+                f"| {r['prompt_tokens_est']} "
+                f"| {r['output_tokens_est']} |"
+            )
+
+        lines.append("")
+        lines.append("**Output previews:**")
+        lines.append("")
+        for r in results:
+            preview = (r.get("output") or "").strip().replace("\n", " ")
+            if len(preview) > 120:
+                preview = f"{preview[:117]}..."
+            lines.append(f"**Iteration {r['iteration']}:** {preview or '_No output._'}")
+            lines.append("")
+
+        lines.append("_Type `/test view` to open the full detail view and pick a winner._")
+        return "\n".join(lines)
+
+    def _stop_generation(self) -> None:
+        """Stop the current generation or A/B test worker (AC-8).
+
+        Overrides GenerationMixin._stop_generation to also cancel any running
+        ABTestWorker in addition to the standard GenerationWorker.
+        """
+        if self.worker and self.worker.isRunning():
+            self.worker.stop()
+            self.slash_input.set_generating(False)
+            self.status_bar.showMessage("Generation stopped", 3000)
+
+        if self.ab_test_worker and self.ab_test_worker.isRunning():
+            self.ab_test_worker.stop()
+            self.slash_input.set_generating(False)
+            self.status_bar.showMessage("A/B test stopped", 3000)
+
+    def _record_generation_history_with_id(self, prompt: str, output: str):
+        """Persist a history entry and return it (so the ID can be stored).
+
+        Args:
+            prompt: Rendered prompt sent to the model.
+            output: Completed model output.
+
+        Returns:
+            The persisted PromptHistoryEntry, or None if not recorded.
+        """
+        if not prompt or not output:
+            return None
+        template_name = self.current_template.name if self.current_template else None
+        return self.prompt_history.add_entry(template_name, prompt, output)
+
     def _record_generation_history(self, prompt: str, output: str) -> None:
         """Persist a prompt/output pair in history storage.
 
@@ -867,10 +1158,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
             prompt: Rendered prompt text sent to the model.
             output: Completed model output text.
         """
-        if not prompt or not output:
-            return
-        template_name = self.current_template.name if self.current_template else None
-        self.prompt_history.add_entry(template_name, prompt, output)
+        self._record_generation_history_with_id(prompt, output)
 
     def _handle_history_command(self, text: str) -> bool:
         """Handle history-related slash commands from plain input.

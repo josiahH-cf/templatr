@@ -144,6 +144,70 @@ class GenerationWorker(QThread):
             self.error.emit(format_error_message(last_error))
 
 
+class ABTestWorker(QThread):
+    """Background worker that runs a prompt N times against the active model.
+
+    Iterations execute sequentially.  Each iteration records output, latency,
+    and estimated token counts.
+    """
+
+    #: Emitted after each iteration: (current_iteration, total_iterations).
+    progress = pyqtSignal(int, int)
+    #: Emitted on completion with a list of per-iteration result dicts.
+    finished = pyqtSignal(object)  # list[dict]
+    #: Emitted with a human-readable message if any iteration fails.
+    error = pyqtSignal(str)
+
+    def __init__(self, prompt: str, iterations: int) -> None:
+        """Initialise the A/B test worker.
+
+        Args:
+            prompt: The fully-rendered prompt to submit each iteration.
+            iterations: Number of times to run the prompt (must be >= 2).
+        """
+        super().__init__()
+        self.prompt = prompt
+        self.iterations = iterations
+        self._stopped = False
+
+    def stop(self) -> None:
+        """Request early cancellation — remaining iterations will not run."""
+        self._stopped = True
+
+    def run(self) -> None:
+        """Run the prompt N times and emit results when done."""
+        client = get_llm_client()
+        results: list[dict] = []
+
+        for i in range(1, self.iterations + 1):
+            if self._stopped:
+                return
+
+            self.progress.emit(i, self.iterations)
+
+            try:
+                started_at = time.perf_counter()
+                output = client.generate(self.prompt, stream=False)
+                elapsed = time.perf_counter() - started_at
+            except Exception as exc:  # noqa: BLE001
+                logger.error("AB test iteration %d failed", i, exc_info=True)
+                self.error.emit(format_error_message(exc))
+                return
+
+            results.append(
+                {
+                    "iteration": i,
+                    "output": output,
+                    "latency_seconds": elapsed,
+                    "prompt_tokens_est": len(self.prompt.split()),
+                    "output_tokens_est": len(output.split()),
+                }
+            )
+
+        if not self._stopped:
+            self.finished.emit(results)
+
+
 class ModelCopyWorker(QThread):
     """Background worker for copying model files with progress."""
 

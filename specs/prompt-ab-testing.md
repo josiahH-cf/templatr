@@ -6,16 +6,16 @@ Users currently have no way to evaluate how *consistent* a model's output is for
 
 ## Acceptance Criteria
 
-- [ ] AC-1: A `/test` slash command runs the current prompt (or the last generated prompt) multiple times against the active model. It accepts an optional iteration count (default: 3) and optional model name.
-- [ ] AC-2: Iterations run sequentially, not in parallel. A progress indicator shows which iteration is running.
-- [ ] AC-3: On completion, results appear in the chat thread as a summary with output previews, latency per iteration, and estimated token counts.
-- [ ] AC-4: The user can open a detail view showing all outputs in full, with the ability to pick a winner.
-- [ ] AC-5: Picking a winner marks that output as a favorite in history. A system message confirms the selection.
-- [ ] AC-6: All iteration outputs are individually recorded in history (same prompt, different outputs).
-- [ ] AC-7: Appropriate errors are shown when no model is running, no prompt is available, or N < 2.
-- [ ] AC-8: The test run is cancellable via the existing stop mechanism.
-- [ ] AC-9: `/help` output is updated to document the `/test` command.
-- [ ] AC-10: README is updated to describe the A/B testing workflow.
+- [x] AC-1: A `/test` slash command runs the current prompt (or the last generated prompt) multiple times against the active model. It accepts an optional iteration count (default: 3) and optional model name.
+- [x] AC-2: Iterations run sequentially, not in parallel. A progress indicator shows which iteration is running.
+- [x] AC-3: On completion, results appear in the chat thread as a summary with output previews, latency per iteration, and estimated token counts.
+- [x] AC-4: The user can open a detail view showing all outputs in full, with the ability to pick a winner.
+- [x] AC-5: Picking a winner marks that output as a favorite in history. A system message confirms the selection.
+- [x] AC-6: All iteration outputs are individually recorded in history (same prompt, different outputs).
+- [x] AC-7: Appropriate errors are shown when no model is running, no prompt is available, or N < 2.
+- [x] AC-8: The test run is cancellable via the existing stop mechanism.
+- [x] AC-9: `/help` output is updated to document the `/test` command.
+- [x] AC-10: README is updated to describe the A/B testing workflow.
 
 ## Constraints
 

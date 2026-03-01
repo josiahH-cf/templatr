@@ -53,6 +53,11 @@ SYSTEM_COMMANDS: list[PaletteItem] = [
         description="Compare one prompt across multiple models",
         payload="cmd:compare",
     ),
+    PaletteItem(
+        name="/test",
+        description="Run current prompt N times and compare outputs (A/B test)",
+        payload="cmd:test",
+    ),
     PaletteItem(name="/new", description="Create a new template", payload="cmd:new"),
     PaletteItem(name="/import", description="Import a template", payload="cmd:import"),
     PaletteItem(name="/export", description="Export a template", payload="cmd:export"),
