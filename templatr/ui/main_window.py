@@ -39,17 +39,18 @@ from templatr.core.config import (
 )
 from templatr.core.prompt_history import PromptHistoryStore, get_prompt_history_store
 from templatr.core.templates import Template, get_template_manager
-from templatr.integrations.llm import get_llm_client, get_llm_server
+from templatr.integrations.llm import ModelInfo, get_llm_client, get_llm_server
 from templatr.ui._generation import GenerationMixin
 from templatr.ui._template_actions import TemplateActionsMixin
 from templatr.ui._window_state import WindowStateMixin
 from templatr.ui.chat_widget import ChatWidget
+from templatr.ui.history_browser import HistoryBrowserDialog
 from templatr.ui.llm_settings import LLMSettingsDialog
 from templatr.ui.llm_toolbar import LLMToolbar
 from templatr.ui.slash_input import SlashInputWidget
 from templatr.ui.template_tree import TemplateTreeWidget
 from templatr.ui.theme import get_theme_stylesheet
-from templatr.ui.workers import GenerationWorker
+from templatr.ui.workers import GenerationWorker, MultiModelCompareWorker
 
 
 class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainWindow):
@@ -87,6 +88,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
 
         self.current_template: Optional[Template] = None
         self.worker: Optional[GenerationWorker] = None
+        self.compare_worker: Optional[MultiModelCompareWorker] = None
 
         # Active streaming bubble (set by GenerationMixin)
         self._active_ai_bubble = None
@@ -239,6 +241,11 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
 
         # Help menu
         help_menu = menubar.addMenu("&Help")
+        history_action = QAction("View &History…", self)
+        history_action.setShortcut(QKeySequence("Ctrl+H"))
+        history_action.triggered.connect(self._show_history_browser)
+        help_menu.addAction(history_action)
+        help_menu.addSeparator()
         view_log_action = QAction("View &Log File", self)
         view_log_action.triggered.connect(self._open_log_directory)
         help_menu.addAction(view_log_action)
@@ -281,6 +288,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         QShortcut(QKeySequence("Ctrl+-"), self).activated.connect(self._decrease_font)
         QShortcut(QKeySequence("Ctrl+0"), self).activated.connect(self._reset_font)
         QShortcut(QKeySequence("Ctrl+B"), self).activated.connect(self._toggle_sidebar)
+        QShortcut(QKeySequence("Ctrl+H"), self).activated.connect(self._show_history_browser)
 
         sc = self.config_manager.config.ui.shortcuts
         QShortcut(QKeySequence(sc["generate"]), self).activated.connect(
@@ -544,6 +552,16 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         """Show the LLM settings dialog."""
         LLMSettingsDialog(self).exec()
 
+    def _show_history_browser(self) -> None:
+        """Open the prompt history browser dialog.
+
+        Connects the output_reused signal so re-used text is sent to the
+        chat input for further generation.
+        """
+        dialog = HistoryBrowserDialog(store=self.prompt_history, parent=self)
+        dialog.output_reused.connect(self._handle_plain_input)
+        dialog.exec()
+
     def _on_system_command(self, command_id: str) -> None:
         """Handle a system command from the slash input bar.
 
@@ -557,6 +575,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
                 "- `/history` — Show recent outputs for current template\n"
                 "- `/favorites` — Show favorite outputs\n"
                 "- `/favorite` — Favorite the last output\n"
+                "- `/compare` — Compare output across multiple models\n"
                 "- `/new` — Create a new template\n"
                 "- `/import` — Import a template\n"
                 "- `/export` — Export a template\n"
@@ -589,6 +608,8 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
             self._handle_history_command("/favorites")
         elif command_id == "favorite":
             self._handle_history_command("/favorite")
+        elif command_id == "compare":
+            self._handle_compare_command("/compare")
 
     def _handle_plain_input(self, text: str) -> None:
         """Route plain text input, delegating to an active flow or generation.
@@ -601,9 +622,200 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         """
         if self._handle_flow_input(text):
             return
+        if self._handle_compare_command(text):
+            return
         if self._handle_history_command(text):
             return
         self._generate(text)
+
+    def _handle_compare_command(self, text: str) -> bool:
+        """Handle `/compare` command for side-by-side model output comparison.
+
+        Syntax:
+            /compare
+            /compare modelA,modelB
+            /compare modelA,modelB | custom prompt text
+
+        Without a prompt after `|`, the last generated prompt is used.
+
+        Args:
+            text: Raw input text.
+
+        Returns:
+            True if handled as compare command, else False.
+        """
+        stripped = text.strip()
+        if not stripped.startswith("/compare"):
+            return False
+
+        if self.worker and self.worker.isRunning():
+            self.chat_widget.add_system_message(
+                "Generation is in progress. Wait for it to finish before comparing."
+            )
+            return True
+
+        if self.compare_worker and self.compare_worker.isRunning():
+            self.chat_widget.add_system_message("A model comparison is already running.")
+            return True
+
+        parts = stripped.split(maxsplit=1)
+        arg = parts[1].strip() if len(parts) > 1 else ""
+
+        prompt = ""
+        model_query = arg
+        if "|" in arg:
+            model_query, prompt = [piece.strip() for piece in arg.split("|", 1)]
+
+        if not prompt:
+            prompt = (self._last_prompt or "").strip()
+
+        if not prompt:
+            self.chat_widget.add_system_message(
+                "No prompt available. Generate once first, or use `/compare modelA,modelB | your prompt`."
+            )
+            return True
+
+        available_models = get_llm_server().find_models()
+        if len(available_models) < 2:
+            self.chat_widget.add_system_message(
+                "Need at least two local .gguf models to compare outputs."
+            )
+            return True
+
+        selected_models = self._select_compare_models(model_query, available_models)
+        if isinstance(selected_models, str):
+            self.chat_widget.add_system_message(selected_models)
+            return True
+
+        selected_paths = [m.path for m in selected_models]
+        self._last_prompt = prompt
+        self._last_output = None
+
+        names = ", ".join(model.stem for model in selected_paths)
+        self.chat_widget.add_system_message(f"Comparing models: {names}")
+        self.slash_input.set_generating(True)
+
+        self.compare_worker = MultiModelCompareWorker(prompt, selected_paths)
+        self.compare_worker.progress.connect(
+            lambda msg: self.status_bar.showMessage(msg, 3000)
+        )
+        self.compare_worker.error.connect(self._on_compare_error)
+        self.compare_worker.finished.connect(
+            lambda results, used_prompt=prompt: self._on_compare_finished(
+                used_prompt, results
+            )
+        )
+        self.compare_worker.start()
+        return True
+
+    def _select_compare_models(
+        self, model_query: str, available_models: list[ModelInfo]
+    ) -> list[ModelInfo] | str:
+        """Select models for comparison from available local models.
+
+        Args:
+            model_query: Comma-separated model names from command input.
+            available_models: Models discovered on disk.
+
+        Returns:
+            Selected models, or an error message string.
+        """
+        if not model_query:
+            return available_models[:2]
+
+        wanted = [chunk.strip() for chunk in model_query.split(",") if chunk.strip()]
+        if len(wanted) < 2:
+            return "Specify at least two models: `/compare modelA,modelB`"
+
+        def _match_one(token: str) -> Optional[ModelInfo]:
+            lowered = token.lower()
+            for model in available_models:
+                if lowered in {
+                    model.name.lower(),
+                    model.path.name.lower(),
+                    model.path.stem.lower(),
+                }:
+                    return model
+            return None
+
+        selected: list[ModelInfo] = []
+        seen_paths: set[Path] = set()
+        missing: list[str] = []
+
+        for token in wanted:
+            matched = _match_one(token)
+            if not matched:
+                missing.append(token)
+                continue
+            if matched.path in seen_paths:
+                continue
+            selected.append(matched)
+            seen_paths.add(matched.path)
+
+        if missing:
+            return f"Unknown model(s): {', '.join(missing)}"
+        if len(selected) < 2:
+            return "Need at least two distinct models for `/compare`."
+        return selected
+
+    def _on_compare_finished(self, prompt: str, results: list[dict]) -> None:
+        """Handle completion of multi-model comparison run."""
+        self.slash_input.set_generating(False)
+        self.compare_worker = None
+
+        if not results:
+            self.chat_widget.add_system_message("Comparison completed with no results.")
+            self.status_bar.showMessage("Comparison complete", 3000)
+            return
+
+        for result in results:
+            self._record_generation_history(prompt, result.get("output", ""))
+
+        self._last_output = str(results[-1].get("output", ""))
+        self.chat_widget.add_system_message(self._render_compare_results(prompt, results))
+        self.status_bar.showMessage("Comparison complete", 3000)
+
+    def _on_compare_error(self, error: str) -> None:
+        """Handle comparison worker failure."""
+        self.slash_input.set_generating(False)
+        self.compare_worker = None
+        self.chat_widget.show_error_bubble(error)
+        self.status_bar.showMessage("Comparison failed", 5000)
+
+    def _render_compare_results(self, prompt: str, results: list[dict]) -> str:
+        """Render side-by-side comparison summary and per-model outputs."""
+        prompt_preview = prompt.strip().replace("\n", " ")
+        if len(prompt_preview) > 90:
+            prompt_preview = f"{prompt_preview[:87]}..."
+
+        lines = [
+            "**Multi-model comparison**",
+            "",
+            f"Prompt: {prompt_preview}",
+            "",
+            "| Model | Speed (s) | Prompt Tokens (est.) | Output Tokens (est.) |",
+            "|---|---:|---:|---:|",
+        ]
+        for result in results:
+            lines.append(
+                "| "
+                f"{result['model_name']} | "
+                f"{result['latency_seconds']:.2f} | "
+                f"{result['prompt_tokens_est']} | "
+                f"{result['output_tokens_est']} |"
+            )
+
+        lines.append("")
+        lines.append("Quality comparison: review full outputs below.")
+        lines.append("")
+
+        for result in results:
+            lines.append(f"### {result['model_name']}")
+            lines.append("")
+            lines.append(result["output"] or "_No output generated._")
+            lines.append("")
+
+        return "\n".join(lines)
 
     def _record_generation_history(self, prompt: str, output: str) -> None:
         """Persist a prompt/output pair in history storage.
