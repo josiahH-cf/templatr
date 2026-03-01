@@ -1,9 +1,15 @@
 """Mixin providing LLM generation orchestration for MainWindow."""
 
+import logging
+from pathlib import Path
+
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
+from templatr.core.config import get_config
 from templatr.integrations.llm import get_llm_server
 from templatr.ui.workers import GenerationWorker
+
+logger = logging.getLogger(__name__)
 
 
 class GenerationMixin:
@@ -100,6 +106,9 @@ class GenerationMixin:
     def _on_generation_finished(self, result: str):
         """Handle generation complete by finalizing the AI bubble.
 
+        Records timing and model metadata in the history entry when
+        available from the worker.
+
         Args:
             result: The complete generated text.
         """
@@ -107,14 +116,36 @@ class GenerationMixin:
         self.chat_widget.finalize_last_ai(result)
         self._active_ai_bubble = None
         self._last_output = result
+
+        # Gather timing metadata from the worker
+        elapsed = getattr(self.worker, "elapsed_seconds", None) if self.worker else None
+        output_tokens_est = len(result.split()) if result else None
+        model_name = self._get_active_model_name()
+
         if hasattr(self, "_record_generation_history"):
-            self._record_generation_history(self._last_prompt or "", result)
+            self._record_generation_history(
+                self._last_prompt or "",
+                result,
+                latency_seconds=elapsed,
+                output_tokens_est=output_tokens_est,
+                model_name=model_name,
+            )
         # Record the completed turn so subsequent messages include this exchange.
         memory = getattr(self, "conversation_memory", None)
         if memory is not None:
             original = getattr(self, "_last_original_prompt", None) or (self._last_prompt or "")
             memory.add_turn(original, result)
         self.status_bar.showMessage("Generation complete", 3000)
+
+    def _get_active_model_name(self) -> str | None:
+        """Return the stem of the currently configured model, or None."""
+        try:
+            model_path = get_config().llm.model_path
+            if model_path:
+                return Path(model_path).stem
+        except Exception:
+            logger.debug("Could not determine active model name", exc_info=True)
+        return None
 
     def _on_generation_error(self, error: str):
         """Handle generation error by showing an error bubble in the chat.

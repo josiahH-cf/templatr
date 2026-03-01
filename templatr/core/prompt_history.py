@@ -26,10 +26,17 @@ class PromptHistoryEntry:
     output: str
     created_at: str
     favorite: bool = False
+    latency_seconds: Optional[float] = None
+    output_tokens_est: Optional[int] = None
+    model_name: Optional[str] = None
 
     def to_dict(self) -> dict:
-        """Convert the history entry to a JSON-serializable dictionary."""
-        return {
+        """Convert the history entry to a JSON-serializable dictionary.
+
+        Optional timing/model fields are omitted when ``None`` so that
+        legacy history files remain unchanged after a round-trip.
+        """
+        d: dict = {
             "id": self.id,
             "template_name": self.template_name,
             "prompt": self.prompt,
@@ -37,10 +44,24 @@ class PromptHistoryEntry:
             "created_at": self.created_at,
             "favorite": self.favorite,
         }
+        if self.latency_seconds is not None:
+            d["latency_seconds"] = self.latency_seconds
+        if self.output_tokens_est is not None:
+            d["output_tokens_est"] = self.output_tokens_est
+        if self.model_name is not None:
+            d["model_name"] = self.model_name
+        return d
 
     @classmethod
     def from_dict(cls, data: dict) -> "PromptHistoryEntry":
-        """Create a PromptHistoryEntry from persisted dictionary data."""
+        """Create a PromptHistoryEntry from persisted dictionary data.
+
+        Missing timing/model fields default to ``None`` so that legacy
+        entries load without errors.
+        """
+        latency_raw = data.get("latency_seconds")
+        tokens_raw = data.get("output_tokens_est")
+        model_raw = data.get("model_name")
         return cls(
             id=str(data.get("id", "")),
             template_name=str(data.get("template_name", "")),
@@ -48,6 +69,9 @@ class PromptHistoryEntry:
             output=str(data.get("output", "")),
             created_at=str(data.get("created_at", "")),
             favorite=bool(data.get("favorite", False)),
+            latency_seconds=float(latency_raw) if latency_raw is not None else None,
+            output_tokens_est=int(tokens_raw) if tokens_raw is not None else None,
+            model_name=str(model_raw) if model_raw is not None else None,
         )
 
 
@@ -74,6 +98,9 @@ class PromptHistoryStore:
         prompt: str,
         output: str,
         created_at: Optional[str] = None,
+        latency_seconds: Optional[float] = None,
+        output_tokens_est: Optional[int] = None,
+        model_name: Optional[str] = None,
     ) -> PromptHistoryEntry:
         """Append a new history entry and persist it.
 
@@ -82,6 +109,9 @@ class PromptHistoryStore:
             prompt: Rendered prompt sent to the model.
             output: Final model output.
             created_at: Optional ISO timestamp override for tests.
+            latency_seconds: Optional generation latency in seconds.
+            output_tokens_est: Optional estimated output token count.
+            model_name: Optional model name that produced the output.
 
         Returns:
             The created PromptHistoryEntry.
@@ -96,6 +126,9 @@ class PromptHistoryStore:
             output=output,
             created_at=timestamp,
             favorite=False,
+            latency_seconds=latency_seconds,
+            output_tokens_est=output_tokens_est,
+            model_name=model_name,
         )
 
         entries = self._read_entries()

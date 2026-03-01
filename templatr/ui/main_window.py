@@ -604,6 +604,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
                 "- `/favorite` — Favorite the last output\n"
                 "- `/compare` — Compare output across multiple models\n"
                 "- `/test [N] [| prompt]` — Run prompt N times and compare outputs\n"
+                "- `/performance` — Show generation performance metrics\n"
                 "- `/new` — Create a new template\n"
                 "- `/import` — Import a template\n"
                 "- `/export` — Export a template\n"
@@ -649,6 +650,8 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         elif command_id == "browse":
             if hasattr(self, "_open_catalog_browser"):
                 self._open_catalog_browser()
+        elif command_id == "performance":
+            self._open_performance_dashboard()
 
     def _handle_plain_input(self, text: str) -> None:
         """Route plain text input, delegating to an active flow or generation.
@@ -664,6 +667,8 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         if self._handle_compare_command(text):
             return
         if self._handle_test_command(text):
+            return
+        if self._handle_performance_command(text):
             return
         if self._handle_history_command(text):
             return
@@ -867,6 +872,33 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
             lines.append("")
 
         return "\n".join(lines)
+
+    # ------------------------------------------------------------------
+    # Performance dashboard (/performance)
+    # ------------------------------------------------------------------
+
+    def _handle_performance_command(self, text: str) -> bool:
+        """Handle `/performance` command to open the performance dashboard.
+
+        Args:
+            text: Raw input text.
+
+        Returns:
+            True if handled, else False.
+        """
+        if not text.strip().startswith("/performance"):
+            return False
+        self._open_performance_dashboard()
+        return True
+
+    def _open_performance_dashboard(self) -> None:
+        """Open the performance dashboard dialog with current history data."""
+        from templatr.ui.performance_dashboard import PerformanceDashboard
+
+        entries = self.prompt_history.list_entries(limit=None)
+        entry_dicts = [e.to_dict() for e in entries]
+        dialog = PerformanceDashboard(entry_dicts, parent=self)
+        dialog.exec()
 
     # ------------------------------------------------------------------
     # Prompt A/B testing (/test)
@@ -1136,12 +1168,22 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
             self.slash_input.set_generating(False)
             self.status_bar.showMessage("A/B test stopped", 3000)
 
-    def _record_generation_history_with_id(self, prompt: str, output: str):
+    def _record_generation_history_with_id(
+        self,
+        prompt: str,
+        output: str,
+        latency_seconds: float | None = None,
+        output_tokens_est: int | None = None,
+        model_name: str | None = None,
+    ):
         """Persist a history entry and return it (so the ID can be stored).
 
         Args:
             prompt: Rendered prompt sent to the model.
             output: Completed model output.
+            latency_seconds: Optional generation latency in seconds.
+            output_tokens_est: Optional estimated output token count.
+            model_name: Optional model name that produced the output.
 
         Returns:
             The persisted PromptHistoryEntry, or None if not recorded.
@@ -1149,16 +1191,39 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         if not prompt or not output:
             return None
         template_name = self.current_template.name if self.current_template else None
-        return self.prompt_history.add_entry(template_name, prompt, output)
+        return self.prompt_history.add_entry(
+            template_name,
+            prompt,
+            output,
+            latency_seconds=latency_seconds,
+            output_tokens_est=output_tokens_est,
+            model_name=model_name,
+        )
 
-    def _record_generation_history(self, prompt: str, output: str) -> None:
+    def _record_generation_history(
+        self,
+        prompt: str,
+        output: str,
+        latency_seconds: float | None = None,
+        output_tokens_est: int | None = None,
+        model_name: str | None = None,
+    ) -> None:
         """Persist a prompt/output pair in history storage.
 
         Args:
             prompt: Rendered prompt text sent to the model.
             output: Completed model output text.
+            latency_seconds: Optional generation latency in seconds.
+            output_tokens_est: Optional estimated output token count.
+            model_name: Optional model name that produced the output.
         """
-        self._record_generation_history_with_id(prompt, output)
+        self._record_generation_history_with_id(
+            prompt,
+            output,
+            latency_seconds=latency_seconds,
+            output_tokens_est=output_tokens_est,
+            model_name=model_name,
+        )
 
     def _handle_history_command(self, text: str) -> bool:
         """Handle history-related slash commands from plain input.
