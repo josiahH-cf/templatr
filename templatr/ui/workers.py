@@ -84,6 +84,7 @@ class GenerationWorker(QThread):
         self.prompt = prompt
         self.stream = stream
         self._stopped = False
+        self.elapsed_seconds: float | None = None
 
     def stop(self):
         """Request generation to stop."""
@@ -112,6 +113,7 @@ class GenerationWorker(QThread):
             if self._stopped:
                 return
             try:
+                started_at = time.perf_counter()
                 if self.stream:
                     result = []
                     for token in client.generate_stream(self.prompt):
@@ -119,9 +121,11 @@ class GenerationWorker(QThread):
                             break
                         result.append(token)
                         self.token_received.emit(token)
+                    self.elapsed_seconds = time.perf_counter() - started_at
                     self.finished.emit("".join(result))
                 else:
                     result = client.generate(self.prompt)
+                    self.elapsed_seconds = time.perf_counter() - started_at
                     self.finished.emit(result)
                 return
             except Exception as e:

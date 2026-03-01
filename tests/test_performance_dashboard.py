@@ -4,12 +4,10 @@ Covers acceptance criteria AC-1 through AC-11 from specs/performance-dashboard.m
 """
 
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -96,7 +94,7 @@ def _last_bubbles_text(win, n: int = 1) -> list[str]:
 # ===========================================================================
 
 
-class TestAC1_HistorySchemaExtension:
+class TestAc1HistorySchemaExtension:
     """AC-1: Optional timing metadata on history entries."""
 
     def test_entry_with_timing_fields_round_trips(self, tmp_path):
@@ -173,7 +171,7 @@ class TestAC1_HistorySchemaExtension:
 # ===========================================================================
 
 
-class TestAC2_GenerationRecordsTiming:
+class TestAc2GenerationRecordsTiming:
     """AC-2: The generation flow records timing and model metadata."""
 
     def test_generation_worker_reports_elapsed_time(self):
@@ -218,7 +216,7 @@ class TestAC2_GenerationRecordsTiming:
 # ===========================================================================
 
 
-class TestAC3_PerformanceCommand:
+class TestAc3PerformanceCommand:
     """AC-3: /performance opens the performance dashboard."""
 
     def test_slash_performance_registered(self):
@@ -249,7 +247,7 @@ class TestAC3_PerformanceCommand:
 # ===========================================================================
 
 
-class TestAC4_SummaryStatistics:
+class TestAc4SummaryStatistics:
     """AC-4: Dashboard displays summary stats."""
 
     def test_summary_total_generations(self, tmp_path):
@@ -304,7 +302,7 @@ class TestAC4_SummaryStatistics:
 # ===========================================================================
 
 
-class TestAC5_PerModelBreakdown:
+class TestAc5PerModelBreakdown:
     """AC-5: Per-model breakdown with count, avg latency, tokens, last used."""
 
     def test_per_model_stats(self):
@@ -349,7 +347,7 @@ class TestAC5_PerModelBreakdown:
 # ===========================================================================
 
 
-class TestAC6_PerTemplateBreakdown:
+class TestAc6PerTemplateBreakdown:
     """AC-6: Per-template breakdown with count, avg latency, last used."""
 
     def test_per_template_stats(self):
@@ -395,7 +393,7 @@ class TestAC6_PerTemplateBreakdown:
 # ===========================================================================
 
 
-class TestAC7_SortableColumns:
+class TestAc7SortableColumns:
     """AC-7: Both model and template breakdowns are sortable by column."""
 
     def test_dashboard_tables_are_sortable(self, qtbot):
@@ -417,7 +415,7 @@ class TestAC7_SortableColumns:
 # ===========================================================================
 
 
-class TestAC8_DateRangeFilter:
+class TestAc8DateRangeFilter:
     """AC-8: Date range filter (7 days / 30 days / all time)."""
 
     def test_filter_last_7_days(self):
@@ -461,7 +459,7 @@ class TestAC8_DateRangeFilter:
 # ===========================================================================
 
 
-class TestAC9_EmptyState:
+class TestAc9EmptyState:
     """AC-9: Dashboard shows empty-state message when no timing data."""
 
     def test_empty_state_no_entries(self, qtbot):
@@ -470,6 +468,7 @@ class TestAC9_EmptyState:
 
         dialog = PerformanceDashboard([])
         qtbot.addWidget(dialog)
+        dialog.show()
 
         assert dialog.empty_label.isVisible()
         assert "no performance data" in dialog.empty_label.text().lower()
@@ -481,6 +480,7 @@ class TestAC9_EmptyState:
         entries_data = [_entry()]  # no timing fields
         dialog = PerformanceDashboard(entries_data)
         qtbot.addWidget(dialog)
+        dialog.show()
 
         assert dialog.empty_label.isVisible()
 
@@ -493,6 +493,7 @@ class TestAC9_EmptyState:
         ]
         dialog = PerformanceDashboard(entries_data)
         qtbot.addWidget(dialog)
+        dialog.show()
 
         assert not dialog.empty_label.isVisible()
 
@@ -502,7 +503,7 @@ class TestAC9_EmptyState:
 # ===========================================================================
 
 
-class TestAC10_HelpOutput:
+class TestAc10HelpOutput:
     """AC-10: /help output documents /performance."""
 
     def test_help_mentions_performance(self, qtbot):
@@ -519,7 +520,7 @@ class TestAC10_HelpOutput:
 # ===========================================================================
 
 
-class TestAC11_ReadmeDocs:
+class TestAc11ReadmeDocs:
     """AC-11: README mentions the performance dashboard."""
 
     def test_readme_mentions_performance_dashboard(self):

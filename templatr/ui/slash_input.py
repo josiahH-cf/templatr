@@ -69,6 +69,11 @@ SYSTEM_COMMANDS: list[PaletteItem] = [
         description="Browse and install community templates",
         payload="cmd:browse",
     ),
+    PaletteItem(
+        name="/performance",
+        description="Show generation performance metrics",
+        payload="cmd:performance",
+    ),
 ]
 
 
