@@ -5,8 +5,8 @@
 ## Status
 
 - Total: 5
-- Complete: 0
-- Remaining: 5
+- Complete: 5
+- Remaining: 0
 
 ## Prerequisite
 
@@ -27,7 +27,7 @@ The catalog repo must be created separately before the feature is end-to-end tes
   - `templatr/ui/llm_settings.py` — add a catalog URL field to the LLM settings dialog (existing config dialog, not a new one)
 - **Done when:** `/browse` appears in the command palette, `catalog_url` persists across restarts, the settings dialog lets users change the URL, and `/help` describes `/browse`.
 - **Criteria covered:** AC-10, AC-11
-- **Status:** [ ] Not started
+- **Status:** [x] Complete
 
 ---
 
@@ -37,7 +37,7 @@ The catalog repo must be created separately before the feature is end-to-end tes
   - `templatr/ui/workers.py` — add `CatalogFetchWorker(QThread)` that takes a URL, fetches it with `urllib.request`, parses JSON, and emits either `catalog_ready(list[dict])` or `error(str)`
 - **Done when:** The worker fetches a valid catalog and emits the list; emits a human-readable error on network failure, timeout, non-200 status, invalid JSON, or empty body; entries missing required fields (`name`, `description`, `author`, `tags`, `download_url`, `version`) are skipped with a logged warning rather than crashing.
 - **Criteria covered:** AC-2, AC-3, AC-9 (fetch side)
-- **Status:** [ ] Not started
+- **Status:** [x] Complete
 
 ---
 
@@ -47,7 +47,7 @@ The catalog repo must be created separately before the feature is end-to-end tes
   - `templatr/ui/workers.py` — add `CatalogInstallWorker(QThread)` that takes a `download_url` and the `TemplateManager`; downloads the template JSON, calls `Template.from_dict`, saves via `TemplateManager`, uses the existing name-conflict resolution flow; emits `installed(template_name)` or `error(str)`
 - **Done when:** The worker downloads a well-formed template and saves it to the user's template directory; name conflicts are resolved the same way `/import` resolves them; network and validation errors emit a readable message.
 - **Criteria covered:** AC-7, AC-9 (install side)
-- **Status:** [ ] Not started
+- **Status:** [x] Complete
 
 ---
 
@@ -65,7 +65,7 @@ The catalog repo must be created separately before the feature is end-to-end tes
     - Emits `template_installed(str)` signal after a successful install
 - **Done when:** All UI controls work correctly against a sample catalog JSON; search and tag filter reduce the list in real-time; install triggers the worker and shows in-progress state; completion emits the signal; errors show in a `QMessageBox`; dialog closes cleanly.
 - **Criteria covered:** AC-1, AC-2, AC-4, AC-5, AC-6, AC-8, AC-9 (UI)
-- **Status:** [ ] Not started
+- **Status:** [x] Complete
 
 ---
 
@@ -76,7 +76,7 @@ The catalog repo must be created separately before the feature is end-to-end tes
   - `README.md` — add a "Template Marketplace" section covering: what the catalog is, how to use `/browse`, how to contribute a template (fork + PR to the catalog repo), and how to host a private catalog (point the catalog URL to any raw JSON endpoint)
 - **Done when:** Typing `/browse` and executing it opens the dialog from the main window; after install the tree refreshes and a status message confirms; README section is accurate and complete.
 - **Criteria covered:** AC-1, AC-8, AC-12
-- **Status:** [ ] Not started
+- **Status:** [x] Complete
 
 ---
 
@@ -102,12 +102,12 @@ The catalog repo must be created separately before the feature is end-to-end tes
 
 These are not app-code tasks; track them separately once work begins:
 
-- [ ] Create `josiahH-cf/templatr-catalog` on GitHub
-- [ ] Add `catalog.json` (initially an empty array `[]`)
-- [ ] Add individual template JSON files
-- [ ] Add `README.md` (catalog format, how to submit, how to validate)
-- [ ] Add `CONTRIBUTING.md`
-- [ ] Add a GitHub Action or script to regenerate `catalog.json` from the template files directory
+- [x] Create `josiahH-cf/templatr-catalog` on GitHub
+- [x] Add `catalog.json` (initially an empty array `[]`)
+- [x] Add individual template JSON files (3 starter templates)
+- [x] Add `README.md` (catalog format, how to submit, how to validate)
+- [x] Add `CONTRIBUTING.md`
+- [x] Add a GitHub Action or script to regenerate `catalog.json` from the template files directory
 
 ---
 
@@ -116,3 +116,4 @@ These are not app-code tasks; track them separately once work begins:
 <!-- Append after each session: date, completed, blockers -->
 
 - 2026-03-01: Task plan created. Branch: `feat/template-marketplace`. Catalog repo confirmed: `josiahH-cf/templatr-catalog`.
+- 2026-03-01: All 5 tasks implemented. Catalog repo scaffolded and pushed to GitHub with 3 starter templates, CI, README, CONTRIBUTING, and generation script. App changes: `Config.catalog_url`, `/browse` slash command, `LLMSettingsDialog` catalog URL field, `CatalogFetchWorker`, `CatalogInstallWorker`, `CatalogBrowserDialog`, main-window wiring via `TemplateActionsMixin._open_catalog_browser`, README marketplace section. 28 new tests — all passing (412/413 full suite pass; 1 pre-existing doc-link failure unrelated to this feature).

@@ -303,12 +303,19 @@ class UIConfig:
     shortcuts: dict = field(default_factory=lambda: dict(_DEFAULT_SHORTCUTS))
 
 
+# Default catalog URL — points to the community template catalog on GitHub.
+DEFAULT_CATALOG_URL = (
+    "https://raw.githubusercontent.com/josiahH-cf/templatr-catalog/main/catalog.json"
+)
+
+
 @dataclass
 class Config:
     """Main application configuration."""
 
     llm: LLMConfig = field(default_factory=LLMConfig)
     ui: UIConfig = field(default_factory=UIConfig)
+    catalog_url: str = DEFAULT_CATALOG_URL
 
     def to_dict(self) -> dict:
         """Convert config to dictionary."""
@@ -343,6 +350,7 @@ class Config:
                 else LLMConfig()
             ),
             ui=UIConfig(**ui_kwargs) if ui_data else UIConfig(),
+            catalog_url=data.get("catalog_url", DEFAULT_CATALOG_URL),
         )
 
 

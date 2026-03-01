@@ -10,12 +10,13 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox,
     QFormLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
     QSpinBox,
     QVBoxLayout,
 )
 
-from templatr.core.config import get_config_manager
+from templatr.core.config import DEFAULT_CATALOG_URL, get_config_manager
 
 # Default value (must match LLMConfig dataclass default)
 DEFAULT_MAX_TOKENS = 4096
@@ -41,7 +42,7 @@ class LLMSettingsDialog(QDialog):
 
         layout.addSpacing(10)
 
-        # Form with max tokens setting
+        # Form with max tokens and catalog URL settings
         form = QFormLayout()
         form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
 
@@ -54,6 +55,16 @@ class LLMSettingsDialog(QDialog):
             "Cannot exceed the server's context size (default 4096)."
         )
         form.addRow("Max Token Length:", self.max_tokens_spin)
+
+        # Catalog URL
+        self.catalog_url_edit = QLineEdit()
+        self.catalog_url_edit.setPlaceholderText(DEFAULT_CATALOG_URL)
+        self.catalog_url_edit.setToolTip(
+            "URL of the catalog index JSON file.\n"
+            "Change this to point to a private or forked catalog.\n"
+            "Leave blank to restore the default community catalog."
+        )
+        form.addRow("Catalog URL:", self.catalog_url_edit)
 
         layout.addLayout(form)
         layout.addSpacing(15)
@@ -94,15 +105,23 @@ class LLMSettingsDialog(QDialog):
 
     def _load_settings(self):
         """Load current settings from config."""
-        config = get_config_manager().config.llm
-        self.max_tokens_spin.setValue(config.max_tokens)
+        config = get_config_manager().config
+        self.max_tokens_spin.setValue(config.llm.max_tokens)
+        self.catalog_url_edit.setText(config.catalog_url)
 
     def _reset_to_defaults(self):
-        """Reset to default value."""
+        """Reset to default values."""
         self.max_tokens_spin.setValue(DEFAULT_MAX_TOKENS)
+        self.catalog_url_edit.setText(DEFAULT_CATALOG_URL)
 
     def _save_settings(self):
         """Save settings to config and close."""
         config_manager = get_config_manager()
-        config_manager.update(**{"llm.max_tokens": self.max_tokens_spin.value()})
+        url = self.catalog_url_edit.text().strip() or DEFAULT_CATALOG_URL
+        config_manager.update(
+            **{
+                "llm.max_tokens": self.max_tokens_spin.value(),
+                "catalog_url": url,
+            }
+        )
         self.accept()

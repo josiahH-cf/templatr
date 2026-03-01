@@ -59,6 +59,11 @@ SYSTEM_COMMANDS: list[PaletteItem] = [
     PaletteItem(
         name="/settings", description="Open LLM settings", payload="cmd:settings"
     ),
+    PaletteItem(
+        name="/browse",
+        description="Browse and install community templates",
+        payload="cmd:browse",
+    ),
 ]
 
 
