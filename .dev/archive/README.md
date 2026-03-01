@@ -1,6 +1,6 @@
 # Archive
 
-This directory contains completed task files, specs, and decision records from Automatr's development history.
+This directory contains completed task files, specs, and decision records from Templatr's development history.
 
 ## Contents
 

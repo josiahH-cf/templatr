@@ -28,7 +28,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DIST_DIR = ROOT / "dist"
-SPEC_FILE = ROOT / "build.spec"
+SPEC_FILE = ROOT / "scripts" / "build.spec"
 VENDOR_DIR = ROOT / "vendor" / "llama-server"
 
 APP_NAME = "templatr"

@@ -36,7 +36,7 @@ This installs Templatr in editable mode along with development dependencies (pyt
 > cp templates/*.json ~/Library/Application\ Support/templatr/templates/
 > ```
 >
-> This workaround will be removed when first-run template seeding is added (see [platform-config-consolidation](specs/platform-config-consolidation.md)).
+> This workaround will be removed in a future release when first-run template seeding is added.
 
 Alternatively, `./install.sh` handles template copying automatically but is more opinionated about the Python environment (virtual env in `.venv/`).
 
@@ -94,7 +94,7 @@ Both must pass cleanly before submitting a PR. CI enforces `ruff check .` automa
 
 ## Template Authoring
 
-See [TEMPLATES.md](TEMPLATES.md) for the full guide on creating, importing, and exporting templates. Key points:
+See [Template Authoring Guide](docs/templates.md) for the full guide on creating, importing, and exporting templates. Key points:
 
 - Type `/new` in the chat to quick-create a template
 - Use `{{variable_name}}` for fill-in-the-blank placeholders

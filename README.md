@@ -4,82 +4,106 @@
 [![Release](https://img.shields.io/github/v/release/josiahH-cf/templatr)](https://github.com/josiahH-cf/templatr/releases/latest)
 ![Platforms](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-blue)
 
-**Create reusable AI prompts that run 100% on your computer.**
+**🔒 Create reusable AI prompts that run 100% on your computer.**
 
 No cloud. No API keys. No subscriptions. Just you and your local AI.
 
-![Main Chat View](docs/images/main-chat-view.png)
+![Templatr — Main Chat View](docs/images/main-chat-view.png)
 
 ---
 
-## What is Templatr?
+## 🤔 What is Templatr?
 
-Templatr helps you build **prompt templates** — reusable prompts with fill-in-the-blank variables. Think of them like form letters for AI.
+Templatr helps you build **prompt templates** — reusable prompts with fill-in-the-blank variables. Think of them like **form letters for AI**: write once, reuse forever.
 
-**Example:** Instead of retyping "Review this code for bugs..." every time, create a template once and reuse it forever.
-
-### Your Data Stays Private
-
-Everything runs on your computer:
-
-- No internet connection required (after initial setup)
-- No accounts or sign-ups
-- Your prompts never leave your machine
+> 🛡️ **Your data stays private.** Everything runs on your computer. No internet required after initial setup. No accounts. Your prompts never leave your machine.
 
 ---
 
-## Quick Start
+## ✨ Features
 
-### Linux (x86_64)
+| | Feature | Description |
+|---|---|---|
+| 📝 | **Reusable Templates** | Create prompts with `{{variables}}` — fill in the blanks each time |
+| 💬 | **[Multi-Turn Chat](docs/multi-turn-chat.md)** | Conversation memory — ask follow-ups naturally |
+| 🧪 | **[A/B Testing](docs/prompt-ab-testing.md)** | Run a prompt multiple times and compare results side-by-side |
+| 📊 | **[Performance Dashboard](docs/performance-dashboard.md)** | Track generation speed, token usage, and model stats |
+| 🏪 | **[Template Marketplace](docs/template-marketplace.md)** | Browse and install community templates with one click |
+| ⌨️ | **Slash Commands** | Type `/` to access templates, tools, and settings instantly |
+| 🔌 | **Powered by llama.cpp** | Runs any `.gguf` model — fully offline |
 
-Pre-built binaries are available for x86_64 Linux. ARM64 is not yet supported for pre-built releases.
+---
 
-1. Go to the [Releases page](https://github.com/josiahH-cf/templatr/releases/latest)
-2. Download `templatr-linux.AppImage` (or the `.AppDir` fallback)
-3. Make it executable:
-   ```bash
-   chmod +x templatr-linux.AppImage
-   ```
-4. Run it:
-   ```bash
-   ./templatr-linux.AppImage
-   ```
+## 📸 Screenshots
 
-**Developer install (from source):**
+<table>
+<tr>
+<td align="center"><strong>Template Editor</strong></td>
+<td align="center"><strong>Slash Command Palette</strong></td>
+<td align="center"><strong>New Template Flow</strong></td>
+</tr>
+<tr>
+<td><img src="docs/images/template-editor.png" alt="Template Editor" width="280"/></td>
+<td><img src="docs/images/slash-command-palette.png" alt="Slash Commands" width="280"/></td>
+<td><img src="docs/images/new-template-flow.png" alt="New Template" width="280"/></td>
+</tr>
+</table>
+
+---
+
+## 🚀 Quick Start
+
+Download a pre-built binary from the [Releases page](https://github.com/josiahH-cf/templatr/releases/latest), or install from source.
+
+<details>
+<summary><strong>🐧 Linux (x86_64)</strong></summary>
+
+**Pre-built binary:**
+1. Download `templatr-linux.AppImage` from [Releases](https://github.com/josiahH-cf/templatr/releases/latest)
+2. Make it executable: `chmod +x templatr-linux.AppImage`
+3. Run it: `./templatr-linux.AppImage`
+
+**From source:**
 ```bash
 git clone https://github.com/josiahH-cf/templatr.git
 cd templatr
 ./install.sh
 ```
 
-### macOS
+</details>
 
-1. Go to the [Releases page](https://github.com/josiahH-cf/templatr/releases/latest)
-2. Download the `.dmg` for your architecture:
+<details>
+<summary><strong>🍎 macOS</strong></summary>
+
+1. Download the `.dmg` for your Mac from [Releases](https://github.com/josiahH-cf/templatr/releases/latest):
    - **Apple Silicon (M1/M2/M3):** `templatr-macos-latest.dmg`
    - **Intel:** `templatr-macos-13.dmg`
-3. Open the `.dmg` and drag **Templatr** to Applications
-4. Launch Templatr from Applications
+2. Open the `.dmg` and drag **Templatr** to Applications
+3. Launch from Applications
 
-**Developer install (from source):**
+**From source:**
 ```bash
 git clone https://github.com/josiahH-cf/templatr.git
 cd templatr
 ./install.sh
 ```
 
-### Windows
+</details>
 
-> **Note:** Native Windows development builds are not yet supported. For development, use WSL2 (see [CONTRIBUTING.md](CONTRIBUTING.md)).
+<details>
+<summary><strong>🪟 Windows</strong></summary>
 
-1. Go to the [Releases page](https://github.com/josiahH-cf/templatr/releases/latest)
-2. Download the `templatr-windows.zip`
-3. Extract the zip to a folder of your choice
-4. Run `templatr.exe` from the extracted folder
+1. Download `templatr-windows.zip` from [Releases](https://github.com/josiahH-cf/templatr/releases/latest)
+2. Extract to a folder of your choice
+3. Run `templatr.exe`
+
+> **For development:** Native Windows dev is not supported. Use [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) — see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+</details>
 
 ---
 
-## Getting an AI Model
+## 🤖 Getting an AI Model
 
 You need a `.gguf` model file — this is the "brain" that generates responses.
 
@@ -89,11 +113,11 @@ You need a `.gguf` model file — this is the "brain" that generates responses.
 4. Go to **LLM → Select Model → Add Model from File...**
 5. Pick your downloaded `.gguf` file
 
-**Tip:** Smaller models run faster. Larger ones are smarter but slower. Any `.gguf` format model works — browse [Hugging Face](https://huggingface.co/models?search=gguf) for options.
+> **💡 Tip:** Smaller models run faster. Larger ones are smarter but slower. Any `.gguf` format model works — browse [Hugging Face](https://huggingface.co/models?search=gguf) for options.
 
 ---
 
-## Creating Your First Template
+## 📝 Creating Your First Template
 
 1. Open the chat and type `/new`
 2. Give your template a name (e.g., "Code Review")
@@ -105,63 +129,22 @@ You need a `.gguf` model file — this is the "brain" that generates responses.
    ```
 4. Your template is saved and immediately available as a `/` command
 
-See [TEMPLATES.md](TEMPLATES.md) for the full template authoring guide, including import/export and advanced editing.
+📖 See the full [Template Authoring Guide](docs/templates.md) for import/export and advanced editing.
 
 ---
 
-## System Requirements
+## 💻 System Requirements
 
 | Requirement | Minimum |
 |-------------|---------|
 | **OS** | Linux (x86_64), macOS (Intel or Apple Silicon), or Windows 10+ |
-| **Python** | 3.10 or newer (source install only; not needed for pre-built binaries) |
+| **Python** | 3.10+ (source install only — not needed for pre-built binaries) |
 | **RAM** | 8 GB (16 GB recommended) |
 | **Storage** | 10 GB free for models |
 
 ---
 
-## Where Files Are Stored
-
-### Linux / WSL2
-
-| What | Location |
-|------|----------|
-| Settings & Templates | `~/.config/templatr/` (or `$XDG_CONFIG_HOME/templatr/`) |
-| LLM Server | `~/.local/share/templatr/` (or `$XDG_DATA_HOME/templatr/`) |
-| Models | `~/models/` |
-
-### macOS
-
-| What | Location |
-|------|----------|
-| Settings & Templates | `~/Library/Application Support/templatr/` |
-| Models | `~/models/` |
-
-### Windows (pre-built binary)
-
-| What | Location |
-|------|----------|
-| Settings & Templates | `%APPDATA%\templatr\` |
-| Data | `%LOCALAPPDATA%\templatr\` |
-| Models | `%USERPROFILE%\models\` |
-
-> **Tip:** Run `templatr --doctor` to see your exact platform-specific paths and check for missing dependencies.
-
-**To remove everything:**
-```bash
-# Linux / WSL2
-rm -rf ~/.config/templatr/ ~/.local/share/templatr/ ~/models/*.gguf
-
-# macOS
-rm -rf ~/Library/Application\ Support/templatr/ ~/models/*.gguf
-
-# Windows (PowerShell)
-Remove-Item -Recurse "$env:APPDATA\templatr", "$env:LOCALAPPDATA\templatr"
-```
-
----
-
-## Common Questions
+## ❓ FAQ
 
 **Q: Do I need internet?**
 A: Only to download the app and a model. After that, everything works offline.
@@ -180,137 +163,58 @@ A: Espanso support lives in a separate project: [templatr-espanso](https://githu
 
 ---
 
-## Template Marketplace
+## 📂 File Locations
 
-Templatr includes a built-in community catalog of prompt templates you can browse and install without leaving the app.
+<details>
+<summary><strong>Linux / WSL2</strong></summary>
 
-### Browsing the catalog
+| What | Location |
+|------|----------|
+| Settings & Templates | `~/.config/templatr/` |
+| LLM Server | `~/.local/share/templatr/` |
+| Models | `~/models/` |
 
-In the chat bar, type `/browse` and press Enter.  A dialog opens that lets you:
+</details>
 
-- **Search** by name, description, author, or tag in real time.
-- **Filter by tag** using the tag drop-down.
-- **Preview** a template's full details before installing.
-- **Install** any template with one click — it is downloaded, validated, and added to your template library immediately.
+<details>
+<summary><strong>macOS</strong></summary>
 
-After install, the template tree on the left refreshes automatically and the template is ready to use.
+| What | Location |
+|------|----------|
+| Settings & Templates | `~/Library/Application Support/templatr/` |
+| Models | `~/models/` |
 
-### Contributing a template
+</details>
 
-Community templates live in the [templatr-catalog](https://github.com/josiahH-cf/templatr-catalog) repository.
+<details>
+<summary><strong>Windows</strong></summary>
 
-1. **Test locally first** — use `/import` in Templatr to import your `.json` template file and confirm it works.
-2. **Fork** `josiahH-cf/templatr-catalog`.
-3. Add your template file under `templates/` (lowercase snake_case filename, e.g. `my_great_template.json`).
-4. Add an entry to `catalog.json` with the required fields: `name`, `description`, `author`, `tags`, `version`, and `download_url` pointing to the raw file URL.
-5. Open a Pull Request — see [CONTRIBUTING](https://github.com/josiahH-cf/templatr-catalog/blob/main/CONTRIBUTING.md) for requirements.
+| What | Location |
+|------|----------|
+| Settings & Templates | `%APPDATA%\templatr\` |
+| Data | `%LOCALAPPDATA%\templatr\` |
+| Models | `%USERPROFILE%\models\` |
 
-### Hosting a private catalog
+</details>
 
-You can point Templatr at any URL that serves a valid catalog JSON array.
-
-1. Fork the catalog repo (or create your own with the same format).
-2. In Templatr, open `/settings` and change **Catalog URL** to the raw URL of your `catalog.json`.
-3. Use `/browse` as normal — Templatr fetches from your URL.
-
-This works for company-internal libraries, team collections, or curated personal sets.
-
----
-
-## Multi-Turn Chat
-
-Templatr remembers prior exchanges within a session so you can ask follow-up
-questions and refine outputs naturally — no copy-pasting required.
-
-### How it works
-
-Every message you send automatically includes recent user/assistant turns as
-context.  The model sees the conversation history, so you can say things like
-"make that shorter" or "now write a Python example" and the model understands
-what *that* refers to.
-
-### Resetting the conversation
-
-Two things reset the context and start a clean slate:
-
-- Press **Ctrl+L** or use the `/clear` keyboard shortcut.
-- Select a different template from the slash palette or sidebar.
-
-### Settings
-
-Open `/settings` and adjust under **Generation Settings**:
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| Conversation Turns | 6 | Number of prior user/assistant pairs included. Set to **0** to disable memory entirely (single-shot mode). |
-| Context Char Limit | 4000 | Maximum characters of assembled context per request. Oldest turns are silently dropped when the limit is hit — a notice appears in the chat. |
+> **💡 Tip:** Run `templatr --doctor` to see your exact paths and check for missing dependencies.
 
 ---
 
-## Prompt A/B Testing
+## 📚 Documentation
 
-Not sure how consistent the model is on a given prompt? Run it multiple times
-with `/test` and compare results side-by-side.
-
-### Basic usage
-
-```
-/test             # run the last prompt 3 times (default)
-/test 5           # run it 5 times
-/test 5 | write a haiku about autumn   # 5 runs with a custom prompt
-```
-
-The minimum is 2 iterations.  After all iterations complete, a summary appears
-in the chat thread showing latency and estimated token counts for each run.
-
-### Picking a winner
-
-After a test run, type `/test view` to open the detail dialog.  Each iteration's
-full output is displayed; click **Pick as Winner ★** to mark that output as a
-favourite in your prompt history.
-
-### How it interacts with conversation memory
-
-If you pass a custom prompt after `|`, it is assembled with the current
-conversation context just like a normal message.  Otherwise, the last
-fully-assembled prompt is replayed — this is the same prompt the model actually
-saw, including any multi-turn context.
+- [Template Authoring Guide](docs/templates.md)
+- [Multi-Turn Chat](docs/multi-turn-chat.md)
+- [Prompt A/B Testing](docs/prompt-ab-testing.md)
+- [Performance Dashboard](docs/performance-dashboard.md)
+- [Template Marketplace](docs/template-marketplace.md)
+- Troubleshooting: [Linux](docs/troubleshooting-linux.md) · [macOS](docs/troubleshooting-macos.md) · [Windows](docs/troubleshooting-windows.md)
 
 ---
 
-## Performance Dashboard
+## 🤝 Contributing
 
-Track your generation activity with `/performance`.  The dashboard aggregates
-timing, token, and model data from your prompt history into a read-only summary.
-
-### What you see
-
-| Section | Details |
-|---------|---------|
-| **Summary row** | Total generations, average latency, estimated total tokens, distinct models used. |
-| **By Model** | Per-model breakdown: generation count, average latency, total estimated tokens, last used date. |
-| **By Template** | Per-template breakdown: generation count, average latency, last used date. |
-
-Both breakdowns are sortable by any column.
-
-### Date range filter
-
-Use the dropdown at the top of the dialog to narrow the view:
-
-- **Last 7 days**
-- **Last 30 days**
-- **All time** (default)
-
-### Notes
-
-- Token counts are estimates (word-split heuristic) and are labeled as such.
-- The dashboard is read-only — no editing or deleting from this view.
-- New history entries gain timing metadata automatically; older entries without
-  timing data are counted but excluded from latency/token aggregations.
-
----
-
-## Contributing
+We'd love your help! Whether it's bug reports, feature ideas, or code — all contributions are welcome.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for developer setup, testing, and PR guidelines.
 
@@ -323,5 +227,5 @@ MIT — see [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  Made with care for people who value privacy
+  Made with ❤️ for people who value privacy
 </p>

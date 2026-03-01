@@ -6,17 +6,17 @@ Users generate many outputs over time but have no visibility into performance pa
 
 ## Acceptance Criteria
 
-- [ ] AC-1: History entries gain optional timing metadata (latency, estimated output tokens, model name). Existing history files without these fields continue to load without errors.
-- [ ] AC-2: The generation flow records timing and model metadata into history entries when available.
-- [ ] AC-3: A `/performance` slash command opens the performance dashboard.
-- [ ] AC-4: The dashboard displays summary statistics: total generations, average latency, estimated total tokens, and number of distinct models used.
-- [ ] AC-5: A per-model breakdown shows generation count, average latency, total estimated tokens, and last-used date for each model.
-- [ ] AC-6: A per-template breakdown shows generation count, average latency, and last-used date for each template.
-- [ ] AC-7: Both breakdowns are sortable by column.
-- [ ] AC-8: A date range filter (last 7 days / last 30 days / all time) controls which entries are included.
-- [ ] AC-9: If no entries have timing data, the dashboard shows an empty-state message with guidance.
-- [ ] AC-10: `/help` output is updated to document the `/performance` command.
-- [ ] AC-11: README is updated to describe the performance dashboard.
+- [x] AC-1: History entries gain optional timing metadata (latency, estimated output tokens, model name). Existing history files without these fields continue to load without errors.
+- [x] AC-2: The generation flow records timing and model metadata into history entries when available.
+- [x] AC-3: A `/performance` slash command opens the performance dashboard.
+- [x] AC-4: The dashboard displays summary statistics: total generations, average latency, estimated total tokens, and number of distinct models used.
+- [x] AC-5: A per-model breakdown shows generation count, average latency, total estimated tokens, and last-used date for each model.
+- [x] AC-6: A per-template breakdown shows generation count, average latency, and last-used date for each template.
+- [x] AC-7: Both breakdowns are sortable by column.
+- [x] AC-8: A date range filter (last 7 days / last 30 days / all time) controls which entries are included.
+- [x] AC-9: If no entries have timing data, the dashboard shows an empty-state message with guidance.
+- [x] AC-10: `/help` output is updated to document the `/performance` command.
+- [x] AC-11: README is updated to describe the performance dashboard.
 
 ## Constraints
 

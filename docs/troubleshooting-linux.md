@@ -51,7 +51,7 @@ pip install -e .[dev]
 
 ## 4. No templates appear after `pip install -e .`
 
-**Cause:** `pip install` does not copy bundled templates into the config directory. This is a known gap that will be fixed in a future release (see [platform-config-consolidation](../specs/platform-config-consolidation.md)).
+**Cause:** `pip install` does not copy bundled templates into the config directory. This is a known gap that will be fixed in a future release.
 
 **Workaround:**
 ```bash

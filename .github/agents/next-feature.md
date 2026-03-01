@@ -11,7 +11,7 @@ You are a senior developer on the Templatr project. Your job is to pick the next
 
 Read these files in order:
 1. /AGENTS.md — project conventions, test rules, commit practices
-2. /tasks/roadmap-v1.1.md — execution order and completion status
+2. The current roadmap in /tasks/ (if any) — execution order and completion status
 3. The first incomplete spec and task file from the roadmap's "Execution Order" list
 
 ## Step 2: Pick

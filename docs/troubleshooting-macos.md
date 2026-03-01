@@ -26,7 +26,7 @@ xattr -cr /Applications/Templatr.app
 
 **Correct path:** `~/Library/Application Support/templatr/`
 
-This is a known issue that will be fixed in a future release (see [platform-config-consolidation](../specs/platform-config-consolidation.md)). When you see `~/.config/templatr` in an error message, mentally replace it with `~/Library/Application Support/templatr/`.
+This is a known issue that will be fixed in a future release. When you see `~/.config/templatr` in an error message, mentally replace it with `~/Library/Application Support/templatr/`.
 
 ---
 
@@ -40,7 +40,7 @@ mkdir -p ~/Library/Application\ Support/templatr/templates
 cp templates/*.json ~/Library/Application\ Support/templatr/templates/
 ```
 
-This will be fixed when first-run template seeding is added (see [platform-config-consolidation](../specs/platform-config-consolidation.md)).
+This will be fixed in a future release when first-run template seeding is added.
 
 ---
 

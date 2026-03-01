@@ -216,26 +216,26 @@ def test_download_skips_when_version_matches(tmp_path: Path) -> None:
 
 
 def test_build_spec_exists() -> None:
-    """build.spec file exists in the repository root."""
-    assert (ROOT / "build.spec").exists()
+    """build.spec file exists in scripts/."""
+    assert (ROOT / "scripts" / "build.spec").exists()
 
 
 def test_build_spec_references_main_entry() -> None:
     """build.spec references templatr/__main__.py as the entry point."""
-    content = (ROOT / "build.spec").read_text()
+    content = (ROOT / "scripts" / "build.spec").read_text()
     assert "__main__.py" in content
     assert "templatr" in content
 
 
 def test_build_spec_bundles_templates() -> None:
     """build.spec includes the templates directory as data."""
-    content = (ROOT / "build.spec").read_text()
+    content = (ROOT / "scripts" / "build.spec").read_text()
     assert "templates" in content
 
 
 def test_build_spec_bundles_vendor() -> None:
     """build.spec includes the vendor/llama-server directory as data."""
-    content = (ROOT / "build.spec").read_text()
+    content = (ROOT / "scripts" / "build.spec").read_text()
     assert "vendor" in content
     assert "llama-server" in content
 

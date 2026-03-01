@@ -12,7 +12,7 @@ Common issues and fixes when running Templatr on Windows.
 - **Recommended:** Download the pre-built binary from the [Releases page](https://github.com/josiahH-cf/templatr/releases/latest) — no installer needed
 - **For development:** Use [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) and follow the Linux setup instructions
 
-This will be fixed in a future release (see [platform-config-consolidation](../specs/platform-config-consolidation.md)).
+This will be fixed in a future release.
 
 ---
 
@@ -58,4 +58,4 @@ This will be fixed in a future release (see [platform-config-consolidation](../s
 | Settings & Templates | Stored alongside the extracted application |
 | Models | `%USERPROFILE%\models\` |
 
-> **Note:** Windows file paths are only standardized for the pre-built binary. If you're developing via WSL2, Linux paths apply instead. See [platform-config-consolidation](../specs/platform-config-consolidation.md) for planned improvements to Windows path handling.
+> **Note:** Windows file paths are only standardized for the pre-built binary. If you're developing via WSL2, Linux paths apply instead.

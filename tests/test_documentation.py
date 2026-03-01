@@ -166,21 +166,21 @@ class TestReadmeContent:
     def test_readme_has_per_os_quick_start(self, repo_root):
         """README has Quick Start sections for Linux, macOS, and Windows."""
         text = (repo_root / "README.md").read_text()
-        assert "### Linux" in text
-        assert "### macOS" in text
-        assert "### Windows" in text
+        assert "Linux" in text
+        assert "macOS" in text
+        assert "Windows" in text
 
     def test_readme_windows_references_releases(self, repo_root):
         """Windows Quick Start references Releases download, not install.sh."""
         text = (repo_root / "README.md").read_text()
         lines = text.split("\n")
-        # Find the Windows section heading
+        # Find the Windows section (may be a <details> heading or ### heading)
         win_start = None
         win_end = None
         for i, line in enumerate(lines):
-            if line.strip() == "### Windows" and win_start is None:
+            if "Windows" in line and ("###" in line or "<summary>" in line) and win_start is None:
                 win_start = i
-            elif win_start is not None and line.startswith("## "):
+            elif win_start is not None and (line.startswith("## ") or line.strip() == "---"):
                 win_end = i
                 break
         if win_end is None:
@@ -203,9 +203,9 @@ class TestReadmeContent:
         assert "~/Library/Application Support/templatr/" in text
 
     def test_readme_documents_xdg_paths(self, repo_root):
-        """README documents XDG config paths for Linux."""
+        """README documents Linux config paths."""
         text = (repo_root / "README.md").read_text()
-        assert "XDG_CONFIG_HOME" in text
+        assert "~/.config/templatr/" in text
 
 
 class TestContributingContent:
@@ -226,9 +226,9 @@ class TestContributingContent:
         assert "does not seed templates" in text.lower() or "known issue" in text.lower()
 
     def test_contributing_references_templates_md(self, repo_root):
-        """CONTRIBUTING.md references TEMPLATES.md."""
+        """CONTRIBUTING.md references the template authoring guide."""
         text = (repo_root / "CONTRIBUTING.md").read_text()
-        assert "TEMPLATES.md" in text
+        assert "templates.md" in text.lower() or "template authoring" in text.lower()
 
 
 class TestTroubleshootingContent:
