@@ -6,16 +6,16 @@ Every prompt sent to the model is currently stateless — the model has no memor
 
 ## Acceptance Criteria
 
-- [ ] AC-1: When the user sends a second message in the same chat thread, the generation request includes prior user/assistant turn(s) as preceding context.
-- [ ] AC-2: A configurable maximum turn count controls how many prior exchanges are included (default: 6 turns — 3 user + 3 assistant). Setting it to 0 restores single-shot behavior.
-- [ ] AC-3: The context is formatted so the model can distinguish speaker roles (compatible with llama.cpp's `/completion` endpoint).
-- [ ] AC-4: Clearing the chat thread (via the existing clear shortcut or `/clear`) also resets conversation memory.
-- [ ] AC-5: Switching to a different template resets conversation memory.
-- [ ] AC-6: The `/compare` command sends the full multi-turn context (not just the latest message) so comparisons reflect the conversation.
-- [ ] AC-7: If the assembled context exceeds a configurable character limit (default: 4000), the oldest turns are silently dropped and the user is notified via a system message.
-- [ ] AC-8: The prompt recorded in history is the full assembled context so history search remains useful.
-- [ ] AC-9: Both new settings (turn count, character limit) are accessible through the existing LLM settings dialog — no new UI surface.
-- [ ] AC-10: README and `/help` output are updated to document multi-turn behavior and the new settings.
+- [x] AC-1: When the user sends a second message in the same chat thread, the generation request includes prior user/assistant turn(s) as preceding context.
+- [x] AC-2: A configurable maximum turn count controls how many prior exchanges are included (default: 6 turns — 3 user + 3 assistant). Setting it to 0 restores single-shot behavior.
+- [x] AC-3: The context is formatted so the model can distinguish speaker roles (compatible with llama.cpp's `/completion` endpoint).
+- [x] AC-4: Clearing the chat thread (via the existing clear shortcut or `/clear`) also resets conversation memory.
+- [x] AC-5: Switching to a different template resets conversation memory.
+- [x] AC-6: The `/compare` command sends the full multi-turn context (not just the latest message) so comparisons reflect the conversation.
+- [x] AC-7: If the assembled context exceeds a configurable character limit (default: 4000), the oldest turns are silently dropped and the user is notified via a system message.
+- [x] AC-8: The prompt recorded in history is the full assembled context so history search remains useful.
+- [x] AC-9: Both new settings (turn count, character limit) are accessible through the existing LLM settings dialog — no new UI surface.
+- [x] AC-10: README and `/help` output are updated to document multi-turn behavior and the new settings.
 
 ## Constraints
 

@@ -16,7 +16,7 @@ Features are independent but ordered by user-value and data dependencies.
 Performance-dashboard benefits from timing data introduced by earlier features
 but can land standalone.
 
-1. **multi-turn-chat** — Conversation memory (no deps beyond v1.1)
+1. ~~**multi-turn-chat**~~ — ✅ Complete. See [specs/multi-turn-chat.md](../specs/multi-turn-chat.md).
 2. **prompt-ab-testing** — Same-prompt variance testing via `/test` (no deps beyond v1.1)
 3. **performance-dashboard** — Generation metrics from history via `/performance` (soft dep on #1 and #2 for richer data)
 4. ~~**template-marketplace**~~ — ✅ Complete. See [tasks/template-marketplace.md](template-marketplace.md).
@@ -40,10 +40,11 @@ Each spec includes acceptance criteria for updating:
 ## Completed
 
 - **template-marketplace** — `/browse` catalog browser, fully implemented and merged. Catalog seeding is a separate deferred content task; see [tasks/seed-catalog-meta-prompt.md](seed-catalog-meta-prompt.md) — **do not treat as a code feature**.
+- **multi-turn-chat** — Conversation memory with ChatML formatting, configurable turn count and char limit, `/compare` integration. All 21 tests pass.
 
 ## Active
 
-_No active work yet. Begin with multi-turn-chat._
+_No active work yet. Begin with prompt-ab-testing._
 
 ## Archive
 
