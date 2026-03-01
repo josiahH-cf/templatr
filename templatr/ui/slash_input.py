@@ -209,11 +209,13 @@ class SlashInputWidget(QWidget):
     Attributes:
         template_submitted: Signal emitting a rendered prompt string.
         plain_submitted: Signal emitting a plain text string.
+        template_chosen: Signal emitting the template name when a template is picked.
     """
 
     template_submitted = pyqtSignal(str)
     plain_submitted = pyqtSignal(str)
     system_command = pyqtSignal(str)  # emits command id (e.g. "help", "settings")
+    template_chosen = pyqtSignal(str)  # emits template name when a template is selected
 
     MAX_RECENT = 5
 
@@ -325,6 +327,7 @@ class SlashInputWidget(QWidget):
         self._active_template = template
         self._track_recent(template.name)
         self._dismiss_palette()
+        self.template_chosen.emit(template.name)
 
         if not template.variables:
             rendered = template.render({})

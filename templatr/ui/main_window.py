@@ -37,6 +37,7 @@ from templatr.core.config import (
     get_log_dir,
     save_config,
 )
+from templatr.core.conversation import ConversationMemory
 from templatr.core.prompt_history import PromptHistoryStore, get_prompt_history_store
 from templatr.core.templates import Template, get_template_manager
 from templatr.integrations.llm import ModelInfo, get_llm_client, get_llm_server
@@ -95,7 +96,15 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
 
         # Feedback tracking - stores last AI generation for feedback
         self._last_prompt: Optional[str] = None
+        self._last_original_prompt: Optional[str] = None
         self._last_output: Optional[str] = None
+
+        # Multi-turn conversation memory (session-only)
+        cfg_llm = self.config_manager.config.llm
+        self.conversation_memory = ConversationMemory(
+            max_turns=cfg_llm.max_turns,
+            context_char_limit=cfg_llm.context_char_limit,
+        )
 
         # Retained as None — kept importable as fallback, not instantiated
         self.variable_form = None
@@ -180,7 +189,19 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
 
     def _on_template_selected(self, template: Template):
         """Handle template selection from tree widget."""
+        if self.current_template is not template:
+            self.conversation_memory.reset()
         self.current_template = template
+
+    def _on_palette_template_chosen(self, template_name: str) -> None:
+        """Reset conversation memory when a different template is chosen via the palette.
+
+        Args:
+            template_name: Name of the template the user just selected.
+        """
+        current_name = self.current_template.name if self.current_template else None
+        if template_name != current_name:
+            self.conversation_memory.reset()
 
     def _on_folder_selected(self):
         """Handle folder selection (deselect template)."""
@@ -333,11 +354,13 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
     def _clear_chat(self) -> None:
         """Clear the chat thread (default Ctrl+L shortcut).
 
-        No-op when a generation worker is currently running.
+        Also resets conversation memory so the next message starts a fresh
+        context.  No-op when a generation worker is currently running.
         """
         if self.worker and self.worker.isRunning():
             return
         self.chat_widget.clear_history()
+        self.conversation_memory.reset()
 
     def _select_next_template(self) -> None:
         """Select the next template in list order, wrapping around to the first.
@@ -505,6 +528,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         self.slash_input.template_submitted.connect(self._generate)
         self.slash_input.plain_submitted.connect(self._handle_plain_input)
         self.slash_input.system_command.connect(self._on_system_command)
+        self.slash_input.template_chosen.connect(self._on_palette_template_chosen)
         right_layout.addWidget(self.slash_input)
 
         self.splitter.addWidget(right_col)
@@ -583,10 +607,15 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
                 "- `/browse` — Browse and install community templates\n\n"
                 "Type `/` followed by a template name to search templates.\n"
                 "Type `:trigger` to invoke a template by its trigger shortcut.\n\n"
+                "**Multi-turn conversation:**\n\n"
+                "Messages in the same chat thread build on each other automatically — "
+                "the model sees prior exchanges as context. Use `Ctrl+L` or `/clear` "
+                "to start fresh. Switching templates also resets the context.\n"
+                "Configure _Conversation Turns_ and _Context Char Limit_ in `/settings`.\n\n"
                 "**Keyboard shortcuts:**\n\n"
                 "- `Ctrl+Return` — Generate (submit plain text)\n"
                 "- `Ctrl+Shift+C` — Copy last AI output to clipboard\n"
-                "- `Ctrl+L` — Clear chat thread\n"
+                "- `Ctrl+L` — Clear chat thread and reset conversation memory\n"
                 "- `Ctrl+]` — Next template\n"
                 "- `Ctrl+[` — Previous template"
             )
@@ -665,13 +694,23 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         parts = stripped.split(maxsplit=1)
         arg = parts[1].strip() if len(parts) > 1 else ""
 
-        prompt = ""
+        explicit_prompt = ""
         model_query = arg
         if "|" in arg:
-            model_query, prompt = [piece.strip() for piece in arg.split("|", 1)]
+            model_query, explicit_prompt = [piece.strip() for piece in arg.split("|", 1)]
 
-        if not prompt:
-            prompt = (self._last_prompt or "").strip()
+        if explicit_prompt:
+            # AC-6: wrap the explicit prompt in conversation context so the
+            # comparison reflects the current multi-turn conversation state.
+            memory = getattr(self, "conversation_memory", None)
+            if memory is not None:
+                prompt, _ = memory.assemble_prompt(explicit_prompt)
+            else:
+                prompt = explicit_prompt
+        else:
+            # Reuse the last assembled prompt as-is — do NOT strip, because
+            # the ChatML tail may end with a significant trailing newline.
+            prompt = self._last_prompt or ""
 
         if not prompt:
             self.chat_widget.add_system_message(

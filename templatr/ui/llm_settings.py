@@ -20,6 +20,8 @@ from templatr.core.config import DEFAULT_CATALOG_URL, get_config_manager
 
 # Default value (must match LLMConfig dataclass default)
 DEFAULT_MAX_TOKENS = 4096
+DEFAULT_MAX_TURNS = 6
+DEFAULT_CONTEXT_CHAR_LIMIT = 4000
 
 
 class LLMSettingsDialog(QDialog):
@@ -55,6 +57,28 @@ class LLMSettingsDialog(QDialog):
             "Cannot exceed the server's context size (default 4096)."
         )
         form.addRow("Max Token Length:", self.max_tokens_spin)
+
+        # Multi-turn: max turns (0 = single-shot, 1-20)
+        self.max_turns_spin = QSpinBox()
+        self.max_turns_spin.setRange(0, 20)
+        self.max_turns_spin.setSingleStep(1)
+        self.max_turns_spin.setToolTip(
+            "Number of prior exchanges to include in each request.\n"
+            "0 disables conversation memory (single-shot mode).\n"
+            "Default: 6 (3 user + 3 assistant turns)."
+        )
+        form.addRow("Conversation Turns:", self.max_turns_spin)
+
+        # Multi-turn: context character limit (500 - 16000)
+        self.context_char_limit_spin = QSpinBox()
+        self.context_char_limit_spin.setRange(500, 16000)
+        self.context_char_limit_spin.setSingleStep(500)
+        self.context_char_limit_spin.setToolTip(
+            "Maximum characters of assembled context sent per request.\n"
+            "Oldest turns are silently dropped when this limit is exceeded.\n"
+            "Default: 4000 (~1000 tokens for English text)."
+        )
+        form.addRow("Context Char Limit:", self.context_char_limit_spin)
 
         # Catalog URL
         self.catalog_url_edit = QLineEdit()
@@ -107,11 +131,15 @@ class LLMSettingsDialog(QDialog):
         """Load current settings from config."""
         config = get_config_manager().config
         self.max_tokens_spin.setValue(config.llm.max_tokens)
+        self.max_turns_spin.setValue(config.llm.max_turns)
+        self.context_char_limit_spin.setValue(config.llm.context_char_limit)
         self.catalog_url_edit.setText(config.catalog_url)
 
     def _reset_to_defaults(self):
         """Reset to default values."""
         self.max_tokens_spin.setValue(DEFAULT_MAX_TOKENS)
+        self.max_turns_spin.setValue(DEFAULT_MAX_TURNS)
+        self.context_char_limit_spin.setValue(DEFAULT_CONTEXT_CHAR_LIMIT)
         self.catalog_url_edit.setText(DEFAULT_CATALOG_URL)
 
     def _save_settings(self):
@@ -121,6 +149,8 @@ class LLMSettingsDialog(QDialog):
         config_manager.update(
             **{
                 "llm.max_tokens": self.max_tokens_spin.value(),
+                "llm.max_turns": self.max_turns_spin.value(),
+                "llm.context_char_limit": self.context_char_limit_spin.value(),
                 "catalog_url": url,
             }
         )

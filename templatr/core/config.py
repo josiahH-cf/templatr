@@ -258,6 +258,10 @@ class LLMConfig:
     top_k: int = 40
     repeat_penalty: float = 1.1
 
+    # Multi-turn conversation memory
+    max_turns: int = 6  # Number of prior user/assistant pairs to include (0 = single-shot)
+    context_char_limit: int = 4000  # Max assembled-prompt chars before oldest turns are dropped
+
 
 # Default keyboard shortcut bindings — keys are action names, values are
 # QKeySequence strings.  Users may override individual entries in config.json
