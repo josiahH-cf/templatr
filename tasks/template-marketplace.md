@@ -111,6 +111,17 @@ These are not app-code tasks; track them separately once work begins:
 
 ---
 
+## Deferred: Catalog Content Seeding
+
+The app feature is complete. Seeding the catalog with 10–15 quality templates is a
+separate, deferred task — **not a code task, not tracked on the roadmap**.
+
+When you're ready:
+- See [tasks/seed-catalog-meta-prompt.md](seed-catalog-meta-prompt.md) for the meta-prompt and end-to-end testing checklist.
+- That file is self-contained. Open the `templatr-catalog` repo in VS Code, paste the prompt, follow the checklist.
+
+---
+
 ## Session Log
 
 <!-- Append after each session: date, completed, blockers -->
