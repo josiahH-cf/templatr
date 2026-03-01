@@ -18,3 +18,5 @@ dist/
 build/
 vendor/
 *.spec.bak
+__pycache__/
+*.pyc
