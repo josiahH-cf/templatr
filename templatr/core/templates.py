@@ -479,6 +479,41 @@ class TemplateManager:
             print(f"Error deleting version history: {e}")
             return False
 
+    def duplicate(self, template: Template, new_name: Optional[str] = None) -> Template:
+        """Duplicate a template with a unique name.
+
+        Creates a copy of the template, saving it to the same folder using
+        'Copy of <name>' as the default name.  If the name already exists,
+        a numeric suffix is appended (e.g. 'Copy of X (2)').
+
+        Args:
+            template: Template to duplicate.
+            new_name: Optional custom name for the copy.
+
+        Returns:
+            The newly created duplicate template.
+        """
+        if new_name is None:
+            base_name = f"Copy of {template.name}"
+            candidate = base_name
+            counter = 2
+            while self.get(candidate) is not None:
+                candidate = f"{base_name} ({counter})"
+                counter += 1
+            new_name = candidate
+
+        copy = Template(
+            name=new_name,
+            content=template.content,
+            description=template.description,
+            trigger="",
+            variables=list(template.variables),
+            refinements=[],
+        )
+        folder = self.get_template_folder(template)
+        self.save_to_folder(copy, folder)
+        return copy
+
     def list_all(self) -> List[Template]:
         """List all templates.
 
