@@ -34,6 +34,7 @@ class TemplateTreeWidget(QWidget):
     improve_requested = pyqtSignal(object)
     version_history_requested = pyqtSignal(object)
     duplicate_requested = pyqtSignal(object)
+    rename_requested = pyqtSignal(object)
     template_deleted = pyqtSignal(str)
     new_template_requested = pyqtSignal()
     status_message = pyqtSignal(str, int)
@@ -210,6 +211,11 @@ class TemplateTreeWidget(QWidget):
             duplicate_action = menu.addAction("Duplicate")
             duplicate_action.triggered.connect(
                 lambda: self.duplicate_requested.emit(template)
+            )
+
+            rename_action = menu.addAction("Rename...")
+            rename_action.triggered.connect(
+                lambda: self.rename_requested.emit(template)
             )
 
             manager = get_template_manager()

@@ -283,6 +283,36 @@ class TemplateActionsMixin:
         else:
             QMessageBox.critical(self, "Error", "Failed to revert template")
 
+    def _rename_template(self, template: Optional[Template] = None) -> None:
+        """Prompt the user for a new name and rename the given template.
+
+        Args:
+            template: Template to rename. Falls back to self.current_template.
+        """
+        target = template or self.current_template
+        if not target:
+            return
+        new_name, ok = QInputDialog.getText(
+            self,
+            "Rename Template",
+            "New name:",
+            text=target.name,
+        )
+        if not ok:
+            return
+        manager = get_template_manager()
+        try:
+            manager.rename(target, new_name)
+        except ValueError as exc:
+            QMessageBox.warning(self, "Rename Failed", str(exc))
+            return
+        self.template_tree_widget.load_templates()
+        self.template_tree_widget.select_template_by_name(target.name)
+        self.status_bar.showMessage(
+            f"Renamed to '{target.name}'",
+            3000,
+        )
+
     def _duplicate_template(self, template: Optional[Template] = None) -> None:
         """Duplicate the given (or current) template and select the copy.
 

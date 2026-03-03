@@ -9,7 +9,6 @@ import pytest
 
 from templatr.core.templates import TemplateManager
 
-
 # ---------------------------------------------------------------------------
 # AC1 — TemplateManager.rename() backend
 # ---------------------------------------------------------------------------

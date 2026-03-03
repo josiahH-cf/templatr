@@ -187,6 +187,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         tree.improve_requested.connect(lambda t: self._improve_template(t))
         tree.version_history_requested.connect(lambda t: self._show_version_history(t))
         tree.duplicate_requested.connect(lambda t: self._duplicate_template(t))
+        tree.rename_requested.connect(lambda t: self._rename_template(t))
         tree.new_template_requested.connect(self._new_template)
         tree.template_deleted.connect(self._on_template_deleted)
         tree.status_message.connect(
