@@ -4,12 +4,9 @@ Covers: TemplateManager.duplicate() backend,
 unique name generation, context menu signal, _template_actions handler.
 """
 
-from pathlib import Path
 
-import pytest
 
-from templatr.core.templates import Template, TemplateManager
-
+from templatr.core.templates import TemplateManager
 
 # ---------------------------------------------------------------------------
 # TemplateManager.duplicate() tests
@@ -112,9 +109,8 @@ class TestTemplateDuplicateInTree:
 
     def test_duplicate_action_in_context_menu(self, qtbot, tmp_path, monkeypatch):
         """Context menu for a template includes 'Duplicate' action."""
-        from templatr.ui.template_tree import TemplateTreeWidget
-        from templatr.core.templates import get_template_manager
         import templatr.ui.template_tree as tree_module
+        from templatr.ui.template_tree import TemplateTreeWidget
 
         mgr = TemplateManager(templates_dir=tmp_path)
         mgr.create("Test Template", content="Hello")
@@ -129,13 +125,6 @@ class TestTemplateDuplicateInTree:
         tree = widget.tree
         item = tree.topLevelItem(0)
         assert item is not None
-
-        # Build the context menu to check actions
-        menu_action_texts = []
-        from unittest.mock import patch
-        with patch.object(widget, '_show_context_menu') as mock_menu:
-            # Directly inspect the menu by calling with a fake position
-            pass
 
         # Check signal exists and is connectable
         received = []

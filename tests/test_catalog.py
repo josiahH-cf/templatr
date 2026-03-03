@@ -12,16 +12,10 @@ Dialog tests use pytest-qt's qtbot fixture.
 """
 
 import json
-import tempfile
-from io import BytesIO
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from templatr.core.config import DEFAULT_CATALOG_URL, Config, ConfigManager
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -54,8 +48,9 @@ def _fake_urlopen(content: bytes, status: int = 200):
 
 def _spin(worker, timeout_ms: int = 3000) -> None:
     """Wait for a QThread worker to finish, pumping the event loop."""
-    from PyQt6.QtCore import QCoreApplication
     import time
+
+    from PyQt6.QtCore import QCoreApplication
 
     deadline = time.monotonic() + timeout_ms / 1000
     worker.start()
@@ -317,6 +312,7 @@ class TestCatalogInstallWorkerErrors:
     def test_network_error_emits_error(self, qtbot):
         """URLError during download emits a non-empty error."""
         import urllib.error
+
         from templatr.ui.workers import CatalogInstallWorker
 
         mock_manager = MagicMock()
@@ -379,8 +375,9 @@ def _open_dialog_with_entries(qtbot, entries):
         )
         qtbot.addWidget(dialog)
         # Wait for the fetch worker to complete
-        from PyQt6.QtCore import QCoreApplication
         import time
+
+        from PyQt6.QtCore import QCoreApplication
         deadline = time.monotonic() + 3.0
         while time.monotonic() < deadline:
             QCoreApplication.processEvents()

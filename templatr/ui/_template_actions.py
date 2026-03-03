@@ -283,6 +283,24 @@ class TemplateActionsMixin:
         else:
             QMessageBox.critical(self, "Error", "Failed to revert template")
 
+    def _duplicate_template(self, template: Optional[Template] = None) -> None:
+        """Duplicate the given (or current) template and select the copy.
+
+        Args:
+            template: Template to duplicate. Falls back to self.current_template.
+        """
+        target = template or self.current_template
+        if not target:
+            return
+        manager = get_template_manager()
+        copy = manager.duplicate(target)
+        self.template_tree_widget.load_templates()
+        self.template_tree_widget.select_template_by_name(copy.name)
+        self.status_bar.showMessage(
+            f"Duplicated '{target.name}' as '{copy.name}'",
+            3000,
+        )
+
     def _on_template_saved(self, template: Template):
         """Handle template saved signal."""
         self.template_tree_widget.load_templates()

@@ -33,6 +33,7 @@ class TemplateTreeWidget(QWidget):
     export_requested = pyqtSignal(object)
     improve_requested = pyqtSignal(object)
     version_history_requested = pyqtSignal(object)
+    duplicate_requested = pyqtSignal(object)
     template_deleted = pyqtSignal(str)
     new_template_requested = pyqtSignal()
     status_message = pyqtSignal(str, int)
@@ -205,6 +206,11 @@ class TemplateTreeWidget(QWidget):
 
             export_action = menu.addAction("Export...")
             export_action.triggered.connect(lambda: self._export_template(template))
+
+            duplicate_action = menu.addAction("Duplicate")
+            duplicate_action.triggered.connect(
+                lambda: self.duplicate_requested.emit(template)
+            )
 
             manager = get_template_manager()
             versions = manager.list_versions(template)

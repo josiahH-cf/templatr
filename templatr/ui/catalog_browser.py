@@ -11,7 +11,6 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
-    QDialogButtonBox,
     QHBoxLayout,
     QInputDialog,
     QLabel,
