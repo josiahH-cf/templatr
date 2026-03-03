@@ -479,6 +479,57 @@ class TemplateManager:
             print(f"Error deleting version history: {e}")
             return False
 
+    def rename(self, template: Template, new_name: str) -> Template:
+        """Rename a template, updating its on-disk file and version history dir.
+
+        Args:
+            template: Template to rename.
+            new_name: Desired new name.
+
+        Returns:
+            The updated Template (same object, mutated in-place).
+
+        Raises:
+            ValueError: If new_name is blank or already in use by another template.
+        """
+        new_name = new_name.strip()
+        if not new_name:
+            raise ValueError("Name cannot be empty")
+
+        if new_name.lower() != template.name.lower():
+            existing = self.get(new_name)
+            if existing is not None:
+                raise ValueError(
+                    f"A template named '{new_name}' already exists"
+                )
+
+        old_path = template._path
+        old_slug = template.filename.replace(".json", "")
+
+        # Compute new path in the same directory
+        template.name = new_name
+        folder_dir = old_path.parent if old_path else self.templates_dir
+        new_path = folder_dir / template.filename
+
+        # Write new file
+        with open(new_path, "w", encoding="utf-8") as f:
+            json.dump(template.to_dict(), f, indent=2)
+        template._path = new_path
+
+        # Remove old file (unless it's the same path, i.e. same-name no-op)
+        if old_path and old_path != new_path and old_path.exists():
+            old_path.unlink()
+
+        # Rename version history dir if it exists
+        new_slug = template.filename.replace(".json", "")
+        if old_slug != new_slug:
+            old_version_dir = self._versions_dir / old_slug
+            new_version_dir = self._versions_dir / new_slug
+            if old_version_dir.exists():
+                old_version_dir.rename(new_version_dir)
+
+        return template
+
     def duplicate(self, template: Template, new_name: Optional[str] = None) -> Template:
         """Duplicate a template with a unique name.
 
