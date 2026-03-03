@@ -54,6 +54,21 @@ def main() -> int:
         help="Run diagnostic checks and report platform, paths, and status",
     )
 
+    # Subcommands
+    subparsers = parser.add_subparsers(dest="command")
+
+    # templatr status --json
+    status_parser = subparsers.add_parser("status", help="Show app status")
+    status_parser.add_argument(
+        "--json",
+        action="store_true",
+        dest="json_output",
+        help="Output status as JSON",
+    )
+
+    # templatr gui (explicit, optional)
+    subparsers.add_parser("gui", help="Launch the GUI")
+
     args = parser.parse_args()
 
     if args.doctor:
@@ -61,9 +76,33 @@ def main() -> int:
 
         return run_doctor()
 
+    if args.command == "status":
+        return _cmd_status(args)
+
+    # Default: launch GUI (no args or explicit 'gui' subcommand)
     from templatr.ui.main_window import run_gui
 
     return run_gui()
+
+
+def _cmd_status(args) -> int:
+    """Handle the ``templatr status`` subcommand.
+
+    Args:
+        args: Parsed argparse namespace with ``json_output`` flag.
+
+    Returns:
+        Exit code (0 on success).
+    """
+    from templatr.integrations.orchestratr import get_status_json
+
+    if args.json_output:
+        print(get_status_json())
+        return 0
+
+    # Plain text fallback — just print the JSON pretty for now
+    print(get_status_json())
+    return 0
 
 
 if __name__ == "__main__":

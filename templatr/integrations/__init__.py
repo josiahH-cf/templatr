@@ -1,1 +1,1 @@
-"""Templatr integrations (LLM runtime)."""
+"""Templatr integrations (LLM runtime, orchestratr connector)."""
