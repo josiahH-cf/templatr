@@ -481,6 +481,113 @@ class TestCLIStatusCommand:
 
 
 # ---------------------------------------------------------------------------
+# Setup command tests
+# ---------------------------------------------------------------------------
+
+
+class TestSetupCommand:
+    """Tests for the ``templatr setup`` CLI subcommand."""
+
+    def test_setup_generates_manifest(self, tmp_path, capsys):
+        """setup calls generate_manifest when orchestratr is present and manifest is stale."""
+        from templatr.__main__ import main
+
+        apps_dir = tmp_path / "apps.d"
+        apps_dir.mkdir()
+
+        with mock.patch("sys.argv", ["templatr", "setup"]), mock.patch(
+            "templatr.integrations.orchestratr.resolve_orchestratr_apps_dir",
+            return_value=apps_dir,
+        ), mock.patch(
+            "templatr.integrations.orchestratr.manifest_needs_update",
+            return_value=True,
+        ), mock.patch(
+            "templatr.integrations.orchestratr.generate_manifest",
+            return_value=True,
+        ) as mock_gen:
+            exit_code = main()
+
+        assert exit_code == 0
+        mock_gen.assert_called_once()
+        captured = capsys.readouterr()
+        assert "Registered" in captured.out
+
+    def test_setup_skips_when_absent(self, capsys):
+        """setup exits 0 and prints skip message when orchestratr is not installed."""
+        from templatr.__main__ import main
+
+        with mock.patch("sys.argv", ["templatr", "setup"]), mock.patch(
+            "templatr.integrations.orchestratr.resolve_orchestratr_apps_dir",
+            return_value=None,
+        ), mock.patch(
+            "templatr.integrations.orchestratr.generate_manifest",
+        ) as mock_gen:
+            exit_code = main()
+
+        assert exit_code == 0
+        mock_gen.assert_not_called()
+        captured = capsys.readouterr()
+        assert "not found" in captured.out
+
+    def test_setup_dry_run(self, tmp_path, capsys):
+        """--dry-run previews actions without writing the manifest."""
+        from templatr.__main__ import main
+
+        apps_dir = tmp_path / "apps.d"
+        apps_dir.mkdir()
+
+        with mock.patch(
+            "sys.argv", ["templatr", "setup", "--dry-run"]
+        ), mock.patch(
+            "templatr.integrations.orchestratr.resolve_orchestratr_apps_dir",
+            return_value=apps_dir,
+        ), mock.patch(
+            "templatr.integrations.orchestratr.generate_manifest",
+        ) as mock_gen:
+            exit_code = main()
+
+        assert exit_code == 0
+        mock_gen.assert_not_called()
+        captured = capsys.readouterr()
+        assert "[dry-run]" in captured.out
+
+    def test_setup_idempotent(self, tmp_path, capsys):
+        """setup prints 'up to date' when manifest is already current."""
+        from templatr.__main__ import main
+
+        apps_dir = tmp_path / "apps.d"
+        apps_dir.mkdir()
+
+        with mock.patch("sys.argv", ["templatr", "setup"]), mock.patch(
+            "templatr.integrations.orchestratr.resolve_orchestratr_apps_dir",
+            return_value=apps_dir,
+        ), mock.patch(
+            "templatr.integrations.orchestratr.manifest_needs_update",
+            return_value=False,
+        ), mock.patch(
+            "templatr.integrations.orchestratr.generate_manifest",
+        ) as mock_gen:
+            exit_code = main()
+
+        assert exit_code == 0
+        mock_gen.assert_not_called()
+        captured = capsys.readouterr()
+        assert "up to date" in captured.out
+
+    def test_setup_subcommand_accepted(self):
+        """argparse accepts the setup subcommand without error."""
+        from templatr.__main__ import main
+
+        with mock.patch("sys.argv", ["templatr", "setup"]), mock.patch(
+            "templatr.integrations.orchestratr.resolve_orchestratr_apps_dir",
+            return_value=None,
+        ):
+            exit_code = main()
+
+        assert exit_code == 0
+
+
+# ---------------------------------------------------------------------------
 # GUI integration settings dialog tests
 # ---------------------------------------------------------------------------
 
