@@ -8,6 +8,7 @@ from typing import Optional
 from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import (
     QAction,
+    QActionGroup,
     QDesktopServices,
     QDragEnterEvent,
     QDropEvent,
@@ -267,6 +268,28 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
             "download": download_action,
             "refresh": refresh_action,
         }
+
+        # View menu
+        view_menu = menubar.addMenu("&View")
+        theme_menu = view_menu.addMenu("&Theme")
+        theme_group = QActionGroup(self)
+        theme_group.setExclusive(True)
+
+        current_theme = get_config().ui.theme
+
+        dark_action = QAction("Dark", self)
+        dark_action.setCheckable(True)
+        dark_action.setChecked(current_theme == "dark")
+        dark_action.triggered.connect(lambda: self._switch_theme("dark"))
+        theme_group.addAction(dark_action)
+        theme_menu.addAction(dark_action)
+
+        light_action = QAction("Light", self)
+        light_action.setCheckable(True)
+        light_action.setChecked(current_theme == "light")
+        light_action.triggered.connect(lambda: self._switch_theme("light"))
+        theme_group.addAction(light_action)
+        theme_menu.addAction(light_action)
 
         # Help menu
         help_menu = menubar.addMenu("&Help")
@@ -583,6 +606,21 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
     def _show_llm_settings(self):
         """Show the LLM settings dialog."""
         LLMSettingsDialog(self).exec()
+
+    def _switch_theme(self, theme: str):
+        """Switch the application theme and persist the preference.
+
+        Args:
+            theme: Theme name ("dark" or "light").
+        """
+        cm = get_config_manager()
+        cm.config.ui.theme = theme
+        save_config(cm.config)
+
+        app = QApplication.instance()
+        if app:
+            stylesheet = get_theme_stylesheet(theme, cm.config.ui.font_size)
+            app.setStyleSheet(stylesheet)
 
     def _show_integrations(self):
         """Show the Integrations settings dialog."""
