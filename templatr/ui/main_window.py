@@ -127,6 +127,7 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         self._restore_state()
         self.llm_toolbar.check_status()
         self._apply_scaling()
+        self._check_orchestratr_manifest()
 
     # ------------------------------------------------------------------
     # Sidebar toggle
@@ -237,6 +238,10 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         imp_instr = QAction("Edit &Improve Template Instructions...", self)
         imp_instr.triggered.connect(self._edit_improve_instructions)
         ai_menu.addAction(imp_instr)
+
+        integrations_action = QAction("&Integrations...", self)
+        integrations_action.triggered.connect(self._show_integrations)
+        file_menu.addAction(integrations_action)
         file_menu.addSeparator()
 
         # LLM menu
@@ -578,6 +583,26 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
     def _show_llm_settings(self):
         """Show the LLM settings dialog."""
         LLMSettingsDialog(self).exec()
+
+    def _show_integrations(self):
+        """Show the Integrations settings dialog."""
+        from templatr.ui.integration_settings import IntegrationSettingsDialog
+
+        IntegrationSettingsDialog(self).exec()
+
+    def _check_orchestratr_manifest(self):
+        """Show a status bar hint if the orchestratr manifest is stale."""
+        try:
+            from templatr.integrations.orchestratr import manifest_needs_update
+
+            if manifest_needs_update():
+                self.status_bar.showMessage(
+                    "orchestratr registration is outdated. "
+                    "Update via File \u2192 Integrations.",
+                    10000,
+                )
+        except Exception:
+            pass  # Fully passive — never block startup
 
     def _show_history_browser(self) -> None:
         """Open the prompt history browser dialog.
