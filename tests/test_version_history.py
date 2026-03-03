@@ -4,10 +4,8 @@ Covers: dialog creation, version list population, content preview
 on selection, restore action, and empty history handling.
 """
 
-from unittest import mock
 
 from templatr.core.templates import Template, TemplateVersion
-
 
 # ---------------------------------------------------------------------------
 # Helper: create test versions
