@@ -1,6 +1,6 @@
 # Feature: orchestratr Connector
 
-**Status:** Not started
+**Status:** Implemented (install.sh integration pending)
 **Project:** templatr
 
 ## Description

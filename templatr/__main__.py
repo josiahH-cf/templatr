@@ -69,6 +69,16 @@ def main() -> int:
     # templatr gui (explicit, optional)
     subparsers.add_parser("gui", help="Launch the GUI")
 
+    # templatr setup
+    setup_parser = subparsers.add_parser(
+        "setup", help="Post-install setup and orchestratr registration"
+    )
+    setup_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview actions without writing files",
+    )
+
     args = parser.parse_args()
 
     if args.doctor:
@@ -79,10 +89,52 @@ def main() -> int:
     if args.command == "status":
         return _cmd_status(args)
 
+    if args.command == "setup":
+        return _cmd_setup(args)
+
     # Default: launch GUI (no args or explicit 'gui' subcommand)
     from templatr.ui.main_window import run_gui
 
     return run_gui()
+
+
+def _cmd_setup(args) -> int:
+    """Handle the ``templatr setup`` subcommand.
+
+    Registers templatr with orchestratr by writing a manifest to the
+    apps.d/ drop-in directory.  Skips silently when orchestratr is not
+    installed.  Supports ``--dry-run`` for previewing without writing.
+    """
+    from templatr.integrations.orchestratr import (
+        generate_manifest,
+        manifest_needs_update,
+        resolve_orchestratr_apps_dir,
+    )
+
+    dry_run = getattr(args, "dry_run", False)
+    apps_dir = resolve_orchestratr_apps_dir()
+
+    if dry_run:
+        if apps_dir is not None:
+            manifest_path = apps_dir / "templatr.yml"
+            print(f"[dry-run] Would write orchestratr manifest to {manifest_path}")
+        else:
+            print("[dry-run] orchestratr not found — would skip app registration")
+        return 0
+
+    if apps_dir is not None:
+        if manifest_needs_update():
+            result = generate_manifest()
+            if result:
+                print("Registered with orchestratr")
+            else:
+                print("orchestratr registration failed (could not resolve apps dir)")
+        else:
+            print("orchestratr manifest: up to date")
+    else:
+        print("orchestratr not found — skipping app registration")
+
+    return 0
 
 
 def _cmd_status(args) -> int:
