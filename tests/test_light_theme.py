@@ -7,10 +7,7 @@ theme toggle persistence, and View → Theme menu existence.
 import re
 from unittest import mock
 
-import pytest
-
 from templatr.ui.theme import DARK_THEME, LIGHT_THEME, get_theme_stylesheet
-
 
 # ---------------------------------------------------------------------------
 # Helper: extract top-level CSS selectors from a stylesheet string
