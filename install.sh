@@ -371,6 +371,16 @@ print_summary() {
     echo ""
 }
 
+# Register with orchestratr (optional — skips if orchestratr not installed)
+register_orchestratr() {
+    log_info "Registering with orchestratr..."
+    if "$VENV_DIR/bin/templatr" setup 2>/dev/null; then
+        log_success "orchestratr registration complete"
+    else
+        log_warn "orchestratr not installed — skipping registration"
+    fi
+}
+
 # Main installation
 main() {
     echo ""
@@ -402,6 +412,7 @@ main() {
     setup_python_env
     build_llama_cpp
     setup_config
+    register_orchestratr
     setup_alias
     smoke_test
     print_summary
