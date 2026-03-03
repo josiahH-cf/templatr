@@ -248,45 +248,27 @@ class TemplateActionsMixin:
             )
             return
 
-        items = []
-        for v in reversed(versions):
-            timestamp = v.timestamp[:19].replace("T", " ") if v.timestamp else "Unknown"
-            label = f"v{v.version}"
-            if v.version == 1:
-                label += " (Original)"
-            if v.note:
-                label += f" - {v.note}"
-            label += f" [{timestamp}]"
-            items.append(label)
+        from templatr.ui.version_history import VersionHistoryDialog
 
-        item, ok = QInputDialog.getItem(
-            self,
-            "Revert Template",
-            f"Select a version to revert '{target.name}' to:",
-            items,
-            0,
-            False,
+        dialog = VersionHistoryDialog(
+            template=target, versions=versions, parent=self
         )
-        if not ok or not item:
-            return
-
-        selected_idx = items.index(item)
-        selected_version = versions[-(selected_idx + 1)]
-
-        reply = QMessageBox.question(
-            self,
-            "Confirm Revert",
-            f"Revert to version {selected_version.version}?\n\n"
-            "This will replace the current template content with the "
-            "selected version.\nA backup of the current state will be saved.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        dialog.version_restored.connect(
+            lambda ver_num: self._restore_version(target, ver_num)
         )
-        if reply != QMessageBox.StandardButton.Yes:
-            return
+        dialog.exec()
 
+    def _restore_version(self, template: Template, version_num: int) -> None:
+        """Restore a template to the given version number.
+
+        Args:
+            template: Template to restore.
+            version_num: Version number to restore to.
+        """
+        manager = get_template_manager()
         restored = manager.restore_version(
-            target,
-            selected_version.version,
+            template,
+            version_num,
             create_backup=True,
         )
         if restored:
@@ -295,7 +277,7 @@ class TemplateActionsMixin:
             if self.variable_form is not None:
                 self.variable_form.set_template(self.current_template)
             self.status_bar.showMessage(
-                f"Reverted to version {selected_version.version}",
+                f"Reverted to version {version_num}",
                 3000,
             )
         else:
