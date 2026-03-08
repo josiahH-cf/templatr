@@ -128,9 +128,10 @@ def test_factory_linux_binary_search_paths(tmp_path: Path) -> None:
     ):
         pc = get_platform_config(_bypass_cache=True)
 
-    # Should include data_dir/llama.cpp/build/bin and legacy paths
+    # Should include data_dir/llama.cpp/build/bin, vendor path, and legacy paths
     path_strs = [str(p) for p in pc.binary_search_paths]
     assert any("llama.cpp" in s for s in path_strs)
+    assert any("vendor" in s and "llama-server" in s for s in path_strs)
     assert any(".local/bin" in s or ".local" in s for s in path_strs)
 
 
@@ -179,6 +180,7 @@ def test_factory_macos_binary_search_paths(tmp_path: Path) -> None:
 
     path_strs = [str(p) for p in pc.binary_search_paths]
     assert any("homebrew" in s for s in path_strs)
+    assert any("vendor" in s and "llama-server" in s for s in path_strs)
 
 
 # ---------------------------------------------------------------------------
@@ -207,6 +209,8 @@ def test_factory_windows_uses_appdata(tmp_path: Path) -> None:
     assert pc.config_dir == appdata / "templatr"
     assert pc.data_dir == localappdata / "templatr"
     assert pc.binary_name == "llama-server.exe"
+    path_strs = [str(p) for p in pc.binary_search_paths]
+    assert any("vendor" in s and "llama-server" in s for s in path_strs)
 
 
 def test_factory_windows_fallback_without_appdata(tmp_path: Path) -> None:

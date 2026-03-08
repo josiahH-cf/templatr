@@ -42,6 +42,7 @@ def _linux_platform_config(home: Path) -> PlatformConfig:
         binary_name="llama-server",
         binary_search_paths=[
             data_dir / "llama.cpp" / "build" / "bin",
+            data_dir / "vendor" / "llama-server",
             home / "llama.cpp" / "build" / "bin",
             home / ".local" / "bin",
             Path("/usr/local/bin"),

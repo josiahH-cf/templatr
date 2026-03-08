@@ -185,7 +185,7 @@ build_llama_cpp() {
     # Clone if not present
     if [[ ! -d "$LLAMA_CPP_DIR" ]]; then
         log_info "Cloning llama.cpp to $LLAMA_CPP_DIR..."
-        git clone --depth 1 https://github.com/ggerganov/llama.cpp.git "$LLAMA_CPP_DIR"
+        git clone --depth 1 https://github.com/ggml-org/llama.cpp.git "$LLAMA_CPP_DIR"
     fi
     
     cd "$LLAMA_CPP_DIR"
@@ -209,8 +209,41 @@ build_llama_cpp() {
     cmake .. $CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release
     cmake --build . --config Release -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
     
-    log_success "llama.cpp built successfully"
     cd "$SCRIPT_DIR"
+    
+    # Verify binary was produced at the expected location
+    EXPECTED_BIN="$LLAMA_CPP_DIR/build/bin/llama-server"
+    if [[ ! -f "$EXPECTED_BIN" ]]; then
+        # cmake output path varies across llama.cpp versions — search for it
+        FOUND_BIN=$(find "$LLAMA_CPP_DIR/build" -name "llama-server" -type f -executable 2>/dev/null | head -1)
+        if [[ -n "$FOUND_BIN" ]]; then
+            log_info "Binary found at $FOUND_BIN, copying to expected location..."
+            mkdir -p "$(dirname "$EXPECTED_BIN")"
+            cp "$FOUND_BIN" "$EXPECTED_BIN"
+            chmod +x "$EXPECTED_BIN"
+        fi
+    fi
+    
+    # If source build failed to produce binary, fall back to pre-built download
+    if [[ ! -f "$EXPECTED_BIN" ]]; then
+        log_warn "Source build did not produce llama-server, trying pre-built download..."
+        if source "$VENV_DIR/bin/activate" && python3 "$SCRIPT_DIR/scripts/download_llama_server.py" 2>/dev/null; then
+            DOWNLOADED="$SCRIPT_DIR/vendor/llama-server/llama-server"
+            if [[ -f "$DOWNLOADED" ]]; then
+                mkdir -p "$(dirname "$EXPECTED_BIN")"
+                cp "$DOWNLOADED" "$EXPECTED_BIN"
+                chmod +x "$EXPECTED_BIN"
+                log_success "Pre-built llama-server downloaded and installed"
+            fi
+        fi
+    fi
+    
+    if [[ -f "$EXPECTED_BIN" ]]; then
+        log_success "llama.cpp built successfully"
+    else
+        log_error "Failed to build or download llama-server binary"
+        log_error "LLM features will not work. See docs/troubleshooting-linux.md"
+    fi
 }
 
 # Setup configuration
@@ -337,9 +370,18 @@ smoke_test() {
     
     # Check llama-server
     if [[ -f "$LLAMA_CPP_DIR/build/bin/llama-server" ]]; then
-        log_success "llama-server binary found"
+        # Verify the binary actually runs
+        if "$LLAMA_CPP_DIR/build/bin/llama-server" --version &>/dev/null; then
+            log_success "llama-server binary found and executable"
+        else
+            log_error "llama-server binary found but failed to execute"
+            log_error "It may be missing shared libraries. See docs/troubleshooting-linux.md"
+            return 1
+        fi
     else
-        log_warn "llama-server not found - LLM features will be unavailable"
+        log_error "llama-server not found - LLM features will be unavailable"
+        log_error "Run: python3 scripts/download_llama_server.py"
+        return 1
     fi
     
     log_success "Smoke test complete!"

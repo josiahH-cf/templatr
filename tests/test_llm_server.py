@@ -31,6 +31,7 @@ def _linux_platform_config(home: Path) -> PlatformConfig:
         binary_name="llama-server",
         binary_search_paths=[
             data_dir / "llama.cpp" / "build" / "bin",
+            data_dir / "vendor" / "llama-server",
             home / "llama.cpp" / "build" / "bin",
             home / ".local" / "bin",
             Path("/usr/local/bin"),
@@ -214,3 +215,29 @@ def test_find_models_returns_empty_list_when_directory_missing(tmp_path: Path) -
 
     models = mgr.find_models()
     assert models == []
+
+
+# ---------------------------------------------------------------------------
+# 6. find_server_binary() finds binary in vendor/llama-server/ under data dir
+# ---------------------------------------------------------------------------
+
+
+def test_find_server_binary_finds_binary_in_vendor_dir(tmp_path: Path) -> None:
+    """find_server_binary() finds the binary in the data_dir/vendor/llama-server/ path."""
+    pc = _linux_platform_config(tmp_path)
+    binary_name = pc.binary_name
+    # The vendor search path is data_dir/vendor/llama-server
+    vendor_dir = pc.binary_search_paths[1]
+    vendor_dir.mkdir(parents=True)
+    binary = vendor_dir / binary_name
+    binary.write_text("#!/bin/sh\n")
+    _make_executable(binary)
+
+    cfg = LLMConfig(server_binary="")  # no configured path
+    mgr = _manager_with_config(cfg)
+
+    with patch("templatr.integrations.llm.get_platform_config", return_value=pc):
+        with patch("templatr.integrations.llm.shutil.which", return_value=None):
+            result = mgr.find_server_binary()
+
+    assert result == binary
