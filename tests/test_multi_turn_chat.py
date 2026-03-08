@@ -348,3 +348,32 @@ def test_llm_settings_saves_max_turns(qtbot, tmp_config_dir, monkeypatch):
 
     loaded = get_config_manager().config
     assert loaded.llm.max_turns == 3
+
+
+# ---------------------------------------------------------------------------
+# BUG-003: Template content must not leak into conversation memory
+# ---------------------------------------------------------------------------
+
+
+def test_template_submission_stores_summary_not_rendered_content():
+    """BUG-003: When a template turn is recorded in memory, the user field
+    should contain the concise summary (e.g. '/Template Name — var: val'),
+    NOT the full rendered template. This prevents instructional template
+    content from leaking into subsequent plain-text LLM calls."""
+    mem = ConversationMemory(max_turns=6, context_char_limit=4000)
+
+    # Simulate what _on_generation_finished stores: the user_display_text
+    # (summary), not the full rendered template.
+    summary = "/Bias Checker — input: some text"
+    full_template = (
+        "You are a specialized bias analyzer. "
+        "Examine the following text for hidden bias: some text"
+    )
+    mem.add_turn(summary, "The text shows no obvious bias.")
+
+    # When next plain message is assembled, it must include the summary (not
+    # the instructional template text).
+    assembled, _ = mem.assemble_prompt("check this paragraph")
+    assert summary in assembled
+    assert full_template not in assembled
+    assert "bias analyzer" not in assembled

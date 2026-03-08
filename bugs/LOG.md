@@ -30,9 +30,12 @@
 - **Severity:** blocking
 - **Expected:** Chat responses should not include implicit template injection unless the user explicitly selected a template.
 - **Actual:** Template-like content appears in response output without explicit selection.
+- **Root cause:** When a template was rendered and sent to the LLM, the full rendered template string (including instructional system-like text) was stored as the user turn in conversation memory. Subsequent plain-text messages assembled via assemble_prompt() then included the template instructions in ChatML context, causing the LLM to see and echo template content the user never selected.
+- **Fix:** Changed template_submitted signal to emit both the rendered prompt (for the LLM) and a concise user summary (template name + variable values). The summary is shown in the chat bubble and stored in conversation memory; the full rendered prompt is only used for the current LLM call. _generation.py's _run_generation now accepts user_display_text to separate what the user sees from what the LLM receives.
 - **Fix-as-you-go:** no
-- **Status:** open
+- **Status:** fixed
 - **Logged:** 2026-03-08
+- **Fixed:** 2026-03-08
 
 ### BUG-004: output pane is non-scrollable and bulky
 - **Location:** `templatr/ui/output_pane.py`

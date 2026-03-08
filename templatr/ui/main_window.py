@@ -558,7 +558,9 @@ class MainWindow(TemplateActionsMixin, GenerationMixin, WindowStateMixin, QMainW
         right_layout.addWidget(self.chat_widget, stretch=1)
 
         self.slash_input = SlashInputWidget()
-        self.slash_input.template_submitted.connect(self._generate)
+        self.slash_input.template_submitted.connect(
+            lambda rendered, summary: self._generate(rendered, user_display_text=summary)
+        )
         self.slash_input.plain_submitted.connect(self._handle_plain_input)
         self.slash_input.system_command.connect(self._on_system_command)
         self.slash_input.template_chosen.connect(self._on_palette_template_chosen)

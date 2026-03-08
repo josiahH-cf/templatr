@@ -222,7 +222,7 @@ class SlashInputWidget(QWidget):
         template_chosen: Signal emitting the template name when a template is picked.
     """
 
-    template_submitted = pyqtSignal(str)
+    template_submitted = pyqtSignal(str, str)  # (rendered_prompt, user_summary)
     plain_submitted = pyqtSignal(str)
     system_command = pyqtSignal(str)  # emits command id (e.g. "help", "settings")
     template_chosen = pyqtSignal(str)  # emits template name when a template is selected
@@ -342,7 +342,8 @@ class SlashInputWidget(QWidget):
         if not template.variables:
             rendered = template.render({})
             self._text_input.clear()
-            self.template_submitted.emit(rendered)
+            summary = f"/{template.name}"
+            self.template_submitted.emit(rendered, summary)
             self._active_template = None
         else:
             self._text_input.setEnabled(False)
@@ -374,11 +375,17 @@ class SlashInputWidget(QWidget):
         """
         if self._active_template is not None:
             rendered = self._active_template.render(values)
+            filled = {k: v for k, v in values.items() if v}
+            if filled:
+                parts = ", ".join(f"{k}: {v}" for k, v in filled.items())
+                summary = f"/{self._active_template.name} — {parts}"
+            else:
+                summary = f"/{self._active_template.name}"
             self._active_template = None
             self._inline_form.clear()
             self._text_input.setEnabled(True)
             self._text_input.clear()
-            self.template_submitted.emit(rendered)
+            self.template_submitted.emit(rendered, summary)
 
     def _on_form_cancelled(self) -> None:
         """Dismiss the inline form and restore the input."""
