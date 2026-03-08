@@ -233,3 +233,40 @@ def test_scroll_to_bottom_when_already_at_bottom(qtbot):
 
     # Should still be at bottom (or close to it)
     assert widget._is_at_bottom()
+
+
+# -- BUG-004: AI bubble auto-sizes to content (no nested scroll) -----------
+
+
+def test_ai_bubble_has_no_vertical_scroll_bar(qtbot):
+    """BUG-004: AI bubble QTextBrowser should not have its own vertical scroll
+    bar — the outer ChatWidget scroll area handles all scrolling."""
+    from PyQt6.QtCore import Qt
+
+    bubble = MessageBubble(MessageRole.AI)
+    qtbot.addWidget(bubble)
+    bubble.show()
+    bubble.set_text("Line\n" * 50)
+    assert (
+        bubble._browser.verticalScrollBarPolicy()
+        == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+    )
+
+
+def test_ai_bubble_height_grows_with_content(qtbot):
+    """BUG-004: AI bubble height should increase as content grows, rather
+    than staying fixed with an internal scroll bar."""
+    bubble = MessageBubble(MessageRole.AI)
+    qtbot.addWidget(bubble)
+    bubble.show()
+    bubble.resize(400, 100)
+
+    bubble.set_text("Short")
+    QApplication.processEvents()
+    short_height = bubble._browser.height()
+
+    bubble.set_text("Line\n" * 30)
+    QApplication.processEvents()
+    long_height = bubble._browser.height()
+
+    assert long_height > short_height

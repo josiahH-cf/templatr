@@ -38,11 +38,14 @@
 - **Fixed:** 2026-03-08
 
 ### BUG-004: output pane is non-scrollable and bulky
-- **Location:** `templatr/ui/output_pane.py`
+- **Location:** `templatr/ui/message_bubble.py`
 - **Phase:** 7b Bug Track
 - **Severity:** blocking
 - **Expected:** Output pane supports vertical scrolling and readable wrapping for long returned information in full-window usage.
 - **Actual:** Returned information UI is bulky and non-scrollable in the output pane.
+- **Root cause:** AI message bubbles used a QTextBrowser with SizePolicy.Minimum vertical policy and its own internal scroll bar. Long responses created small browsers with nested scroll bars inside the ChatWidget's scroll area, making the UI bulky and hard to scroll.
+- **Fix:** Set QTextBrowser vertical scroll bar to AlwaysOff, changed size policy to Fixed, and added auto-height adjustment via document contentsChanged signal. The browser now expands to fit its content exactly, and the ChatWidget's outer scroll area handles all scrolling. Added resizeEvent handler so text reflow on window resize also adjusts height.
 - **Fix-as-you-go:** no
-- **Status:** open
+- **Status:** fixed
 - **Logged:** 2026-03-08
+- **Fixed:** 2026-03-08

@@ -136,6 +136,23 @@ class MessageBubble(QWidget):
         clipboard.setText(self._raw_text)
         self.copy_requested.emit(self._raw_text)
 
+    def _adjust_browser_height(self) -> None:
+        """Resize the QTextBrowser to exactly fit its document content.
+
+        Called on document contentsChanged so the browser never shows its
+        own scroll bar; the outer ChatWidget scroll area handles scrolling.
+        """
+        doc = self._browser.document()
+        doc.setTextWidth(self._browser.viewport().width())
+        height = int(doc.size().height()) + 4
+        self._browser.setFixedHeight(max(height, 20))
+
+    def resizeEvent(self, event) -> None:  # noqa: N802
+        """Re-adjust browser height when the bubble width changes."""
+        super().resizeEvent(event)
+        if self.role == MessageRole.AI and hasattr(self, "_browser"):
+            self._adjust_browser_height()
+
     # -- Internal setup ------------------------------------------------------
 
     def _setup_ui(self) -> None:
@@ -206,14 +223,24 @@ class MessageBubble(QWidget):
         header.addWidget(self._copy_btn)
         layout.addLayout(header)
 
-        # QTextBrowser for Markdown-rendered HTML
+        # QTextBrowser for Markdown-rendered HTML — auto-sizes to content
+        # so the outer ChatWidget scroll area handles all scrolling.
         self._browser = QTextBrowser()
         self._browser.setOpenExternalLinks(False)
         self._browser.setReadOnly(True)
+        self._browser.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self._browser.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
         self._browser.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
         self._browser.document().setDocumentMargin(0)
+        self._browser.document().contentsChanged.connect(
+            self._adjust_browser_height
+        )
         layout.addWidget(self._browser)
 
         outer.addWidget(container)
