@@ -241,3 +241,68 @@ def test_find_server_binary_finds_binary_in_vendor_dir(tmp_path: Path) -> None:
             result = mgr.find_server_binary()
 
     assert result == binary
+
+
+# ---------------------------------------------------------------------------
+# 7. LLMClient.close_active_stream() closes the active response
+# ---------------------------------------------------------------------------
+
+
+def test_close_active_stream_closes_response() -> None:
+    """close_active_stream() calls close() on the active response."""
+    from templatr.integrations.llm import LLMClient
+
+    client = LLMClient()
+    mock_response = type("FakeResponse", (), {"close": lambda self: None})()
+    client._active_response = mock_response
+
+    with patch.object(mock_response, "close") as mock_close:
+        client.close_active_stream()
+
+    mock_close.assert_called_once()
+
+
+def test_close_active_stream_noop_when_no_response() -> None:
+    """close_active_stream() is a no-op when no active response exists."""
+    from templatr.integrations.llm import LLMClient
+
+    client = LLMClient()
+    assert client._active_response is None
+    client.close_active_stream()  # should not raise
+
+
+# ---------------------------------------------------------------------------
+# 8. LLMClient.generate_stream() uses tuple timeout
+# ---------------------------------------------------------------------------
+
+
+def test_generate_stream_uses_tuple_timeout() -> None:
+    """generate_stream() passes a (connect, read) timeout tuple to requests."""
+    from templatr.integrations.llm import LLMClient
+
+    client = LLMClient()
+
+    mock_response = type(
+        "FakeResponse",
+        (),
+        {
+            "raise_for_status": lambda self: None,
+            "iter_lines": lambda self: iter([]),
+            "close": lambda self: None,
+            "__enter__": lambda self: self,
+            "__exit__": lambda *a: None,
+        },
+    )()
+
+    with patch("templatr.integrations.llm.requests.post", return_value=mock_response) as mock_post:
+        with patch("templatr.integrations.llm.get_config") as mock_config:
+            mock_config.return_value.llm.max_tokens = 100
+            mock_config.return_value.llm.temperature = 0.7
+            mock_config.return_value.llm.top_p = 1.0
+            mock_config.return_value.llm.top_k = 40
+            mock_config.return_value.llm.repeat_penalty = 1.1
+            # Consume the generator
+            list(client.generate_stream("test"))
+
+    _, kwargs = mock_post.call_args
+    assert kwargs["timeout"] == (10, 90)

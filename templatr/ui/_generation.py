@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from templatr.core.config import get_config
 from templatr.integrations.llm import get_llm_server
-from templatr.ui.workers import GenerationWorker
+from templatr.ui.workers import GenerationWorker, ServerStartWorker
 
 logger = logging.getLogger(__name__)
 
@@ -52,14 +52,48 @@ class GenerationMixin:
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
             if reply == QMessageBox.StandardButton.Yes:
-                success, message = server.start()
-                if not success:
-                    QMessageBox.critical(self, "Error", message)
-                    return
-                self.llm_toolbar.check_status()
+                self.slash_input.set_generating(True)
+                self.status_bar.showMessage("Starting server...", 0)
+                self._pending_prompt = prompt
+                self._server_start_worker = ServerStartWorker()
+                self._server_start_worker.finished.connect(
+                    self._on_server_started_for_generate
+                )
+                self._server_start_worker.start()
+                return
             else:
                 return
 
+        self._run_generation(prompt)
+
+    def _on_server_started_for_generate(self, success: bool, message: str):
+        """Handle server start completion and continue generation.
+
+        Args:
+            success: Whether the server started.
+            message: Status or error message.
+        """
+        prompt = getattr(self, "_pending_prompt", None)
+        self._pending_prompt = None
+        self._server_start_worker = None
+
+        if not success:
+            self.slash_input.set_generating(False)
+            QMessageBox.critical(self, "Error", message)
+            return
+
+        self.llm_toolbar.check_status()
+        if prompt:
+            self._run_generation(prompt)
+        else:
+            self.slash_input.set_generating(False)
+
+    def _run_generation(self, prompt: str):
+        """Start the generation worker for the given prompt.
+
+        Args:
+            prompt: The fully-rendered prompt string.
+        """
         self.slash_input.set_generating(True)
         self.chat_widget.add_user_message(prompt)
 

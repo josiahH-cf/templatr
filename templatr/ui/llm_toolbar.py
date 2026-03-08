@@ -5,7 +5,6 @@ from pathlib import Path
 from PyQt6.QtCore import Qt, QTimer, QUrl, pyqtSignal
 from PyQt6.QtGui import QAction, QDesktopServices
 from PyQt6.QtWidgets import (
-    QApplication,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -17,7 +16,7 @@ from PyQt6.QtWidgets import (
 
 from templatr.core.config import get_config, get_platform_config
 from templatr.integrations.llm import get_llm_server
-from templatr.ui.workers import ModelCopyWorker
+from templatr.ui.workers import ModelCopyWorker, ServerStartWorker
 
 
 class LLMToolbar(QWidget):
@@ -66,21 +65,31 @@ class LLMToolbar(QWidget):
         self._model_menu.aboutToShow.connect(self.populate_model_menu)
 
     def start_server(self):
-        """Start the LLM server."""
+        """Start the LLM server in a background thread."""
         server = get_llm_server()
         if server.is_running():
             self.status_message.emit("Server already running", 3000)
             return
 
         self.status_message.emit("Starting server...", 0)
-        QApplication.processEvents()
+        self.server_btn.setEnabled(False)
+        self._start_worker = ServerStartWorker()
+        self._start_worker.finished.connect(self._on_server_started)
+        self._start_worker.start()
 
-        success, message = server.start()
+    def _on_server_started(self, success: bool, message: str):
+        """Handle server start worker completion.
+
+        Args:
+            success: Whether the server started.
+            message: Status or error message.
+        """
+        self._start_worker = None
+        self.server_btn.setEnabled(True)
         if success:
             self.status_message.emit("Server started", 3000)
         else:
             QMessageBox.critical(self.window(), "Server Error", message)
-
         self.check_status()
 
     def stop_server(self):
@@ -102,16 +111,7 @@ class LLMToolbar(QWidget):
         if server.is_running():
             self.launch_web_server()
         else:
-            self.status_message.emit("Starting server...", 0)
-            QApplication.processEvents()
-
-            success, message = server.start()
-            if success:
-                self.status_message.emit("Server started", 3000)
-            else:
-                self.status_message.emit(f"Failed to start server: {message}", 5000)
-
-            self.check_status()
+            self.start_server()
 
     def launch_web_server(self):
         """Open the LLM web server in the default browser."""
