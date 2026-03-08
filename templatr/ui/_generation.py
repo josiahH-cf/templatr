@@ -34,11 +34,16 @@ class GenerationMixin:
         conversation_memory (ConversationMemory): Optional session memory (read/write).
     """
 
-    def _generate(self, prompt: str):
+    def _generate(self, prompt: str, user_display_text: str | None = None):
         """Generate output using the LLM for the given rendered prompt.
 
         Args:
             prompt: The fully-rendered prompt string to send to the LLM.
+            user_display_text: Optional concise text to show in the chat
+                bubble and store in conversation memory instead of the
+                full rendered prompt.  Used for template submissions so
+                that instructional template content does not leak into
+                multi-turn history.
         """
         if not prompt:
             return
@@ -55,6 +60,7 @@ class GenerationMixin:
                 self.slash_input.set_generating(True)
                 self.status_bar.showMessage("Starting server...", 0)
                 self._pending_prompt = prompt
+                self._pending_display_text = user_display_text
                 self._server_start_worker = ServerStartWorker()
                 self._server_start_worker.finished.connect(
                     self._on_server_started_for_generate
@@ -64,7 +70,7 @@ class GenerationMixin:
             else:
                 return
 
-        self._run_generation(prompt)
+        self._run_generation(prompt, user_display_text=user_display_text)
 
     def _on_server_started_for_generate(self, success: bool, message: str):
         """Handle server start completion and continue generation.
@@ -74,7 +80,9 @@ class GenerationMixin:
             message: Status or error message.
         """
         prompt = getattr(self, "_pending_prompt", None)
+        display_text = getattr(self, "_pending_display_text", None)
         self._pending_prompt = None
+        self._pending_display_text = None
         self._server_start_worker = None
 
         if not success:
@@ -84,18 +92,20 @@ class GenerationMixin:
 
         self.llm_toolbar.check_status()
         if prompt:
-            self._run_generation(prompt)
+            self._run_generation(prompt, user_display_text=display_text)
         else:
             self.slash_input.set_generating(False)
 
-    def _run_generation(self, prompt: str):
+    def _run_generation(self, prompt: str, *, user_display_text: str | None = None):
         """Start the generation worker for the given prompt.
 
         Args:
             prompt: The fully-rendered prompt string.
+            user_display_text: Optional concise text for chat display and
+                conversation memory (see ``_generate``).
         """
         self.slash_input.set_generating(True)
-        self.chat_widget.add_user_message(prompt)
+        self.chat_widget.add_user_message(user_display_text or prompt)
 
         # Assemble multi-turn context if memory is available.
         memory = getattr(self, "conversation_memory", None)
@@ -109,7 +119,7 @@ class GenerationMixin:
             assembled = prompt
 
         self._active_ai_bubble = self.chat_widget.add_ai_bubble()
-        self._last_original_prompt = prompt
+        self._last_original_prompt = user_display_text or prompt
         self._last_prompt = assembled  # full context recorded in history and used by /compare
         self._last_output = None
 

@@ -114,6 +114,7 @@ def test_selecting_template_without_vars_emits_template_submitted(qtbot):
         widget._on_template_chosen(no_vars)
 
     assert sig.args[0] == no_vars.render({})
+    assert sig.args[1] == f"/{no_vars.name}"
 
 
 def test_selecting_template_with_vars_shows_inline_form(qtbot):
@@ -153,6 +154,8 @@ def test_filling_form_and_submitting_emits_template_submitted(qtbot):
 
     rendered = with_vars.render({"code": "x = 1", "focus": "readability"})
     assert sig.args[0] == rendered
+    assert "Code Review" in sig.args[1]
+    assert "code: x = 1" in sig.args[1]
 
 
 def test_form_hides_after_submission(qtbot):
