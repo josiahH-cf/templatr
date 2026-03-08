@@ -102,6 +102,7 @@ def get_platform_config(*, _bypass_cache: bool = False) -> PlatformConfig:
         models_dir = home / "models"
         binary_search_paths = [
             data_dir / "llama.cpp" / "build" / "bin",
+            data_dir / "vendor" / "llama-server",
             home / "llama.cpp" / "build" / "bin",
         ]
     elif system == "Darwin":
@@ -113,6 +114,7 @@ def get_platform_config(*, _bypass_cache: bool = False) -> PlatformConfig:
         models_dir = home / "models"
         binary_search_paths = [
             data_dir / "llama.cpp" / "build" / "bin",
+            data_dir / "vendor" / "llama-server",
             home / "llama.cpp" / "build" / "bin",
             home / ".local" / "bin",
             Path("/usr/local/bin"),
@@ -137,6 +139,7 @@ def get_platform_config(*, _bypass_cache: bool = False) -> PlatformConfig:
         models_dir = home / "models"
         binary_search_paths = [
             data_dir / "llama.cpp" / "build" / "bin",
+            data_dir / "vendor" / "llama-server",
             home / "llama.cpp" / "build" / "bin",
             home / ".local" / "bin",
             Path("/usr/local/bin"),
