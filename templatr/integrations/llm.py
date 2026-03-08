@@ -86,6 +86,16 @@ class LLMClient:
         """
         self.base_url = base_url.rstrip("/")
         self.timeout = 120  # 2 minutes for generation
+        self._active_response: Optional[requests.Response] = None
+
+    def close_active_stream(self) -> None:
+        """Close the active streaming response to unblock iter_lines()."""
+        resp = self._active_response
+        if resp is not None:
+            try:
+                resp.close()
+            except Exception:
+                pass
 
     def health_check(self) -> bool:
         """Check if the server is healthy.
@@ -220,12 +230,14 @@ class LLMClient:
         }
 
         try:
-            with requests.post(
+            response = requests.post(
                 f"{self.base_url}/completion",
                 json=payload,
                 stream=True,
-                timeout=self.timeout,
-            ) as response:
+                timeout=(10, 90),
+            )
+            self._active_response = response
+            try:
                 response.raise_for_status()
 
                 for line in response.iter_lines():
@@ -242,6 +254,9 @@ class LLMClient:
                                     yield content
                             except json.JSONDecodeError:
                                 continue
+            finally:
+                self._active_response = None
+                response.close()
 
         except requests.RequestException as e:
             logger.error("Streaming generation failed", exc_info=True)

@@ -17,9 +17,12 @@
 - **Severity:** blocking
 - **Expected:** After starting server and sending generate/chat requests, the app remains interactive, shows progress/streaming, and returns output.
 - **Actual:** After server start and chat entry, UI appears to hang for at least 5 minutes with no usable completion.
+- **Root cause:** (1) server.start() blocked the UI thread for up to 30 seconds with time.sleep() loop. (2) Streaming timeout was a single value applied only to initial connection; once the server accepted but slowly loaded a model, iter_lines() blocked indefinitely. (3) Stop button set a flag but couldn't interrupt a blocked iter_lines() call.
+- **Fix:** Moved server.start() to ServerStartWorker (QThread). Changed streaming timeout to (10, 90) tuple for separate connect/read limits. Added close_active_stream() to LLMClient so stop() can close the underlying response and unblock iter_lines(). Both llm_toolbar and _generation now use async server start.
 - **Fix-as-you-go:** no
-- **Status:** open
+- **Status:** fixed
 - **Logged:** 2026-03-08
+- **Fixed:** 2026-03-08
 
 ### BUG-003: template content appears implicitly in chat response
 - **Location:** `templatr/ui` + template application flow

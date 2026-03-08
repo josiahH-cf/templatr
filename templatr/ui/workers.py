@@ -11,7 +11,7 @@ from typing import Optional
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
-from templatr.integrations.llm import get_llm_client, validate_gguf
+from templatr.integrations.llm import get_llm_client, get_llm_server, validate_gguf
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +68,21 @@ def format_error_message(error: Exception) -> str:
     return f"An unexpected error occurred: {type(error).__name__}\n\n" f"{error}"
 
 
+class ServerStartWorker(QThread):
+    """Background worker that starts the LLM server without blocking the UI."""
+
+    finished = pyqtSignal(bool, str)
+
+    def run(self):
+        """Start the server and emit (success, message)."""
+        server = get_llm_server()
+        if server.is_running():
+            self.finished.emit(True, "Server already running")
+            return
+        success, message = server.start()
+        self.finished.emit(success, message)
+
+
 class GenerationWorker(QThread):
     """Background worker for LLM generation with retry on server startup."""
 
@@ -87,8 +102,11 @@ class GenerationWorker(QThread):
         self.elapsed_seconds: float | None = None
 
     def stop(self):
-        """Request generation to stop."""
+        """Request generation to stop and close any active streaming response."""
         self._stopped = True
+        # Close the underlying HTTP response so iter_lines() unblocks.
+        client = get_llm_client()
+        client.close_active_stream()
 
     def _is_connection_error(self, error: Exception) -> bool:
         """Check if error is a connection issue (server not ready)."""
